@@ -55,10 +55,7 @@ export default function DebtListPage() {
 
   // Modals
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
-  const [paymentModalState, setPaymentModalState] = useState({
-    isOpen: false,
-    customer: null,
-  });
+  const [selectedPayCustomer, setSelectedPayCustomer] = useState(null);
 
   // 1. Query Ringkasan Global Hutang
   const { data: globalSummary = {}, isLoading: summaryLoading } = useQuery({
