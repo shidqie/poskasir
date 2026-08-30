@@ -6,7 +6,7 @@ import { Alert } from '@/components/common/Alert';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { Button } from '@/components/common/Button';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
-import { Barcode, HelpCircle, Camera } from 'lucide-react';
+import { Barcode, HelpCircle, Camera, Check } from 'lucide-react';
 
 export function UnregisteredPriceModal({
   isOpen,
@@ -47,7 +47,7 @@ export function UnregisteredPriceModal({
       return;
     }
     if (Number(price) <= 0) {
-      setError('Harga jual harus lebih besar dari 0.');
+      setError('Harga jual harus lebih besar dari Rp0.');
       return;
     }
 
@@ -69,8 +69,9 @@ export function UnregisteredPriceModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      maxWidth="max-w-lg"
       title="Tambah Harga Barang Belum Terdaftar"
-      subtitle="Catat harga barang sementara agar tidak perlu menanyakan kembali pada transaksi berikutnya"
+      subtitle="Catat harga barang sementara agar tersimpan dan langsung dapat dicari di sistem"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -79,19 +80,20 @@ export function UnregisteredPriceModal({
           </Alert>
         )}
 
-        <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5">
+        {/* Info Notice Box */}
+        <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs flex items-start gap-2.5">
           <HelpCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Data ini akan langsung dapat ditemukan pada <strong>Daftar Harga</strong> dan nantinya dapat dikonversi menjadi Data Barang resmi oleh Pemilik.
+          <p className="leading-relaxed font-medium">
+            Data ini akan langsung dapat ditemukan pada <strong>Daftar & Cek Harga</strong> dan nantinya dapat dikonversi menjadi Data Barang resmi oleh Pemilik.
           </p>
         </div>
 
-        {/* Nama Barang */}
+        {/* 1. Nama Barang */}
         <Input
           id="unreg-name"
           name="name"
           label="Nama Barang"
-          placeholder="Contoh: Korek Api Gas, Plastik Sampah..."
+          placeholder="Contoh: Korek Api Gas, Plastik Sampah, Kerupuk..."
           required
           autoFocus
           value={name}
@@ -102,26 +104,41 @@ export function UnregisteredPriceModal({
           disabled={isLoading}
         />
 
-        {/* Harga Jual */}
-        <CurrencyInput
-          id="unreg-price"
-          name="price"
-          label="Harga Jual"
-          required
-          value={price}
-          onChange={(val) => {
-            setPrice(val);
-            setError('');
-          }}
-          disabled={isLoading}
-        />
+        {/* 2. Grid 2 Kolom: Harga Jual & Satuan Barang */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <CurrencyInput
+            id="unreg-price"
+            name="price"
+            label="Harga Jual (Rp)"
+            required
+            value={price}
+            onChange={(val) => {
+              setPrice(val);
+              setError('');
+            }}
+            disabled={isLoading}
+          />
 
-        {/* Barcode (Opsional) */}
+          <Input
+            id="unreg-unit"
+            name="unit_name"
+            label="Satuan (Opsional)"
+            placeholder="Pcs, Bks, Botol, Kg..."
+            value={unitName}
+            onChange={(e) => {
+              setUnitName(e.target.value);
+              setError('');
+            }}
+            disabled={isLoading}
+          />
+        </div>
+
+        {/* 3. Barcode Bawaan dengan Tombol Scan Kamera */}
         <Input
           id="unreg-barcode"
           name="barcode"
-          label="Barcode Bawaan (Opsional)"
-          placeholder="Contoh: 8991234567890 (Jika ada barcode di produk)"
+          label="Barcode Kemasan (Opsional)"
+          placeholder="Scan atau ketik kode barcode kemasan..."
           value={barcode}
           onChange={(e) => {
             setBarcode(e.target.value);
@@ -129,12 +146,13 @@ export function UnregisteredPriceModal({
           }}
           icon={Barcode}
           disabled={isLoading}
+          inputClassName="font-mono pr-24"
           rightElement={
             <button
               type="button"
               onClick={() => setIsScannerOpen(true)}
               disabled={isLoading}
-              className="px-2 py-1 text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 rounded-md border border-red-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
+              className="px-2.5 py-1 text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 rounded-md border border-red-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
               title="Scan Barcode via Kamera HP / Webcam"
             >
               <Camera className="w-3.5 h-3.5 text-red-600" />
@@ -143,21 +161,7 @@ export function UnregisteredPriceModal({
           }
         />
 
-        {/* Satuan Sederhana */}
-        <Input
-          id="unreg-unit"
-          name="unit_name"
-          label="Satuan Barang (Opsional)"
-          placeholder="Contoh: Pcs, Bungkus, Botol..."
-          value={unitName}
-          onChange={(e) => {
-            setUnitName(e.target.value);
-            setError('');
-          }}
-          disabled={isLoading}
-        />
-
-        {/* Catatan Textarea */}
+        {/* 4. Catatan Textarea */}
         <Textarea
           id="unreg-notes"
           label="Catatan Tambahan (Opsional)"
@@ -165,19 +169,27 @@ export function UnregisteredPriceModal({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           disabled={isLoading}
-          placeholder="Keterangan ukuran, varian, atau harga beli jika ada..."
+          placeholder="Keterangan ukuran, varian rasa, harga beli kulakan, dll..."
         />
 
-        <div className="flex items-center justify-end gap-2.5 pt-3">
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={isLoading}
+            className="rounded-xl px-5 py-2.5 font-bold text-xs"
           >
             Batal
           </Button>
-          <Button type="submit" variant="primary" isLoading={isLoading}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={isLoading}
+            icon={Check}
+            className="rounded-xl px-5 py-2.5 font-bold text-xs bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25"
+          >
             Simpan Harga Barang
           </Button>
         </div>
