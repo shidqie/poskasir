@@ -27,9 +27,8 @@ import { OpenCashierModal } from '@/components/cashier/OpenCashierModal';
 import { CashMovementModal } from '@/components/cashier/CashMovementModal';
 import { Toast } from '@/components/common/Toast';
 import { Button } from '@/components/common/Button';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatRupiah } from '@/utils/formatters';
-import { ShoppingCart, ArrowRight, DoorClosed, DoorOpen, Lock, ShieldAlert } from 'lucide-react';
+import { ShoppingCart, ArrowRight, DoorClosed, DoorOpen, Lock, ShieldAlert, Camera } from 'lucide-react';
 
 export function POSPage() {
   const queryClient = useQueryClient();
