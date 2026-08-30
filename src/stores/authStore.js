@@ -38,22 +38,22 @@ export const useAuthStore = create((set, get) => ({
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('[AuthStore] Gagal mengambil profile:', error.message);
-        set({ profile: null, role: null });
-        return null;
+        console.warn('[AuthStore] Gagal mengambil profile:', error.message);
       }
 
-      set({
-        profile: data,
-        role: data?.role ?? null,
-      });
-      return data;
+      if (data) {
+        set({
+          profile: data,
+          role: data?.role ?? null,
+        });
+        return data;
+      }
+      return null;
     } catch (err) {
-      console.error('[AuthStore] Error fetchProfile:', err);
-      set({ profile: null, role: null });
+      console.warn('[AuthStore] Error fetchProfile:', err);
       return null;
     }
   },
@@ -66,7 +66,10 @@ export const useAuthStore = create((set, get) => ({
 
     try {
       // 1. Ambil session aktif saat ini
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
       if (sessionError) {
         throw sessionError;
@@ -79,7 +82,7 @@ export const useAuthStore = create((set, get) => ({
         set({ session: null, user: null, profile: null, role: null });
       }
 
-      // 2. Pasang listener perubahan auth state (misal login di tab lain atau token refresh)
+      // 2. Pasang listener perubahan auth state
       supabase.auth.onAuthStateChange(async (event, newSession) => {
         if (event === 'SIGNED_OUT' || !newSession) {
           set({
@@ -89,7 +92,11 @@ export const useAuthStore = create((set, get) => ({
             role: null,
             isLoading: false,
           });
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        } else if (
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED'
+        ) {
           set({
             session: newSession,
             user: newSession.user,
@@ -103,6 +110,58 @@ export const useAuthStore = create((set, get) => ({
       set({ error: err.message, session: null, user: null, profile: null, role: null });
     } finally {
       set({ isLoading: false, isInitialized: true });
+    }
+  },
+
+  /**
+   * Proses pendaftaran akun baru
+   */
+  signUp: async ({ email, password, fullName, role = 'owner' }) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            role,
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Pendaftaran gagal. Silakan coba kembali.');
+
+      // Buat data di public.profiles
+      const profileData = {
+        id: data.user.id,
+        full_name: fullName.trim() || 'Pengguna Baru',
+        role: role || 'owner',
+        status: true,
+      };
+
+      await supabase.from('profiles').upsert(profileData);
+      const profile = await get().fetchProfile(data.user.id);
+
+      set({
+        session: data.session,
+        user: data.user,
+        profile: profile || profileData,
+        role: role || 'owner',
+        isLoading: false,
+        error: null,
+      });
+
+      return { success: true, role: role || 'owner' };
+    } catch (err) {
+      let errorMessage = err.message || 'Gagal mendaftarkan akun.';
+      if (errorMessage.includes('User already registered')) {
+        errorMessage = 'Email sudah terdaftar. Silakan gunakan menu Masuk.';
+      }
+      set({ isLoading: false, error: errorMessage });
+      return { success: false, error: errorMessage };
     }
   },
 
@@ -127,35 +186,58 @@ export const useAuthStore = create((set, get) => ({
       }
 
       // Ambil data profil setelah login berhasil
-      const profile = await get().fetchProfile(data.user.id);
+      let profile = await get().fetchProfile(data.user.id);
 
+      // Jika profil belum ada di public.profiles, buat otomatis dari user_metadata
       if (!profile) {
-        throw new Error('Data profil pengguna tidak ditemukan di sistem. Hubungi administrator.');
+        const metadata = data.user.user_metadata || {};
+        const isEmailKasir = data.user.email?.toLowerCase().includes('kasir');
+        const fallbackRole = metadata.role || (isEmailKasir ? 'cashier' : 'owner');
+        const fallbackName =
+          metadata.full_name ||
+          (data.user.email ? data.user.email.split('@')[0] : 'Pengguna');
+
+        const newProfile = {
+          id: data.user.id,
+          full_name: fallbackName,
+          role: fallbackRole,
+          status: true,
+        };
+
+        await supabase.from('profiles').upsert(newProfile);
+        profile = await get().fetchProfile(data.user.id);
       }
 
-      if (profile.status === false) {
+      if (profile && profile.status === false) {
         await supabase.auth.signOut();
         throw new Error('Akun Anda sedang dinonaktifkan. Hubungi pemilik toko.');
       }
+
+      const effectiveRole = profile?.role || 'owner';
 
       set({
         session: data.session,
         user: data.user,
         profile,
-        role: profile.role,
+        role: effectiveRole,
         isLoading: false,
         error: null,
       });
 
-      return { success: true, role: profile.role };
+      return { success: true, role: effectiveRole };
     } catch (err) {
       let errorMessage = err.message || 'Terjadi kesalahan saat masuk.';
-      
+
       // Terjemahan pesan error umum Supabase ke Bahasa Indonesia
-      if (errorMessage.includes('Invalid login credentials')) {
-        errorMessage = 'Email atau kata sandi yang Anda masukkan salah.';
+      if (
+        errorMessage.includes('Invalid login credentials') ||
+        errorMessage.includes('invalid_grant')
+      ) {
+        errorMessage =
+          'Email atau kata sandi yang Anda masukkan salah. Jika akun belum terdaftar, Anda dapat mendaftar melalui tab "Daftar Akun" di bawah.';
       } else if (errorMessage.includes('Email not confirmed')) {
-        errorMessage = 'Email belum dikonfirmasi.';
+        errorMessage =
+          'Email belum dikonfirmasi. Harap nonaktifkan "Confirm email" di Supabase Dashboard (Auth -> Providers -> Email) atau klik link konfirmasi di email Anda.';
       }
 
       set({ isLoading: false, error: errorMessage });
