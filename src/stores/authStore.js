@@ -160,6 +160,12 @@ export const useAuthStore = create((set, get) => ({
       let errorMessage = err.message || 'Gagal mendaftarkan akun.';
       if (errorMessage.includes('User already registered')) {
         errorMessage = 'Email sudah terdaftar. Silakan gunakan menu Masuk.';
+      } else if (
+        errorMessage.toLowerCase().includes('rate limit') ||
+        errorMessage.toLowerCase().includes('over_email_send_rate_limit')
+      ) {
+        errorMessage =
+          'Batas kirim email Supabase tercapai. Buka Supabase Dashboard > Authentication > Providers > Email, lalu matikan opsi "Confirm email" agar pendaftaran akun langsung aktif tanpa verifikasi email.';
       }
       set({ isLoading: false, error: errorMessage });
       return { success: false, error: errorMessage };
