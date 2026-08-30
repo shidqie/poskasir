@@ -11,8 +11,9 @@ import {
   Upload,
   Keyboard,
   RefreshCw,
-  Zap,
-  ZapOff,
+  ShieldAlert,
+  HelpCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 // Helper Web Audio API Beep & Vibration
@@ -24,7 +25,7 @@ const playBeep = () => {
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime); // 880Hz beep
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
     gain.gain.setValueAtTime(0.2, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
     osc.start(ctx.currentTime);
@@ -67,10 +68,12 @@ export function BarcodeScannerModal({
   const [manualCode, setManualCode] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [isHttpsWarning, setIsHttpsWarning] = useState(false);
 
   const scannerRef = useRef(null);
   const isLockedRef = useRef(false);
   const fileInputRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   const triggerScanSuccess = (code) => {
     const clean = String(code || '').trim();
@@ -91,44 +94,58 @@ export function BarcodeScannerModal({
       } catch (e) {}
       scannerRef.current = null;
     }
-    setIsScanning(false);
+    if (isMountedRef.current) {
+      setIsScanning(false);
+    }
   };
 
-  const startScanner = async () => {
+  const startScannerWithFallback = async () => {
     await stopScanner();
     setCameraError('');
     setLastScanned('');
+    setIsHttpsWarning(false);
     isLockedRef.current = false;
+
+    // 1. Cek Dukungan HTTPS / Secure Context pada Browser saat Deploy
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.endsWith('.localhost'));
+
+    const isSecure = typeof window !== 'undefined' && (window.isSecureContext || isLocal);
+    const hasMediaDevices =
+      typeof navigator !== 'undefined' &&
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function';
+
+    if (!isSecure || !hasMediaDevices) {
+      setIsHttpsWarning(true);
+      setCameraError(
+        'Kamera browser diblokir karena website tidak berjalan di protokol HTTPS (Koneksi Aman). Browser modern mewajibkan URL berawalan https:// untuk mengakses kamera.'
+      );
+      return;
+    }
+
+    // Pastikan elemen viewport tersedia di DOM
+    const viewportElem = document.getElementById('reader-viewport');
+    if (!viewportElem) {
+      setTimeout(() => {
+        if (isOpen && activeTab === 'camera') startScannerWithFallback();
+      }, 200);
+      return;
+    }
 
     try {
       const qrCodeId = 'reader-viewport';
       const html5QrCode = new Html5Qrcode(qrCodeId, {
         formatsToSupport: ALL_FORMATS,
         verbose: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true,
-        },
       });
 
       scannerRef.current = html5QrCode;
 
-      // Coba dapatkan daftar kamera
-      let cameraConfig = { facingMode: 'environment' };
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          // Cari kamera belakang
-          const backCam = devices.find((d) =>
-            /back|rear|belakang|environment/i.test(d.label)
-          );
-          cameraConfig = backCam ? { deviceId: { exact: backCam.id } } : { deviceId: devices[0].id };
-        }
-      } catch (e) {
-        // Gunakan default facingMode jika getCameras diblokir
-        cameraConfig = { facingMode: 'environment' };
-      }
-
-      const config = {
+      const scanConfig = {
         fps: 20,
         aspectRatio: 1.0,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -139,45 +156,97 @@ export function BarcodeScannerModal({
         },
       };
 
-      await html5QrCode.start(
-        cameraConfig,
-        config,
-        (decodedText) => {
-          if (isLockedRef.current) return;
-          isLockedRef.current = true;
+      const onScanCallback = (decodedText) => {
+        if (isLockedRef.current) return;
+        isLockedRef.current = true;
 
-          playBeep();
-          setLastScanned(decodedText);
-          triggerScanSuccess(decodedText);
+        playBeep();
+        setLastScanned(decodedText);
+        triggerScanSuccess(decodedText);
 
-          setTimeout(() => {
+        setTimeout(() => {
+          if (isMountedRef.current) {
             isLockedRef.current = false;
             setLastScanned('');
-          }, 1200);
-        },
-        () => {}
-      );
+          }
+        }, 1200);
+      };
 
-      setIsScanning(true);
-    } catch (err) {
-      console.warn('[BarcodeScanner] Camera init error:', err);
-      let msg =
-        'Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan di browser.';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        msg = 'Izin akses kamera ditolak. Silakan izinkan kamera pada browser Anda.';
-      } else if (err.name === 'NotFoundError') {
-        msg = 'Kamera tidak terdeteksi pada perangkat ini.';
+      // ATTEMPT 1: Prioritaskan Kamera Belakang (environment)
+      try {
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          scanConfig,
+          onScanCallback,
+          () => {}
+        );
+        setIsScanning(true);
+        return;
+      } catch (err1) {
+        console.warn('[BarcodeScanner] Attempt 1 (facingMode: environment) failed:', err1);
       }
+
+      // ATTEMPT 2: Fallback ke Kamera Depan / Webcam Laptop (user)
+      try {
+        await html5QrCode.start(
+          { facingMode: 'user' },
+          scanConfig,
+          onScanCallback,
+          () => {}
+        );
+        setIsScanning(true);
+        return;
+      } catch (err2) {
+        console.warn('[BarcodeScanner] Attempt 2 (facingMode: user) failed:', err2);
+      }
+
+      // ATTEMPT 3: Dapatkan deviceId dari kamera pertama yang tersedia
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          await html5QrCode.start(
+            { deviceId: { exact: devices[0].id } },
+            scanConfig,
+            onScanCallback,
+            () => {}
+          );
+          setIsScanning(true);
+          return;
+        }
+      } catch (err3) {
+        console.warn('[BarcodeScanner] Attempt 3 (deviceId) failed:', err3);
+      }
+
+      throw new Error('Tidak ada kamera yang dapat diakses pada perangkat ini.');
+    } catch (err) {
+      console.error('[BarcodeScanner] All camera start attempts failed:', err);
+      let msg =
+        'Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan di pengaturan browser Anda.';
+
+      if (
+        err.name === 'NotAllowedError' ||
+        err.name === 'PermissionDeniedError' ||
+        String(err).includes('Permission denied')
+      ) {
+        msg =
+          'Izin kamera ditolak. Silakan klik ikon gembok / perizinan di address bar browser Anda dan izinkan Kamera (Allow Camera).';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        msg = 'Kamera tidak terdeteksi pada perangkat Anda.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        msg = 'Kamera sedang digunakan oleh aplikasi lain. Tutup aplikasi lain yang menggunakan kamera lalu coba lagi.';
+      }
+
       setCameraError(msg);
       setIsScanning(false);
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     if (isOpen && activeTab === 'camera') {
       const timer = setTimeout(() => {
-        startScanner();
-      }, 250);
+        startScannerWithFallback();
+      }, 300);
       return () => {
         clearTimeout(timer);
         stopScanner();
@@ -185,6 +254,10 @@ export function BarcodeScannerModal({
     } else {
       stopScanner();
     }
+    return () => {
+      isMountedRef.current = false;
+      stopScanner();
+    };
   }, [isOpen, activeTab]);
 
   const handleClose = async () => {
@@ -215,7 +288,7 @@ export function BarcodeScannerModal({
     } catch (err) {
       console.error('[BarcodeScanner] File scan error:', err);
       setUploadError(
-        'Barcode tidak terdeteksi pada foto. Pastikan foto barcode jelas, fokus, dan tidak buram.'
+        'Barcode tidak terdeteksi pada foto. Pastikan foto barcode jelas, fokus, dan tidak terpotong.'
       );
       setIsUploading(false);
     }
@@ -236,7 +309,7 @@ export function BarcodeScannerModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="Scan Barcode Produk"
-      subtitle="Gunakan kamera, upload foto barcode, atau masukkan kode barcode manual"
+      subtitle="Pindai langsung via kamera, upload foto barcode, atau masukkan barcode manual"
       maxWidth="max-w-md"
     >
       <div className="space-y-3.5">
@@ -292,15 +365,29 @@ export function BarcodeScannerModal({
               <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-center space-y-3">
                 <AlertCircle className="w-8 h-8 text-rose-600 mx-auto" />
                 <div>
-                  <p className="font-bold text-sm">Kendala Akses Kamera</p>
+                  <p className="font-bold text-sm">
+                    {isHttpsWarning ? 'Wajib Menggunakan HTTPS' : 'Kendala Akses Kamera'}
+                  </p>
                   <p className="text-xs text-rose-600 mt-1 leading-relaxed">{cameraError}</p>
                 </div>
-                <div className="pt-2 flex justify-center gap-2">
+
+                {isHttpsWarning && (
+                  <div className="p-2.5 bg-rose-100/70 rounded-xl text-[11px] text-rose-900 text-left space-y-1">
+                    <p className="font-bold flex items-center gap-1">
+                      <ShieldAlert size={13} />
+                      Solusi Deployment:
+                    </p>
+                    <p>1. Pastikan domain hosting (Vercel, Netlify, Cloudflare, dll.) menggunakan SSL / HTTPS aktif.</p>
+                    <p>2. Jika diakses dari HP via IP lokal, gunakan ngrok / cloudflare tunnel dengan HTTPS.</p>
+                  </div>
+                )}
+
+                <div className="pt-2 flex flex-wrap justify-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={startScanner}
+                    onClick={startScannerWithFallback}
                     icon={RefreshCw}
                     className="text-xs font-bold rounded-xl"
                   >
@@ -310,11 +397,21 @@ export function BarcodeScannerModal({
                     type="button"
                     variant="primary"
                     size="sm"
-                    onClick={() => setActiveTab('manual')}
-                    icon={Keyboard}
+                    onClick={() => setActiveTab('upload')}
+                    icon={Upload}
                     className="text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl"
                   >
-                    Ketik Manual
+                    Gunakan Upload Foto
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab('manual')}
+                    icon={Keyboard}
+                    className="text-xs font-bold rounded-xl"
+                  >
+                    Ketik Barcode
                   </Button>
                 </div>
               </div>
@@ -360,7 +457,7 @@ export function BarcodeScannerModal({
                   {isUploading ? 'Menganalisis Barcode...' : 'Pilih Foto / Gambar Barcode'}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Format JPG, PNG, WEBP dari galeri atau file
+                  Format JPG, PNG, WEBP dari galeri kamera HP atau file laptop
                 </p>
               </div>
               <input
@@ -385,7 +482,7 @@ export function BarcodeScannerModal({
         {activeTab === 'manual' && (
           <form onSubmit={handleManualSubmit} className="space-y-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
                 Nomor Barcode / Kode Barang
               </label>
               <input
@@ -404,7 +501,7 @@ export function BarcodeScannerModal({
               disabled={!manualCode.trim()}
               className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
             >
-              Cari & Masukkan ke Keranjang
+              Gunakan Barcode Ini
             </Button>
           </form>
         )}
@@ -412,7 +509,7 @@ export function BarcodeScannerModal({
         {/* Footer Actions */}
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
           <span className="text-[11px] text-slate-400 font-medium">
-            Scanner USB juga aktif otomatis
+            Scanner USB / Bluetooth juga aktif otomatis
           </span>
 
           <Button type="button" variant="outline" size="sm" onClick={handleClose} className="rounded-xl font-bold">
