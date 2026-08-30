@@ -42,24 +42,24 @@ export function Modal({
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between gap-4">
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
               <div>
                 {title && (
                   <h3
                     id="modal-headline"
-                    className="text-lg font-bold text-slate-900 leading-tight"
+                    className="text-base sm:text-lg font-bold text-slate-900 leading-tight"
                   >
                     {title}
                   </h3>
                 )}
                 {subtitle && (
-                  <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{subtitle}</p>
                 )}
               </div>
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors focus:outline-none"
+                  className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none cursor-pointer shrink-0"
                   aria-label="Tutup"
                 >
                   <X className="w-5 h-5" />
@@ -69,7 +69,7 @@ export function Modal({
           )}
 
           {/* Body */}
-          <div className="p-6">{children}</div>
+          <div className="p-5 sm:p-6">{children}</div>
         </div>
       </div>
     </div>

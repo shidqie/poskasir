@@ -186,14 +186,14 @@ export function ProductSubmissionModal({
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tipe Pengajuan: Produk Baru vs Varian Baru */}
-          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
             <button
               type="button"
               onClick={() => setSubmissionType('new_product')}
-              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 submissionType === 'new_product'
                   ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
               <Package className="w-3.5 h-3.5" />
@@ -202,10 +202,10 @@ export function ProductSubmissionModal({
             <button
               type="button"
               onClick={() => setSubmissionType('new_variant')}
-              className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 submissionType === 'new_variant'
                   ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -216,15 +216,15 @@ export function ProductSubmissionModal({
           {/* Form Fields: Produk Baru */}
           {submissionType === 'new_product' && (
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
                 Nama Barang <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nama barang..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                placeholder="Contoh: White Koffie, Beras Raja 5kg..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all placeholder:text-slate-400"
                 autoFocus
               />
             </div>
@@ -234,7 +234,7 @@ export function ProductSubmissionModal({
           {submissionType === 'new_variant' && (
             <div className="space-y-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">
                   Pilih Produk Induk <span className="text-red-500">*</span>
                 </label>
                 <div className="relative mb-2">
@@ -244,7 +244,7 @@ export function ProductSubmissionModal({
                     value={parentSearch}
                     onChange={(e) => setParentSearch(e.target.value)}
                     placeholder="Cari produk induk..."
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
                   />
                 </div>
 
@@ -281,15 +281,15 @@ export function ProductSubmissionModal({
 
               {selectedParentProduct && (
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
                     Nama Varian <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={variantName}
                     onChange={(e) => setVariantName(e.target.value)}
-                    placeholder="Nama varian..."
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    placeholder="Contoh: Renceng, Dus, 500gr..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
                   />
                 </div>
               )}
@@ -299,13 +299,13 @@ export function ProductSubmissionModal({
           {/* Kategori (khusus new_product) */}
           {submissionType === 'new_product' && (
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
                 Kategori Barang
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 transition-all cursor-pointer text-slate-800"
               >
                 <option value="">-- Pilih Kategori --</option>
                 {categories.map((c) => (
@@ -320,7 +320,7 @@ export function ProductSubmissionModal({
           {/* Grid Harga Jual & Satuan */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
                 Harga Jual <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -337,19 +337,19 @@ export function ProductSubmissionModal({
                   }
                   onChange={(e) => setSellingPrice(e.target.value.replace(/\D/g, ''))}
                   placeholder="0"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-black text-right outline-none focus:bg-white focus:border-red-500 font-mono text-slate-900"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-black text-right outline-none focus:bg-white focus:border-red-500 font-mono text-slate-900 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">
                 Satuan Barang
               </label>
               <select
                 value={unitId}
                 onChange={(e) => setUnitId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 transition-all cursor-pointer text-slate-800"
               >
                 <option value="">-- Pilih Satuan --</option>
                 {units.map((u) => (
@@ -377,7 +377,7 @@ export function ProductSubmissionModal({
 
           {/* Barcode & Scan Kamera */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">
               Barcode / SKU Barang (Opsional)
             </label>
             <div className="flex gap-2">
@@ -389,8 +389,8 @@ export function ProductSubmissionModal({
                   type="text"
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  placeholder="Nomor barcode..."
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono outline-none focus:bg-white focus:border-red-500"
+                  placeholder="Nomor barcode kemasan..."
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono outline-none focus:bg-white focus:border-red-500 transition-all"
                 />
               </div>
 
@@ -399,7 +399,7 @@ export function ProductSubmissionModal({
                 variant="outline"
                 icon={Camera}
                 onClick={() => setIsScannerOpen(true)}
-                className="px-3 py-2.5 text-xs font-bold shrink-0 rounded-xl border-slate-200 hover:border-red-500 hover:text-red-600"
+                className="px-3.5 py-2.5 text-xs font-bold shrink-0 rounded-xl border-slate-200 hover:border-red-500 hover:text-red-600 transition-colors"
               >
                 Scan
               </Button>
@@ -422,7 +422,7 @@ export function ProductSubmissionModal({
 
           {/* Catatan */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">
               Catatan Pengajuan (opsional)
             </label>
             <textarea
@@ -430,7 +430,7 @@ export function ProductSubmissionModal({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Catatan tambahan pengajuan..."
               rows={2}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-red-500 resize-none"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-red-500 transition-all resize-none placeholder:text-slate-400"
             />
           </div>
 
@@ -451,12 +451,12 @@ export function ProductSubmissionModal({
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="py-3 text-xs font-bold rounded-xl"
+              className="py-2.5 text-xs font-bold rounded-xl"
             >
               Batal
             </Button>
@@ -466,7 +466,7 @@ export function ProductSubmissionModal({
               icon={Send}
               isLoading={submitMutation.isPending}
               disabled={submitMutation.isPending}
-              className="py-3 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25 rounded-xl"
+              className="py-2.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25 rounded-xl cursor-pointer"
             >
               Ajukan Barang ke Pemilik
             </Button>
