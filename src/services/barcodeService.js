@@ -1,33 +1,69 @@
 import { supabase } from '@/lib/supabase';
 
-// In-memory LRU-style short cache to accelerate repeated scans (instant 0ms response)
+// In-memory short cache to accelerate repeated scans (instant 0ms response)
 const barcodeCache = new Map();
 const CACHE_TTL_MS = 60 * 1000; // 1 menit
 
 export const barcodeService = {
   /**
-   * Mencari produk berdasarkan barcode / kode barang secara super cepat (Paralel Network & Hardware Optimized)
+   * Mencari produk berdasarkan barcode / kode barang secara super cepat & akurat
+   * Mendukung pemindaian Kamera HP (Mobile) maupun Scanner USB Fisik (Desktop)
    */
   async lookupBarcode(rawBarcode) {
     if (!rawBarcode) {
       return { found: false, type: 'not_found', barcode: '' };
     }
 
-    const barcode = String(rawBarcode).trim();
-    if (!barcode) {
+    // 1. Sanitasi input barcode
+    const clean = String(rawBarcode).replace(/[\r\n\t]/g, '').trim();
+    if (!clean) {
       return { found: false, type: 'not_found', barcode: '' };
     }
 
-    // 0. Cek In-Memory Cache untuk respon instan (0ms)
-    const cached = barcodeCache.get(barcode);
+    // 2. Cek In-Memory Cache untuk respon instan (0ms)
+    const cached = barcodeCache.get(clean);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return cached.result;
     }
 
+    // 3. Bangun seluruh variasi kandidat barcode (EAN-13, UPC-A, leading zeros, dll)
+    const candidateSet = new Set();
+    candidateSet.add(clean);
+
+    const digitsOnly = clean.replace(/\D/g, '');
+    if (digitsOnly) {
+      candidateSet.add(digitsOnly);
+      const withoutZeros = digitsOnly.replace(/^0+/, '');
+      if (withoutZeros) candidateSet.add(withoutZeros);
+
+      // UPC-A (12 digit) <-> EAN-13 (13 digit)
+      if (digitsOnly.length === 12) {
+        candidateSet.add('0' + digitsOnly);
+      }
+      if (digitsOnly.length === 13 && digitsOnly.startsWith('0')) {
+        candidateSet.add(digitsOnly.slice(1));
+      }
+      if (digitsOnly.length <= 13) {
+        candidateSet.add(digitsOnly.padStart(13, '0'));
+      }
+      if (digitsOnly.length <= 14) {
+        candidateSet.add(digitsOnly.padStart(14, '0'));
+      }
+    }
+
+    const candidates = Array.from(candidateSet).filter(Boolean);
+
+    // Bangun ekspresi OR untuk query Supabase
+    const barcodeOrFilters = candidates.flatMap((c) => [
+      `barcode.eq.${c}`,
+      `barcode.ilike.${c}`,
+      `code.ilike.${c}`,
+    ]).join(',');
+
     try {
-      // 1. Eksekusi 3 Query Utama Secara PARALEL (1 Roundtrip Jaringan Cepat 30-60ms)
+      // 4. Eksekusi 3 Query Produk Resmi Secara PARALEL (Satuan Khusus, Varian, Master Produk)
       const [saleUnitRes, variantRes, productRes] = await Promise.all([
-        // Query A: Cek Satuan Penjualan (product_sale_units)
+        // Query A: Cek Satuan Penjualan Khusus (product_sale_units)
         supabase
           .from('product_sale_units')
           .select(`
@@ -61,8 +97,8 @@ export const barcodeService = {
               unit:units(id, name, symbol, allow_decimal)
             )
           `)
-          .or(`barcode.eq.${barcode},barcode.ilike.${barcode}`)
-          .eq('status', true)
+          .or(barcodeOrFilters)
+          .neq('status', false)
           .limit(3),
 
         // Query B: Cek Varian Produk (product_variants)
@@ -89,8 +125,8 @@ export const barcodeService = {
               unit:units(id, name, symbol, allow_decimal)
             )
           `)
-          .or(`barcode.eq.${barcode},barcode.ilike.${barcode},code.ilike.${barcode}`)
-          .eq('status', true)
+          .or(barcodeOrFilters)
+          .neq('status', false)
           .limit(3),
 
         // Query C: Cek Produk Utama (products)
@@ -109,12 +145,12 @@ export const barcodeService = {
             category:categories(id, name),
             unit:units(id, name, symbol, allow_decimal)
           `)
-          .or(`barcode.eq.${barcode},barcode.ilike.${barcode},code.ilike.${barcode}`)
-          .eq('status', true)
+          .or(barcodeOrFilters)
+          .neq('status', false)
           .limit(3),
       ]);
 
-      // HASIL A: Cocok di Satuan Penjualan Khusus (Dus / Renceng)
+      // HASIL A: Cocok di Satuan Penjualan Khusus
       if (saleUnitRes.data && saleUnitRes.data.length > 0) {
         const activeSu = saleUnitRes.data.find((su) => su.product && su.product.status !== false);
         if (activeSu) {
@@ -123,7 +159,7 @@ export const barcodeService = {
           const isVariant = Boolean(v && v.status !== false);
 
           const baseStock = isVariant ? Number(v.stock || 0) : Number(p.stock || 0);
-          const baseUnit = (isVariant && v.unit) ? v.unit : (p.unit || { symbol: 'Pcs', allow_decimal: false });
+          const baseUnit = isVariant && v.unit ? v.unit : p.unit || { symbol: 'Pcs', allow_decimal: false };
           const pName = p.name;
           const vName = isVariant ? v.variant_name : null;
           const suName = activeSu.name;
@@ -151,14 +187,14 @@ export const barcodeService = {
               price: Number(activeSu.selling_price) || 0,
               stock: baseStock,
               minimum_stock: isVariant ? Number(v.minimum_stock || 0) : Number(p.minimum_stock || 0),
-              code: isVariant ? (v.code || p.code) : p.code,
+              code: isVariant ? v.code || p.code : p.code,
               barcode: activeSu.barcode || (isVariant ? v.barcode : p.barcode),
               unit: baseUnit,
               allowDecimal: Boolean(baseUnit.allow_decimal),
             },
           };
 
-          barcodeCache.set(barcode, { result, timestamp: Date.now() });
+          barcodeCache.set(clean, { result, timestamp: Date.now() });
           return result;
         }
       }
@@ -169,7 +205,6 @@ export const barcodeService = {
         if (activeVariant) {
           const variant = activeVariant;
 
-          // Ambil sale units untuk varian jika ada
           let matchedSaleUnit = null;
           try {
             const { data: suList } = await supabase
@@ -177,7 +212,7 @@ export const barcodeService = {
               .select('*')
               .eq('product_id', variant.product.id)
               .eq('variant_id', variant.id)
-              .eq('status', true)
+              .neq('status', false)
               .order('is_default', { ascending: false });
 
             if (suList && suList.length > 0) {
@@ -185,7 +220,9 @@ export const barcodeService = {
             }
           } catch (e) {}
 
-          const finalPrice = matchedSaleUnit ? Number(matchedSaleUnit.selling_price) : Number(variant.selling_price || 0);
+          const finalPrice = matchedSaleUnit
+            ? Number(matchedSaleUnit.selling_price)
+            : Number(variant.selling_price || 0);
           const suName = matchedSaleUnit ? matchedSaleUnit.name : null;
           let displayName = `${variant.product.name} - ${variant.variant_name}`;
           if (suName) displayName += ` (${suName})`;
@@ -218,16 +255,15 @@ export const barcodeService = {
             },
           };
 
-          barcodeCache.set(barcode, { result, timestamp: Date.now() });
+          barcodeCache.set(clean, { result, timestamp: Date.now() });
           return result;
         }
       }
 
-      // HASIL C: Cocok di Produk Utama
+      // HASIL C: Cocok di Produk Utama (products)
       if (productRes.data && productRes.data.length > 0) {
         const product = productRes.data[0];
 
-        // Ambil data varian & satuan secara paralel
         const [vListRes, suListRes] = await Promise.all([
           product.has_variants
             ? supabase
@@ -244,20 +280,23 @@ export const barcodeService = {
                   unit:units(id, name, symbol, allow_decimal)
                 `)
                 .eq('product_id', product.id)
-                .eq('status', true)
+                .neq('status', false)
             : Promise.resolve({ data: [] }),
           supabase
             .from('product_sale_units')
             .select('*')
             .eq('product_id', product.id)
             .is('variant_id', null)
-            .eq('status', true)
+            .neq('status', false)
             .order('is_default', { ascending: false }),
         ]);
 
         const allSaleUnits = suListRes.data || [];
-        const matchedSaleUnit = allSaleUnits.find((s) => s.is_default) || (allSaleUnits.length === 1 ? allSaleUnits[0] : null);
-        const finalPrice = matchedSaleUnit ? Number(matchedSaleUnit.selling_price) : Number(product.selling_price || 0);
+        const matchedSaleUnit =
+          allSaleUnits.find((s) => s.is_default) || (allSaleUnits.length === 1 ? allSaleUnits[0] : null);
+        const finalPrice = matchedSaleUnit
+          ? Number(matchedSaleUnit.selling_price)
+          : Number(product.selling_price || 0);
         const suName = matchedSaleUnit ? matchedSaleUnit.name : null;
         let displayName = product.name;
         if (suName) displayName += ` (${suName})`;
@@ -280,11 +319,11 @@ export const barcodeService = {
           },
         };
 
-        barcodeCache.set(barcode, { result, timestamp: Date.now() });
+        barcodeCache.set(clean, { result, timestamp: Date.now() });
         return result;
       }
 
-      // 2. Fallback: Cek Submissions & Unregistered Secara Paralel
+      // 5. Fallback Submissions & Unregistered Prices
       const [subRes, unregRes] = await Promise.all([
         supabase
           .from('product_submissions')
@@ -296,20 +335,61 @@ export const barcodeService = {
             selling_price,
             notes,
             status,
+            approved_product_id,
             unit:units(id, name, symbol, allow_decimal)
           `)
-          .or(`barcode.eq.${barcode},barcode.ilike.${barcode}`)
+          .or(barcodeOrFilters)
           .limit(1),
         supabase
           .from('unregistered_prices')
           .select('*')
-          .eq('barcode', barcode)
+          .or(barcodeOrFilters)
           .eq('status', 'pending')
           .maybeSingle(),
       ]);
 
       if (subRes.data && subRes.data.length > 0) {
         const sub = subRes.data[0];
+
+        // Jika submisi ini sudah pernah disetujui, ambil produk resminya
+        if (sub.status === 'approved' && sub.approved_product_id) {
+          const { data: approvedProd } = await supabase
+            .from('products')
+            .select(`
+              id,
+              code,
+              barcode,
+              name,
+              selling_price,
+              stock,
+              minimum_stock,
+              status,
+              has_variants,
+              category:categories(id, name),
+              unit:units(id, name, symbol, allow_decimal)
+            `)
+            .eq('id', sub.approved_product_id)
+            .single();
+
+          if (approvedProd) {
+            const result = {
+              found: true,
+              type: 'product',
+              data: {
+                ...approvedProd,
+                productId: approvedProd.id,
+                sourceType: 'product',
+                product_variants: [],
+                price: Number(approvedProd.selling_price || 0),
+                selling_price: Number(approvedProd.selling_price || 0),
+                displayName: approvedProd.name,
+              },
+            };
+            barcodeCache.set(clean, { result, timestamp: Date.now() });
+            return result;
+          }
+        }
+
         const result = {
           found: true,
           type: 'temporary',
@@ -329,7 +409,7 @@ export const barcodeService = {
             submissionStatus: sub.status,
           },
         };
-        barcodeCache.set(barcode, { result, timestamp: Date.now() });
+        barcodeCache.set(clean, { result, timestamp: Date.now() });
         return result;
       }
 
@@ -342,11 +422,11 @@ export const barcodeService = {
             sourceType: 'temporary',
           },
         };
-        barcodeCache.set(barcode, { result, timestamp: Date.now() });
+        barcodeCache.set(clean, { result, timestamp: Date.now() });
         return result;
       }
 
-      // 3. Fallback Nama Produk
+      // 6. Fallback Pencarian Nama Produk / Kode Serupa
       const { data: byName } = await supabase
         .from('products')
         .select(`
@@ -359,11 +439,11 @@ export const barcodeService = {
           minimum_stock,
           status,
           has_variants,
-          category:categories (id, name),
-          unit:units (id, name, symbol, allow_decimal)
+          category:categories(id, name),
+          unit:units(id, name, symbol, allow_decimal)
         `)
-        .or(`name.ilike.%${barcode}%,code.ilike.%${barcode}%`)
-        .eq('status', true)
+        .or(`name.ilike.%${clean}%,code.ilike.%${clean}%`)
+        .neq('status', false)
         .limit(1);
 
       if (byName && byName.length > 0) {
@@ -384,7 +464,7 @@ export const barcodeService = {
             displayName: product.name,
           },
         };
-        barcodeCache.set(barcode, { result, timestamp: Date.now() });
+        barcodeCache.set(clean, { result, timestamp: Date.now() });
         return result;
       }
     } catch (e) {
@@ -394,7 +474,7 @@ export const barcodeService = {
     return {
       found: false,
       type: 'not_found',
-      barcode,
+      barcode: clean,
     };
   },
 };
