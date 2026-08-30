@@ -478,6 +478,7 @@ export function ProductSubmissionModal({
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={handleScanDetected}
         onDetected={handleScanDetected}
       />
     </>

@@ -55,6 +55,9 @@ export function BarcodeScannerModal({
   isOpen,
   onClose,
   onScanSuccess,
+  onDetected,
+  onScan,
+  onSuccess,
   onManualSearch,
 }) {
   const [activeTab, setActiveTab] = useState('camera'); // 'camera' | 'upload' | 'manual'
@@ -68,6 +71,15 @@ export function BarcodeScannerModal({
   const scannerRef = useRef(null);
   const isLockedRef = useRef(false);
   const fileInputRef = useRef(null);
+
+  const triggerScanSuccess = (code) => {
+    const clean = String(code || '').trim();
+    if (!clean) return;
+    if (onScanSuccess) onScanSuccess(clean);
+    if (onDetected) onDetected(clean);
+    if (onScan) onScan(clean);
+    if (onSuccess) onSuccess(clean);
+  };
 
   const stopScanner = async () => {
     if (scannerRef.current) {
@@ -136,10 +148,7 @@ export function BarcodeScannerModal({
 
           playBeep();
           setLastScanned(decodedText);
-
-          if (onScanSuccess) {
-            onScanSuccess(decodedText);
-          }
+          triggerScanSuccess(decodedText);
 
           setTimeout(() => {
             isLockedRef.current = false;
@@ -200,10 +209,7 @@ export function BarcodeScannerModal({
       const decodedText = await html5QrCode.scanFile(file, true);
       playBeep();
       setLastScanned(decodedText);
-
-      if (onScanSuccess) {
-        onScanSuccess(decodedText);
-      }
+      triggerScanSuccess(decodedText);
       setIsUploading(false);
       handleClose();
     } catch (err) {
@@ -220,9 +226,7 @@ export function BarcodeScannerModal({
     if (!manualCode.trim()) return;
 
     playBeep();
-    if (onScanSuccess) {
-      onScanSuccess(manualCode.trim());
-    }
+    triggerScanSuccess(manualCode.trim());
     setManualCode('');
     handleClose();
   };

@@ -15,6 +15,7 @@ import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissi
 import { SubmissionDetailModal } from '@/components/submissions/SubmissionDetailModal';
 import { ApprovalModal } from '@/components/submissions/ApprovalModal';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from '@/utils/formatters';
 import { getProductCategoryTheme, getProductDummyImage } from '@/utils/dummyImages';
 import {
@@ -203,7 +204,17 @@ export function PriceListPage({ isOwnerView = false }) {
   const handleScanDetected = (barcodeText) => {
     setIsScannerOpen(false);
     setSearch(barcodeText);
+    setToast({
+      isOpen: true,
+      message: `Mencari barang barcode: ${barcodeText}`,
+      type: 'info',
+    });
   };
+
+  // Hardware USB Scanner listener untuk halaman Cek Harga
+  useBarcodeScanner((barcode) => {
+    handleScanDetected(barcode);
+  });
 
   const handleOpenSubmissionWithBarcode = (barcode = '') => {
     setInitialBarcode(barcode);
@@ -567,6 +578,7 @@ export function PriceListPage({ isOwnerView = false }) {
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={handleScanDetected}
         onDetected={handleScanDetected}
       />
 
