@@ -15,6 +15,7 @@ import {
   Check,
 } from 'lucide-react';
 import { QRISDisplay } from '@/components/pos/QRISDisplay';
+import { MIN_QRIS_AMOUNT } from '@/utils/qrisHelper';
 import { CustomerModal } from '@/components/customers/CustomerModal';
 import { customerService } from '@/services/customerService';
 import { formatRupiah } from '@/utils/formatters';
