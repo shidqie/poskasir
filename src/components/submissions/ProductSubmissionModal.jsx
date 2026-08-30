@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productSubmissionService } from '@/services/productSubmissionService';
 import { unitService } from '@/services/unitService';
+import { categoryService } from '@/services/categoryService';
 import { productService } from '@/services/productService';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
@@ -41,11 +42,18 @@ export function ProductSubmissionModal({
   const [parentSearch, setParentSearch] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [barcode, setBarcode] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [unitId, setUnitId] = useState('');
   const [notes, setNotes] = useState('');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+
+  // Query categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoryService.getCategories({ onlyActive: true }),
+  });
 
   // Query units
   const { data: units = [] } = useQuery({
@@ -67,6 +75,7 @@ export function ProductSubmissionModal({
       setVariantName('');
       setBarcode(initialBarcode || '');
       setSellingPrice('');
+      setCategoryId('');
       setNotes('');
       setErrorMsg('');
       setDuplicateWarning(null);
@@ -116,6 +125,7 @@ export function ProductSubmissionModal({
         parent_product_id: submissionType === 'new_variant' ? parentProductId : null,
         selling_price: parseRaw(sellingPrice),
         barcode: barcode || null,
+        category_id: submissionType === 'new_product' ? categoryId || null : null,
         unit_id: unitId || null,
         notes: notes || null,
       }),
