@@ -72,10 +72,7 @@ export const unregisteredPriceService = {
     const { data, error } = await supabase
       .from('unregistered_prices')
       .insert([insertData])
-      .select(`
-        *,
-        creator:profiles!created_by(id, full_name, role)
-      `)
+      .select()
       .single();
 
     if (error) throw error;
