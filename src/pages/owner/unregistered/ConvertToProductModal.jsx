@@ -7,7 +7,8 @@ import { Modal } from '@/components/common/Modal';
 import { Input } from '@/components/common/Input';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { Button } from '@/components/common/Button';
-import { Barcode, Sparkles, AlertCircle } from 'lucide-react';
+import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
+import { Barcode, Sparkles, AlertCircle, Camera } from 'lucide-react';
 
 export function ConvertToProductModal({
   isOpen,
@@ -24,6 +25,7 @@ export function ConvertToProductModal({
   const [sellingPrice, setSellingPrice] = useState(0);
   const [stock, setStock] = useState(0);
   const [minimumStock, setMinimumStock] = useState(5);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [error, setError] = useState('');
 
   // Query Kategori
@@ -158,6 +160,18 @@ export function ConvertToProductModal({
             }}
             icon={Barcode}
             disabled={isLoading}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                disabled={isLoading}
+                className="px-2 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                title="Scan Barcode via Kamera HP / Webcam"
+              >
+                <Camera className="w-3.5 h-3.5 text-blue-600" />
+                <span>Scan</span>
+              </button>
+            }
           />
 
           <div>
@@ -281,6 +295,18 @@ export function ConvertToProductModal({
           </Button>
         </div>
       </form>
+
+      {/* Modal Scanner Barcode Kamera */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={(scannedCode) => {
+          setBarcode(scannedCode);
+          setError('');
+          setIsScannerOpen(false);
+        }}
+        onManualSearch={() => setIsScannerOpen(false)}
+      />
     </Modal>
   );
 }

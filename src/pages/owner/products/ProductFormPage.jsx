@@ -10,7 +10,8 @@ import { Input } from '@/components/common/Input';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
-import { ArrowLeft, Save, Package, Barcode, AlertCircle } from 'lucide-react';
+import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
+import { ArrowLeft, Save, Package, Barcode, Camera, AlertCircle } from 'lucide-react';
 
 export function ProductFormPage() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export function ProductFormPage() {
   const [stock, setStock] = useState(0);
   const [minimumStock, setMinimumStock] = useState(5);
   const [status, setStatus] = useState(true);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [formError, setFormError] = useState('');
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
@@ -227,7 +229,19 @@ export function ProductFormPage() {
               }}
               icon={Barcode}
               disabled={saveMutation.isPending}
-              helperText="Untuk mie instan, botol, sabun, dll. Beras curah/telur tidak wajib barcode."
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  disabled={saveMutation.isPending}
+                  className="px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                  title="Scan Barcode via Kamera HP / Webcam"
+                >
+                  <Camera className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Scan Kamera</span>
+                </button>
+              }
+              helperText="Gunakan tombol Scan Kamera atau ketik manual jika ada barcode di kemasan produk."
             />
 
             {/* Kategori */}
@@ -398,6 +412,23 @@ export function ProductFormPage() {
           </Button>
         </div>
       </form>
+
+      {/* Modal Scanner Barcode Kamera */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={(scannedCode) => {
+          setBarcode(scannedCode);
+          setFormError('');
+          setIsScannerOpen(false);
+          setToast({
+            isOpen: true,
+            message: `Barcode "${scannedCode}" berhasil dipindai!`,
+            type: 'success',
+          });
+        }}
+        onManualSearch={() => setIsScannerOpen(false)}
+      />
 
       {/* Toast Feedback */}
       <Toast
