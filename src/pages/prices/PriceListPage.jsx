@@ -38,65 +38,46 @@ import {
 } from 'lucide-react';
 
 function PriceItemCard({ item, isOwnerView, onConvert, onDetail, onEdit }) {
-  const [imgError, setImgError] = useState(false);
   const isRegistered = item.sourceType === 'registered' || item.status === 'approved';
   const isPending = item.status === 'pending' || item.sourceType === 'unregistered';
   const categoryName = item.categoryName || 'Sembako';
-  const dummyTheme = getProductCategoryTheme(categoryName);
-  const dummyImgUrl = getProductDummyImage(categoryName);
+  const theme = getProductCategoryTheme(item.name, categoryName);
+  const IconComponent = theme.Icon;
 
   return (
     <div
-      className={`rounded-2xl border bg-white overflow-hidden transition-all duration-200 hover:shadow-md flex flex-col justify-between ${
+      className={`rounded-3xl border bg-white overflow-hidden transition-all duration-200 hover:shadow-md flex flex-col justify-between ${
         isRegistered
-          ? 'border-slate-200/90 hover:border-red-200'
+          ? 'border-slate-200/90 hover:border-slate-400'
           : 'border-amber-200/90 bg-amber-50/10 hover:border-amber-400'
       }`}
     >
-      {/* Product Image / Icon Banner */}
-      <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-100 flex items-center justify-center">
-        {item.image_url && !imgError ? (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div
-            className="w-full h-full flex flex-col items-center justify-center p-3 text-center"
-            style={{
-              background: `linear-gradient(135deg, ${dummyTheme.bg} 0%, #1e293b 100%)`,
-              color: '#ffffff',
-            }}
-          >
-            <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-xs flex items-center justify-center mb-1.5 border border-white/20">
-              <Package size={18} className="text-white" />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-white/90 truncate max-w-full px-2">
-              {categoryName}
-            </span>
-          </div>
-        )}
-
-        {/* Status Badge Over Image */}
-        <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-          <span
-            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
-              isRegistered
-                ? 'bg-slate-900/80 text-white backdrop-blur-xs'
-                : 'bg-amber-500 text-white shadow-xs'
-            }`}
-          >
+      {/* Category Dummy Graphic Banner (No Photos) */}
+      <div
+        className={`relative w-full h-24 sm:h-28 overflow-hidden bg-gradient-to-b ${theme.bgGradient} flex flex-col items-center justify-center text-white shadow-inner`}
+      >
+        {/* Status Badge Over Graphic */}
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none gap-1">
+          <span className="truncate max-w-[110px] px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/85 text-white shadow-xs leading-none">
             {categoryName}
           </span>
 
-          {!isRegistered && (
-            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 shadow-xs">
-              Belum Terdaftar
-            </span>
-          )}
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold leading-none shadow-xs ${
+              isRegistered ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
+            }`}
+          >
+            {isRegistered ? 'Tersedia' : 'Belum Terdaftar'}
+          </span>
         </div>
+
+        {/* Center Category Icon & Label */}
+        <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs mb-1 mt-2">
+          <IconComponent className="w-5 h-5 text-white stroke-[2.2]" />
+        </div>
+        <span className="text-[11px] font-black tracking-wider uppercase text-white drop-shadow-xs">
+          {theme.tag}
+        </span>
       </div>
 
       {/* Product Information */}

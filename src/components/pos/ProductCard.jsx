@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { formatRupiah } from '@/utils/formatters';
 import { getProductCategoryTheme } from '@/utils/dummyImages';
 import { Plus, Barcode, Layers, ChevronRight, Scale } from 'lucide-react';
 
 export function ProductCard({ item, onAddToCart, onOpenVariants, onOpenSaleUnits }) {
-  const [imgError, setImgError] = useState(false);
   const isProduct = item.sourceType === 'product' || !item.sourceType;
   const hasVariants = Boolean(item.has_variants && item.product_variants?.length > 0);
   const saleUnits = item.sale_units || [];
@@ -63,10 +62,9 @@ export function ProductCard({ item, onAddToCart, onOpenVariants, onOpenSaleUnits
   };
 
   const categoryName = item.category?.name || item.categoryName || 'Sembako';
-  const unitSymbol = item.unit?.symbol || item.unitSymbol || item.unit_name || 'Pcs';
+  const unitSymbol = item.unit?.symbol || item.unitSymbol || item.unit_name || 'Btl';
   const theme = getProductCategoryTheme(item.name, categoryName);
   const IconComponent = theme.Icon;
-  const imageUrl = item.image_url || theme.photoUrl;
 
   return (
     <div
@@ -79,107 +77,99 @@ export function ProductCard({ item, onAddToCart, onOpenVariants, onOpenSaleUnits
           handleClick();
         }
       }}
-      className={`group relative flex flex-col justify-between p-2.5 sm:p-3 rounded-2xl border text-left transition-all duration-150 ${
+      className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-3xl border text-left transition-all duration-150 ${
         isOutOfStock
           ? 'bg-slate-50/70 border-slate-200 opacity-60 cursor-not-allowed select-none'
-          : 'bg-white border-slate-200/80 hover:border-slate-400 hover:shadow-xs active:scale-[0.99] cursor-pointer'
+          : 'bg-white border-slate-200/90 hover:border-slate-400 hover:shadow-md active:scale-[0.99] cursor-pointer'
       }`}
     >
       <div>
-        {/* Top Product Image Container */}
-        <div className={`relative w-full h-20 sm:h-24 rounded-xl overflow-hidden mb-2.5 bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center`}>
-          {!imgError ? (
-            <img
-              src={imageUrl}
-              alt={item.name}
-              onError={() => setImgError(true)}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-white drop-shadow-xs">
-              <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-xs mb-1">
-                <IconComponent className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-[10px] font-bold tracking-wider uppercase opacity-90">
-                {theme.tag}
-              </span>
-            </div>
-          )}
-
+        {/* Top Category Dummy Graphic Banner (No Photos) */}
+        <div
+          className={`relative w-full h-24 sm:h-28 rounded-2xl overflow-hidden mb-3 bg-gradient-to-b ${theme.bgGradient} flex flex-col items-center justify-center text-white shadow-inner`}
+        >
           {/* Top Badges Bar */}
-          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none gap-1">
-            <span className="truncate max-w-[90px] px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-900/80 text-white backdrop-blur-xs shadow-xs leading-none">
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none gap-1">
+            <span className="truncate max-w-[110px] px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/85 text-white shadow-xs leading-none">
               {categoryName}
             </span>
 
             <div className="shrink-0 flex items-center gap-1">
               {hasVariants ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-900 text-white shadow-xs leading-none">
-                  <Layers className="w-2.5 h-2.5" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900 text-white shadow-xs leading-none">
+                  <Layers className="w-3 h-3" />
                   {item.product_variants.length} Varian
                 </span>
               ) : hasMultipleSaleUnits ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-900 text-white shadow-xs leading-none">
-                  <Scale className="w-2.5 h-2.5" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900 text-white shadow-xs leading-none">
+                  <Scale className="w-3 h-3" />
                   {saleUnits.length} Satuan
                 </span>
               ) : isOutOfStock ? (
-                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-rose-600 text-white shadow-xs leading-none">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-xs leading-none">
                   Habis
                 </span>
               ) : isLowStock ? (
-                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500 text-white shadow-xs leading-none">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs leading-none">
                   Menipis
                 </span>
               ) : isProduct ? (
-                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-600 text-white shadow-xs leading-none">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white shadow-xs leading-none">
                   Tersedia
                 </span>
               ) : null}
             </div>
           </div>
+
+          {/* Center Category Icon & Label */}
+          <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs mb-1 mt-2">
+            <IconComponent className="w-5 h-5 text-white stroke-[2.2]" />
+          </div>
+          <span className="text-[11px] font-black tracking-wider uppercase text-white drop-shadow-xs">
+            {theme.tag}
+          </span>
         </div>
 
         {/* Product Name */}
-        <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2">
+        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug line-clamp-1">
           {item.name}
         </h3>
 
         {/* Code & Stock Info */}
-        <div className="flex items-center justify-between gap-1.5 mt-1 text-[11px] text-slate-500">
+        <div className="flex items-center justify-between gap-1.5 mt-1.5 text-xs">
           {item.code ? (
-            <span className="font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-bold text-[9px] border border-slate-200/60">
+            <span className="font-mono px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-[11px] border border-slate-200/60">
               {item.code}
             </span>
           ) : item.barcode && !hasVariants ? (
-            <span className="flex items-center gap-0.5 font-mono text-[9px] text-slate-400 truncate max-w-[90px]">
-              <Barcode className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+            <span className="flex items-center gap-1 font-mono text-[11px] text-slate-400 truncate max-w-[100px]">
+              <Barcode className="w-3 h-3 text-slate-400 shrink-0" />
               {item.barcode}
             </span>
           ) : (
             <span />
           )}
 
-          <span className="font-medium text-slate-500 text-[10px] shrink-0">
-            Stok: <strong className="text-slate-800 font-bold">{totalStock} {unitSymbol}</strong>
+          <span className="font-normal text-slate-500 text-xs shrink-0">
+            Stok: <strong className="text-slate-900 font-bold">{totalStock} {unitSymbol}</strong>
           </span>
         </div>
       </div>
 
       {/* Price & Action Button Footer */}
-      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
         <div className="min-w-0">
           {(hasVariants || hasMultipleSaleUnits) && isPriceStarting && (
-            <span className="text-[9px] text-slate-400 font-medium block uppercase leading-none mb-0.5">
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase leading-none mb-0.5">
               Mulai
             </span>
           )}
           <div className="flex items-baseline truncate">
-            <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono leading-none">
-              {formatRupiah(displayPrice)}
+            <span className="text-xs font-bold text-slate-900 font-mono mr-1">Rp</span>
+            <span className="text-sm sm:text-base font-extrabold text-slate-900 font-mono leading-none">
+              {displayPrice.toLocaleString('id-ID')}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium ml-0.5">
+            <span className="text-xs text-slate-400 font-normal ml-1">
               /{unitSymbol}
             </span>
           </div>
@@ -187,16 +177,16 @@ export function ProductCard({ item, onAddToCart, onOpenVariants, onOpenSaleUnits
 
         {/* Action Button */}
         <div
-          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ml-1.5 transition-all ${
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ml-2 transition-all ${
             isOutOfStock
               ? 'bg-slate-100 text-slate-300'
-              : 'bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white shadow-xs active:scale-95'
+              : 'bg-slate-100 text-slate-800 group-hover:bg-slate-900 group-hover:text-white shadow-xs active:scale-95'
           }`}
         >
           {hasVariants || hasMultipleSaleUnits ? (
-            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
-            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           )}
         </div>
       </div>
