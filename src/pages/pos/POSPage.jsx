@@ -4,9 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { posService } from '@/services/posService';
 import { categoryService } from '@/services/categoryService';
 import { barcodeService } from '@/services/barcodeService';
-import { unregisteredPriceService } from '@/services/unregisteredPriceService';
 import { transactionService } from '@/services/transactionService';
+import { cashierSessionService } from '@/services/cashierSessionService';
 import { useCartStore } from '@/stores/cartStore';
+import { useAuthStore } from '@/stores/authStore';
 
 // POS Components
 import { POSHeader } from '@/components/pos/POSHeader';
@@ -20,12 +21,16 @@ import { VariantSelectorModal } from '@/components/pos/VariantSelectorModal';
 import PaymentModal from '@/components/pos/PaymentModal';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
 import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissionModal';
+import { OpenCashierModal } from '@/components/cashier/OpenCashierModal';
 import { Toast } from '@/components/common/Toast';
+import { Button } from '@/components/common/Button';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatRupiah } from '@/utils/formatters';
-import { ShoppingCart, ArrowRight } from 'lucide-react';
+import { ShoppingCart, ArrowRight, DoorClosed, DoorOpen, Lock, ShieldAlert } from 'lucide-react';
 
 export function POSPage() {
   const queryClient = useQueryClient();
+  const { profile, role } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
 
@@ -40,6 +45,7 @@ export function POSPage() {
   const [isNotFoundModalOpen, setIsNotFoundModalOpen] = useState(false);
   const [variantModalProduct, setVariantModalProduct] = useState(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [isOpenCashierOpen, setIsOpenCashierOpen] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Cart Zustand Store
@@ -52,6 +58,17 @@ export function POSPage() {
     isMobileCartOpen,
     toggleMobileCart,
   } = useCartStore();
+
+  // Query Sesi Kasir Aktif
+  const {
+    data: activeSession,
+    isLoading: isSessionLoading,
+    refetch: refetchSession,
+  } = useQuery({
+    queryKey: ['active-cashier-session', profile?.id],
+    queryFn: () => cashierSessionService.getActiveSession(profile?.id),
+    refetchInterval: 10000,
+  });
 
   // Query Kategori
   const { data: categories = [] } = useQuery({
@@ -78,33 +95,7 @@ export function POSPage() {
       });
     },
     staleTime: 1000 * 60 * 2,
-  });
-
-  // Mutation Tambah Harga Sementara
-  const addUnregMutation = useMutation({
-    mutationFn: (data) => unregisteredPriceService.createUnregisteredPrice(data),
-    onSuccess: (savedItem) => {
-      queryClient.invalidateQueries({ queryKey: ['pos-products'] });
-      queryClient.invalidateQueries({ queryKey: ['prices'] });
-      queryClient.invalidateQueries({ queryKey: ['unregistered-prices'] });
-
-      addItem({
-        id: savedItem.id,
-        name: savedItem.name,
-        price: Number(savedItem.selling_price) || 0,
-        unit: savedItem.unit_name || 'Item',
-        unit_name: savedItem.unit_name || 'Item',
-        barcode: savedItem.barcode,
-        allowDecimal: false,
-        sourceType: 'temporary',
-      });
-
-      setToast({
-        isOpen: true,
-        message: `Harga "${savedItem.name}" berhasil dicatat & masuk keranjang!`,
-        type: 'success',
-      });
-    },
+    enabled: Boolean(activeSession && activeSession.status === 'open') || role === 'owner',
   });
 
   // Mutation Checkout via RPC process_sale
@@ -126,13 +117,12 @@ export function POSPage() {
         idempotencyKey,
       }),
     onSuccess: (data) => {
-      // Clear cart & cache
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['pos-products'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['active-cashier-session'] });
 
-      // Tutup payment, buka success
       setIsPaymentOpen(false);
       setLastTransaction(data);
       setIsSuccessOpen(true);
@@ -236,10 +226,86 @@ export function POSPage() {
     setIsUnregModalOpen(true);
   };
 
+  const isSessionOpen = activeSession && activeSession.status === 'open';
+
+  // =========================================================================
+  // VIEW: KASIR TERKUNCI (BELUM BUKA KASIR)
+  // =========================================================================
+  if (!isSessionLoading && !isSessionOpen && role !== 'owner') {
+    return (
+      <div className="flex flex-col h-[calc(100vh-60px)] md:h-screen bg-slate-100 items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-20 h-20 rounded-3xl bg-red-50 border border-red-200/80 flex items-center justify-center text-red-600 mx-auto shadow-inner">
+            <DoorClosed className="w-10 h-10" />
+          </div>
+
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Kasir Belum Dibuka
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+              Silakan buka kasir terlebih dahulu untuk mulai melakukan transaksi penjualan dan melayani pelanggan.
+            </p>
+          </div>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-left space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Petugas Kasir:</span>
+              <span className="font-bold text-slate-900">{profile?.full_name || 'Kasir'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Status Sesi:</span>
+              <span className="font-black text-rose-600 inline-flex items-center gap-1">
+                <Lock size={12} />
+                Belum Ada Sesi Aktif
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="primary"
+            icon={DoorOpen}
+            onClick={() => setIsOpenCashierOpen(true)}
+            className="w-full py-3.5 text-sm font-black bg-red-600 hover:bg-red-700 text-white rounded-2xl shadow-lg shadow-red-500/25 cursor-pointer"
+          >
+            Buka Kasir Sekarang
+          </Button>
+        </div>
+
+        {/* Modal Buka Kasir */}
+        <OpenCashierModal
+          isOpen={isOpenCashierOpen}
+          onClose={() => setIsOpenCashierOpen(false)}
+          onSuccess={(newSession) => {
+            setToast({
+              isOpen: true,
+              message: `Kasir berhasil dibuka! Saldo awal tunai: ${formatRupiah(newSession.opening_cash)}`,
+              type: 'success',
+            });
+            refetchSession();
+          }}
+        />
+
+        {/* Toast */}
+        <Toast
+          isOpen={toast.isOpen}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, isOpen: false })}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-60px)] md:h-screen bg-slate-100 overflow-hidden">
       {/* Header Terminal Kasir */}
-      <POSHeader onOpenScanner={() => setIsScannerOpen(true)} />
+      <POSHeader
+        onOpenScanner={() => setIsScannerOpen(true)}
+        activeSession={activeSession}
+        onOpenCashier={() => setIsOpenCashierOpen(true)}
+      />
 
       {/* Main Layout 2 Kolom (Desktop) / 1 Kolom (Mobile) */}
       <div className="flex-1 flex overflow-hidden">
@@ -314,6 +380,20 @@ export function POSPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Buka Kasir */}
+      <OpenCashierModal
+        isOpen={isOpenCashierOpen}
+        onClose={() => setIsOpenCashierOpen(false)}
+        onSuccess={(newSession) => {
+          setToast({
+            isOpen: true,
+            message: `Kasir berhasil dibuka! Saldo awal tunai: ${formatRupiah(newSession.opening_cash)}`,
+            type: 'success',
+          });
+          refetchSession();
+        }}
+      />
 
       {/* Modal Scanner Barcode Kamera */}
       <BarcodeScannerModal

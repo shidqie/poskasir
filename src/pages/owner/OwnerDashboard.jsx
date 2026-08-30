@@ -19,7 +19,8 @@ import {
 } from 'recharts';
 import {
   TrendingUp, Receipt, ShoppingBag, Calculator, ShieldCheck,
-  Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle, Inbox
+  Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle, Inbox,
+  Banknote, QrCode, Wallet, DoorClosed
 } from 'lucide-react';
 import { formatTanggal, formatRupiah } from '@/utils/formatters';
 
@@ -145,7 +146,7 @@ export function OwnerDashboard() {
         </Alert>
       )}
 
-      {/* 4 Stat Cards Matching Exact Design */}
+      {/* 4 Stat Cards Matching Prompt Requirements Section 21 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Pendapatan Hari Ini */}
         <StatCard
@@ -153,7 +154,7 @@ export function OwnerDashboard() {
           value={summaryLoading ? '...' : formatRupiah(todaySummary.totalRevenue)}
           subtitle={
             todaySummary.totalRevenue > 0
-              ? '+12.5% dari kemarin'
+              ? 'Total omzet hari ini'
               : 'Belum ada omzet hari ini'
           }
           subtitleColor={
@@ -166,7 +167,37 @@ export function OwnerDashboard() {
           cardVariant="primary"
         />
 
-        {/* Card 2: Jumlah Transaksi */}
+        {/* Card 2: Penjualan Tunai */}
+        <StatCard
+          title="PENJUALAN TUNAI"
+          value={
+            summaryLoading
+              ? '...'
+              : formatRupiah(todaySummary.cashRevenue || 0)
+          }
+          subtitle={`${todaySummary.cashTxCount || 0} Transaksi Tunai`}
+          subtitleColor="text-emerald-600 font-bold"
+          icon={Banknote}
+          iconVariant="dark"
+          cardVariant="default"
+        />
+
+        {/* Card 3: Penjualan QRIS */}
+        <StatCard
+          title="PENJUALAN QRIS"
+          value={
+            summaryLoading
+              ? '...'
+              : formatRupiah(todaySummary.qrisRevenue || 0)
+          }
+          subtitle={`${todaySummary.qrisTxCount || 0} Transaksi QRIS`}
+          subtitleColor="text-red-600 font-bold"
+          icon={QrCode}
+          iconVariant="dark"
+          cardVariant="default"
+        />
+
+        {/* Card 4: Jumlah Transaksi */}
         <StatCard
           title="JUMLAH TRANSAKSI"
           value={
@@ -174,37 +205,9 @@ export function OwnerDashboard() {
               ? '...'
               : (todaySummary.transactionCount || 0).toLocaleString('id-ID')
           }
-          subtitle="Hari ini"
+          subtitle="Nota selesai hari ini"
           subtitleColor="text-slate-400 font-medium"
           icon={Receipt}
-          iconVariant="dark"
-          cardVariant="default"
-        />
-
-        {/* Card 3: Barang Terjual */}
-        <StatCard
-          title="BARANG TERJUAL"
-          value={
-            summaryLoading
-              ? '...'
-              : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID')
-          }
-          subtitle="Total kuantitas"
-          subtitleColor="text-slate-400 font-medium"
-          icon={ShoppingBag}
-          iconVariant="dark"
-          cardVariant="default"
-        />
-
-        {/* Card 4: Rata-Rata Transaksi */}
-        <StatCard
-          title="RATA-RATA TRANSAKSI"
-          value={
-            summaryLoading ? '...' : formatRupiah(todaySummary.avgTransaction)
-          }
-          subtitle="Basket size"
-          subtitleColor="text-slate-400 font-medium"
-          icon={Calculator}
           iconVariant="dark"
           cardVariant="default"
         />

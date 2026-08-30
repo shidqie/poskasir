@@ -78,7 +78,7 @@ export function OwnerLayout() {
       icon: BarChart3,
     },
     {
-      label: 'Buka / Tutup Kasir',
+      label: 'Sesi Kasir & Closing',
       to: '/owner/closings',
       icon: DoorClosed,
     },

@@ -2,13 +2,21 @@ import { supabase } from '@/lib/supabase';
 
 export const reportService = {
   /**
-   * Mengambil ringkasan penjualan untuk rentang tanggal tertentu
+   * Mengambil ringkasan penjualan untuk rentang tanggal tertentu & metode pembayaran
    */
-  async getSalesSummary({ dateFrom, dateTo } = {}) {
+  async getSalesSummary({ dateFrom, dateTo, paymentMethod = 'all' } = {}) {
     let query = supabase
       .from('transactions')
       .select('total_amount, total_quantity, transaction_date, payment_method')
       .eq('status', 'completed');
+
+    if (paymentMethod && paymentMethod !== 'all') {
+      if (paymentMethod === 'qris') {
+        query = query.or('payment_method.eq.qris,payment_method.eq.transfer');
+      } else {
+        query = query.eq('payment_method', paymentMethod);
+      }
+    }
 
     if (dateFrom) query = query.gte('transaction_date', dateFrom);
     if (dateTo) {
@@ -21,27 +29,30 @@ export const reportService = {
     if (error) throw error;
 
     const transactions = data || [];
-    const totalRevenue = transactions.reduce((s, t) => s + Number(t.total_amount), 0);
-    const totalItemsSold = transactions.reduce((s, t) => s + Number(t.total_quantity), 0);
+    const totalRevenue = transactions.reduce((s, t) => s + Number(t.total_amount || 0), 0);
+    const totalItemsSold = transactions.reduce((s, t) => s + Number(t.total_quantity || 0), 0);
     const avgTransaction = transactions.length > 0 ? totalRevenue / transactions.length : 0;
 
-    // Breakdown by payment method
-    const byMethod = transactions.reduce((acc, t) => {
-      acc[t.payment_method] = (acc[t.payment_method] || 0) + Number(t.total_amount);
-      return acc;
-    }, {});
+    const cashTxs = transactions.filter((t) => t.payment_method === 'cash');
+    const qrisTxs = transactions.filter((t) => t.payment_method === 'qris' || t.payment_method === 'transfer');
+
+    const cashRevenue = cashTxs.reduce((s, t) => s + Number(t.total_amount || 0), 0);
+    const qrisRevenue = qrisTxs.reduce((s, t) => s + Number(t.total_amount || 0), 0);
 
     return {
       transactionCount: transactions.length,
       totalRevenue,
+      cashRevenue,
+      qrisRevenue,
+      cashTxCount: cashTxs.length,
+      qrisTxCount: qrisTxs.length,
       totalItemsSold,
       avgTransaction,
-      byMethod,
     };
   },
 
   /**
-   * Penjualan per hari untuk grafik (7 hari terakhir)
+   * Penjualan per hari untuk grafik (7 / 14 hari terakhir)
    */
   async getDailySales(days = 7) {
     const result = [];
@@ -54,16 +65,21 @@ export const reportService = {
 
       const { data, error } = await supabase
         .from('transactions')
-        .select('total_amount')
+        .select('total_amount, payment_method')
         .eq('status', 'completed')
         .gte('transaction_date', dayStart)
         .lt('transaction_date', dayEnd);
 
       if (!error && data) {
-        const dayTotal = data.reduce((s, t) => s + Number(t.total_amount), 0);
+        const dayTotal = data.reduce((s, t) => s + Number(t.total_amount || 0), 0);
+        const dayCash = data.filter((t) => t.payment_method === 'cash').reduce((s, t) => s + Number(t.total_amount || 0), 0);
+        const dayQris = data.filter((t) => t.payment_method === 'qris' || t.payment_method === 'transfer').reduce((s, t) => s + Number(t.total_amount || 0), 0);
+
         result.push({
           date: day.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }),
           total: dayTotal,
+          cash: dayCash,
+          qris: dayQris,
           count: data.length,
         });
       }
@@ -73,51 +89,60 @@ export const reportService = {
   },
 
   /**
-   * Barang & varian terlaris
+   * Top Produk & Varian Terlaris
    */
   async getTopProducts(limit = 10) {
     const { data, error } = await supabase
       .from('transaction_items')
-      .select('item_name, variant_name, quantity, subtotal, source_type')
-      .limit(500);
+      .select('item_name, quantity, subtotal')
+      .order('quantity', { ascending: false })
+      .limit(100);
 
     if (error) throw error;
 
+    // Grouping by item_name
     const grouped = (data || []).reduce((acc, item) => {
-      const displayName = item.variant_name
-        ? `${item.item_name} - ${item.variant_name}`
-        : item.item_name;
-      if (!acc[displayName]) acc[displayName] = { name: displayName, totalQty: 0, totalRevenue: 0 };
-      acc[displayName].totalQty += Number(item.quantity);
-      acc[displayName].totalRevenue += Number(item.subtotal);
+      if (!acc[item.item_name]) {
+        acc[item.item_name] = { name: item.item_name, totalQty: 0, totalRevenue: 0 };
+      }
+      acc[item.item_name].totalQty += Number(item.quantity);
+      acc[item.item_name].totalRevenue += Number(item.subtotal);
       return acc;
     }, {});
 
     return Object.values(grouped)
-      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .sort((a, b) => b.totalQty - a.totalQty)
       .slice(0, limit);
   },
 
   /**
-   * Penjualan per kasir
+   * Performa Penjualan per Kasir
    */
   async getSalesByCashier() {
     const { data, error } = await supabase
       .from('transactions')
       .select(`
         total_amount,
-        cashier:profiles!cashier_id(id, full_name)
+        cashier:profiles!cashier_id(id, full_name, email)
       `)
       .eq('status', 'completed');
 
     if (error) throw error;
 
     const grouped = (data || []).reduce((acc, t) => {
-      const id = t.cashier?.id;
-      const name = t.cashier?.full_name || 'Tidak diketahui';
-      if (!acc[id]) acc[id] = { id, name, totalRevenue: 0, count: 0 };
-      acc[id].totalRevenue += Number(t.total_amount);
-      acc[id].count += 1;
+      const cashierName = t.cashier?.full_name || 'Kasir';
+      const cashierId = t.cashier?.id || 'unknown';
+
+      if (!acc[cashierId]) {
+        acc[cashierId] = {
+          id: cashierId,
+          name: cashierName,
+          totalRevenue: 0,
+          transactionCount: 0,
+        };
+      }
+      acc[cashierId].totalRevenue += Number(t.total_amount);
+      acc[cashierId].transactionCount += 1;
       return acc;
     }, {});
 

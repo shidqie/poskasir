@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportService } from '@/services/reportService';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
@@ -8,8 +8,30 @@ import { Badge } from '@/components/common/Badge';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Avatar } from '@/components/common/Avatar';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { BarChart3, Trophy, Users, TrendingUp, DollarSign, ShoppingCart, Package, Calendar } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+import {
+  BarChart3,
+  Trophy,
+  Users,
+  TrendingUp,
+  DollarSign,
+  ShoppingCart,
+  Package,
+  Calendar,
+  Banknote,
+  QrCode,
+  Layers,
+  Wallet,
+} from 'lucide-react';
 import { formatRupiah } from '@/utils/formatters';
 
 const PERIOD_OPTIONS = [
@@ -17,6 +39,12 @@ const PERIOD_OPTIONS = [
   { id: '7days', label: '7 Hari Terakhir' },
   { id: 'month', label: 'Bulan Ini' },
   { id: 'custom', label: 'Rentang Kustom' },
+];
+
+const PAYMENT_FILTER_OPTIONS = [
+  { id: 'all', label: 'Semua Pembayaran', icon: Layers },
+  { id: 'cash', label: 'Tunai', icon: Banknote },
+  { id: 'qris', label: 'QRIS', icon: QrCode },
 ];
 
 function getDateRange(period) {
@@ -40,12 +68,14 @@ function getDateRange(period) {
 
 export default function ReportPage() {
   const [period, setPeriod] = useState('7days');
+  const [paymentMethod, setPaymentMethod] = useState('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
-  const range = period === 'custom'
-    ? { dateFrom: customFrom, dateTo: customTo }
-    : getDateRange(period);
+  const range =
+    period === 'custom'
+      ? { dateFrom: customFrom, dateTo: customTo, paymentMethod }
+      : { ...getDateRange(period), paymentMethod };
 
   const { data: summary = {}, isLoading: summaryLoading } = useQuery({
     queryKey: ['report-summary', range],
@@ -68,10 +98,34 @@ export default function ReportPage() {
   });
 
   const metrics = [
-    { label: 'Total Pendapatan', value: summaryLoading ? '...' : formatRupiah(summary.totalRevenue), Icon: DollarSign, color: 'text-red-600 bg-red-50 border border-red-100' },
-    { label: 'Jumlah Transaksi', value: summaryLoading ? '...' : (summary.transactionCount || 0).toLocaleString('id-ID'), Icon: ShoppingCart, color: 'text-rose-600 bg-rose-50 border border-rose-100' },
-    { label: 'Item Terjual', value: summaryLoading ? '...' : (summary.totalItemsSold || 0).toLocaleString('id-ID'), Icon: Package, color: 'text-orange-600 bg-orange-50 border border-orange-100' },
-    { label: 'Rata-Rata Transaksi', value: summaryLoading ? '...' : formatRupiah(summary.avgTransaction), Icon: TrendingUp, color: 'text-amber-600 bg-amber-50 border border-amber-100' },
+    {
+      label: 'Total Keseluruhan',
+      value: summaryLoading ? '...' : formatRupiah(summary.totalRevenue),
+      sub: `${(summary.transactionCount || 0).toLocaleString('id-ID')} Total Nota`,
+      Icon: Wallet,
+      color: 'text-red-600 bg-red-50 border border-red-200',
+    },
+    {
+      label: 'Total Tunai',
+      value: summaryLoading ? '...' : formatRupiah(summary.cashRevenue || 0),
+      sub: `${(summary.cashTxCount || 0).toLocaleString('id-ID')} Transaksi Tunai`,
+      Icon: Banknote,
+      color: 'text-emerald-600 bg-emerald-50 border border-emerald-200',
+    },
+    {
+      label: 'Total QRIS (Digital)',
+      value: summaryLoading ? '...' : formatRupiah(summary.qrisRevenue || 0),
+      sub: `${(summary.qrisTxCount || 0).toLocaleString('id-ID')} Transaksi QRIS`,
+      Icon: QrCode,
+      color: 'text-red-600 bg-red-50 border border-red-200',
+    },
+    {
+      label: 'Rata-Rata Transaksi',
+      value: summaryLoading ? '...' : formatRupiah(summary.avgTransaction),
+      sub: 'Basket Size',
+      Icon: TrendingUp,
+      color: 'text-purple-600 bg-purple-50 border border-purple-200',
+    },
   ];
 
   return (
@@ -86,26 +140,61 @@ export default function ReportPage() {
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Laporan Penjualan</h1>
-          <p className="text-xs sm:text-sm text-slate-500">Analisis performa omzet dan tren produk sembako</p>
+          <p className="text-xs sm:text-sm text-slate-500">
+            Analisis performa omzet toko, rekapitulasi Tunai vs QRIS, dan tren produk terlaris
+          </p>
         </div>
       </div>
 
-      {/* Period Selector Card */}
-      <Card bodyClassName="p-4 space-y-3">
-        <Tabs
-          tabs={PERIOD_OPTIONS}
-          activeTab={period}
-          onChange={setPeriod}
-        />
+      {/* Filters: Periode & Metode Pembayaran */}
+      <Card bodyClassName="p-4 space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Periode Tabs */}
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Pilih Rentang Periode:
+            </span>
+            <Tabs tabs={PERIOD_OPTIONS} activeTab={period} onChange={setPeriod} />
+          </div>
+
+          {/* Payment Method Filter */}
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Filter Metode Pembayaran:
+            </span>
+            <div className="bg-slate-200/80 p-1 rounded-xl flex gap-1 text-xs font-bold">
+              {PAYMENT_FILTER_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const isSelected = paymentMethod === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(opt.id)}
+                    className={`py-2 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-white text-red-600 shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {period === 'custom' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100">
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1 block">Dari Tanggal</label>
               <input
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-red-500 font-medium"
               />
             </div>
             <div>
@@ -114,159 +203,132 @@ export default function ReportPage() {
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-red-500 font-medium"
               />
             </div>
           </div>
         )}
       </Card>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {metrics.map(({ label, value, Icon, color }) => (
+      {/* 4 Metric Cards Matching Exact Prompt Requirements */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map(({ label, value, sub, Icon, color }) => (
           <Card
             key={label}
             className="hover:border-red-300 transition-all hover:shadow-md"
-            bodyClassName="p-5 flex flex-col justify-between h-full"
+            bodyClassName="p-5 flex flex-col justify-between h-full space-y-2"
           >
-            <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center mb-3`}>
-              <Icon size={18} />
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+              <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center shrink-0`}>
+                <Icon size={18} />
+              </div>
             </div>
-            <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">{value}</p>
-            <p className="text-xs font-semibold text-slate-400 mt-1">{label}</p>
+            <div>
+              <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">{value}</p>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">{sub}</p>
+            </div>
           </Card>
         ))}
       </div>
 
-      {/* Chart Card */}
+      {/* Grafik Tren Penjualan Tunai vs QRIS (14 Hari) */}
       <Card
-        title="Tren Penjualan 14 Hari Terakhir"
-        subtitle="Grafik fluktuasi omzet transaksi sembako"
+        title="Tren Penjualan Harian: Tunai vs QRIS (14 Hari Terakhir)"
+        subtitle="Analisis perbandingan nominal transaksi tunai dan QRIS"
       >
         {chartLoading ? (
-          <div className="h-52 flex items-center justify-center">
+          <div className="h-64 flex items-center justify-center">
             <LoadingSpinner size="md" message="Memuat grafik tren..." />
           </div>
-        ) : dailySales.length === 0 || dailySales.every((d) => d.total === 0) ? (
-          <div className="py-8">
-            <EmptyState
-              icon={BarChart3}
-              title="Belum Ada Data Penjualan"
-              description="Grafik tren akan terisi otomatis seiring transaksi yang diselesaikan kasir."
-            />
+        ) : dailySales.length === 0 ? (
+          <div className="h-64 flex items-center justify-center">
+            <EmptyState icon={BarChart3} title="Belum Ada Data Penjualan" description="Grafik akan muncul setelah ada transaksi." />
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={dailySales} margin={{ top: 8, right: 8, left: -20, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#64748b' }}
-                tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}rb` : v)}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                formatter={(v) => [`Rp${Number(v).toLocaleString('id-ID')}`, 'Pendapatan']}
-                labelStyle={{ fontSize: 11, fontWeight: 'bold' }}
-                contentStyle={{ fontSize: 11, borderRadius: 12, border: '1px solid #fee2e2' }}
-              />
-              <Bar dataKey="total" fill="#DC2626" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-72 w-full pt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailySales} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={{ fontSize: 10, fill: '#64748b' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  formatter={(val, name) => [formatRupiah(val), name === 'cash' ? 'Tunai' : name === 'qris' ? 'QRIS' : 'Total']}
+                  labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                />
+                <Legend formatter={(val) => (val === 'cash' ? 'Tunai' : val === 'qris' ? 'QRIS' : 'Total')} />
+                <Bar dataKey="cash" name="cash" fill="#10b981" radius={[4, 4, 0, 0]} stackId="a" />
+                <Bar dataKey="qris" name="qris" fill="#ef4444" radius={[4, 4, 0, 0]} stackId="a" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </Card>
 
-      {/* Top 10 Products & Cashier Tables */}
+      {/* Grid: Top Produk & Performa Kasir */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Top 10 Products */}
+        {/* Top 10 Produk */}
         <Card
-          title={
-            <div className="flex items-center gap-2">
-              <Trophy size={18} className="text-amber-500" />
-              <span className="font-bold text-slate-900 text-sm">10 Barang Paling Laris</span>
-            </div>
-          }
+          title="10 Produk & Varian Terlaris"
+          subtitle="Berdasarkan kuantitas barang terjual"
         >
           {topLoading ? (
-            <div className="py-8 text-center">
-              <LoadingSpinner size="sm" message="Memuat ranking produk..." />
+            <div className="py-12 text-center">
+              <LoadingSpinner size="sm" message="Memuat produk terlaris..." />
             </div>
           ) : topProducts.length === 0 ? (
-            <div className="py-6">
-              <EmptyState
-                icon={Trophy}
-                title="Belum Ada Data"
-                description="Belum ada transaksi barang pada rentang tanggal ini."
-              />
-            </div>
+            <EmptyState icon={Package} title="Belum Ada Data Produk" description="Data produk terlaris akan tampil di sini." />
           ) : (
-            <div className="space-y-2.5">
-              {topProducts.map((p, i) => (
-                <div key={p.name} className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-200 transition-colors text-sm">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                    i === 0 ? 'bg-red-600 text-white' : i === 1 ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-600'
-                  }`}>{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-slate-900 truncate">{p.name}</p>
-                    <p className="text-xs text-slate-400 font-medium">{Number(p.totalQty).toLocaleString('id-ID')} terjual</p>
+            <div className="divide-y divide-slate-100">
+              {topProducts.map((p, idx) => (
+                <div key={idx} className="py-3 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 font-bold text-slate-700 flex items-center justify-center text-[11px] shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="font-bold text-slate-900 truncate">{p.name}</span>
                   </div>
-                  <p className="font-black text-red-600 shrink-0 font-mono">{formatRupiah(p.totalRevenue)}</p>
+                  <div className="text-right shrink-0">
+                    <span className="font-bold text-slate-800">{p.totalQty} terjual</span>
+                    <span className="text-[10px] text-slate-400 block font-mono">{formatRupiah(p.totalRevenue)}</span>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </Card>
 
-        {/* Sales by Cashier */}
+        {/* Performa Kasir */}
         <Card
-          title={
-            <div className="flex items-center gap-2">
-              <Users size={18} className="text-red-600" />
-              <span className="font-bold text-slate-900 text-sm">Performa Kasir</span>
-            </div>
-          }
-          bodyClassName="p-0 overflow-hidden"
+          title="Performa Penjualan per Kasir"
+          subtitle="Kontribusi omzet dari masing-masing kasir"
         >
           {cashierLoading ? (
-            <div className="py-8 text-center">
-              <LoadingSpinner size="sm" message="Memuat performa kasir..." />
+            <div className="py-12 text-center">
+              <LoadingSpinner size="sm" message="Memuat data kasir..." />
             </div>
           ) : cashierPerformance.length === 0 ? (
-            <div className="py-6">
-              <EmptyState
-                icon={Users}
-                title="Belum Ada Data"
-                description="Belum ada aktivitas kasir pada rentang tanggal ini."
-              />
-            </div>
+            <EmptyState icon={Users} title="Belum Ada Data Kasir" description="Data penjualan kasir akan tampil di sini." />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200/80 text-xs font-semibold uppercase tracking-wider">
-                  <tr>
-                    <th className="px-5 py-3.5">Kasir</th>
-                    <th className="px-4 py-3.5 text-center">Nota</th>
-                    <th className="px-5 py-3.5 text-right">Total Penjualan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
-                  {cashierPerformance.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-5 py-4 flex items-center gap-2.5">
-                        <Avatar name={c.name} size="sm" />
-                        <span className="font-bold text-slate-800">{c.name}</span>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <Badge variant="neutral">{c.count} nota</Badge>
-                      </td>
-                      <td className="px-5 py-4 text-right font-black text-red-600 font-mono">
-                        {formatRupiah(c.totalRevenue)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-slate-100">
+              {cashierPerformance.map((c, idx) => (
+                <div key={idx} className="py-3 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={c.name} size="sm" />
+                    <div>
+                      <p className="font-bold text-slate-900">{c.name}</p>
+                      <span className="text-[10px] text-slate-400">{c.transactionCount} transaksi</span>
+                    </div>
+                  </div>
+                  <span className="font-black text-red-600 font-mono text-sm">{formatRupiah(c.totalRevenue)}</span>
+                </div>
+              ))}
             </div>
           )}
         </Card>

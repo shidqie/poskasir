@@ -151,7 +151,7 @@ export const transactionService = {
 
     let query = supabase
       .from('transactions')
-      .select('total_amount, total_quantity')
+      .select('total_amount, total_quantity, payment_method')
       .eq('status', 'completed')
       .gte('transaction_date', startOfDay)
       .lt('transaction_date', endOfDay);
@@ -164,13 +164,23 @@ export const transactionService = {
     if (error) throw error;
 
     const transactions = data || [];
-    const totalRevenue = transactions.reduce((sum, t) => sum + Number(t.total_amount), 0);
-    const totalItemsSold = transactions.reduce((sum, t) => sum + Number(t.total_quantity), 0);
+    const totalRevenue = transactions.reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
+    const totalItemsSold = transactions.reduce((sum, t) => sum + Number(t.total_quantity || 0), 0);
     const avgTransaction = transactions.length > 0 ? totalRevenue / transactions.length : 0;
+
+    const cashTxs = transactions.filter((t) => t.payment_method === 'cash');
+    const qrisTxs = transactions.filter((t) => t.payment_method === 'qris' || t.payment_method === 'transfer');
+
+    const cashRevenue = cashTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
+    const qrisRevenue = qrisTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
 
     return {
       transactionCount: transactions.length,
       totalRevenue,
+      cashRevenue,
+      qrisRevenue,
+      cashTxCount: cashTxs.length,
+      qrisTxCount: qrisTxs.length,
       totalItemsSold,
       avgTransaction,
     };

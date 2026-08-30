@@ -1,27 +1,44 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { closingService } from '@/services/closingService';
+import { cashierSessionService } from '@/services/cashierSessionService';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { DoorClosed, DoorOpen, Calendar, Clock, User, Coins, CheckCircle2, AlertCircle } from 'lucide-react';
-import { formatRupiah, formatTanggal, formatWaktu } from '@/utils/formatters';
+import { CashierSessionStatusBadge } from '@/components/cashier/CashierSessionStatusBadge';
+import {
+  DoorClosed,
+  DoorOpen,
+  Calendar,
+  Clock,
+  User,
+  Coins,
+  CheckCircle2,
+  AlertCircle,
+  Banknote,
+  QrCode,
+  Receipt,
+  Layers,
+  Table as TableIcon,
+  LayoutGrid,
+} from 'lucide-react';
+import { formatRupiah, formatTanggal, formatWaktu, formatTanggalWaktu } from '@/utils/formatters';
 
 export default function ClosingListPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
 
-  const { data: closings = [], isLoading } = useQuery({
-    queryKey: ['closings', { dateFrom, dateTo }],
-    queryFn: () => closingService.getAllClosings({ dateFrom, dateTo }),
+  const { data: sessions = [], isLoading } = useQuery({
+    queryKey: ['all-cashier-sessions', { dateFrom, dateTo }],
+    queryFn: () => cashierSessionService.getAllSessions({ dateFrom, dateTo }),
   });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumbs */}
-      <Breadcrumbs items={[{ label: 'Riwayat Tutup Kasir' }]} />
+      <Breadcrumbs items={[{ label: 'Sesi Kasir & Riwayat Closing' }]} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -30,11 +47,41 @@ export default function ClosingListPage() {
             <DoorClosed className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Riwayat Tutup Kasir</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Sesi Kasir & Riwayat Closing
+            </h1>
             <p className="text-xs sm:text-sm text-slate-500">
-              Laporan shift dan rekonsiliasi kas seluruh kasir toko &bull; {closings.length} data closing tercatat
+              Rekapitulasi sesi kerja, saldo awal tunai, penjualan Tunai vs QRIS, dan selisih kas seluruh kasir &bull; {sessions.length} sesi tercatat
             </p>
           </div>
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="bg-slate-200/80 p-1 rounded-xl flex gap-1 text-xs font-bold self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              viewMode === 'table'
+                ? 'bg-white text-red-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <TableIcon size={14} />
+            <span>Tabel</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('cards')}
+            className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              viewMode === 'cards'
+                ? 'bg-white text-red-600 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <LayoutGrid size={14} />
+            <span>Kartu</span>
+          </button>
         </div>
       </div>
 
@@ -49,7 +96,7 @@ export default function ClosingListPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium bg-slate-50 focus:bg-white"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-red-500 font-medium bg-slate-50 focus:bg-white"
             />
           </div>
           <div>
@@ -60,7 +107,7 @@ export default function ClosingListPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium bg-slate-50 focus:bg-white"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-red-500 font-medium bg-slate-50 focus:bg-white"
             />
           </div>
           {(dateFrom || dateTo) && (
@@ -71,7 +118,7 @@ export default function ClosingListPage() {
                   setDateFrom('');
                   setDateTo('');
                 }}
-                className="w-full py-2.5 text-xs font-bold"
+                className="w-full py-2.5 text-xs font-bold rounded-xl"
               >
                 Reset Filter
               </Button>
@@ -80,87 +127,213 @@ export default function ClosingListPage() {
         </div>
       </Card>
 
-      {/* List Closings */}
-      <div className="space-y-3">
+      {/* Content */}
+      <div>
         {isLoading ? (
           <div className="text-center py-16">
-            <LoadingSpinner size="md" message="Memuat riwayat tutup kasir..." />
+            <LoadingSpinner size="md" message="Memuat riwayat sesi kasir..." />
           </div>
-        ) : closings.length === 0 ? (
+        ) : sessions.length === 0 ? (
           <EmptyState
             icon={DoorClosed}
-            title="Belum Ada Riwayat Tutup Kasir"
+            title="Belum Ada Sesi Kasir Tercatat"
             description="Laporan buka & tutup kasir dari kasir toko akan otomatis tercatat dan muncul di sini."
           />
+        ) : viewMode === 'table' ? (
+          /* ========================================================================= */
+          /* 1. TABLE VIEW (PROMPT SECTION 22 EXACT FORMAT)                            */
+          /* ========================================================================= */
+          <div className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3.5 px-4">Kasir</th>
+                    <th className="py-3.5 px-3">Buka</th>
+                    <th className="py-3.5 px-3">Tutup</th>
+                    <th className="py-3.5 px-3 text-right">Saldo Awal</th>
+                    <th className="py-3.5 px-3 text-right">Tunai</th>
+                    <th className="py-3.5 px-3 text-right">QRIS</th>
+                    <th className="py-3.5 px-3 text-right">Total</th>
+                    <th className="py-3.5 px-3 text-right">Selisih</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {sessions.map((s) => {
+                    const diff = s.cash_difference;
+                    const isOpen = s.status === 'open';
+
+                    return (
+                      <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Kasir */}
+                        <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                          <div>
+                            <p>{s.cashier?.full_name || 'Kasir'}</p>
+                            <span className="text-[10px] text-slate-400 font-mono font-normal">
+                              {formatTanggal(s.opened_at)}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Buka */}
+                        <td className="py-3.5 px-3 font-mono font-medium text-slate-600 whitespace-nowrap">
+                          {formatWaktu(s.opened_at)}
+                        </td>
+
+                        {/* Tutup */}
+                        <td className="py-3.5 px-3 font-mono font-medium text-slate-600 whitespace-nowrap">
+                          {s.closed_at ? formatWaktu(s.closed_at) : '— (Berjalan)'}
+                        </td>
+
+                        {/* Saldo Awal */}
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
+                          {formatRupiah(s.opening_cash)}
+                        </td>
+
+                        {/* Tunai */}
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-600 whitespace-nowrap">
+                          {formatRupiah(s.cash_sales)}
+                        </td>
+
+                        {/* QRIS */}
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-red-600 whitespace-nowrap">
+                          {formatRupiah(s.qris_sales)}
+                        </td>
+
+                        {/* Total */}
+                        <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 whitespace-nowrap">
+                          {formatRupiah(s.total_sales)}
+                        </td>
+
+                        {/* Selisih */}
+                        <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                          {isOpen ? (
+                            <span className="text-slate-400 text-[11px]">—</span>
+                          ) : diff === null || diff === undefined ? (
+                            <span className="text-slate-400">—</span>
+                          ) : diff === 0 ? (
+                            <span className="text-emerald-700 font-bold">Sesuai (Rp 0)</span>
+                          ) : diff < 0 ? (
+                            <span className="text-rose-700 font-black">
+                              -{formatRupiah(Math.abs(diff))} (Kurang)
+                            </span>
+                          ) : (
+                            <span className="text-amber-700 font-black">
+                              +{formatRupiah(diff)} (Lebih)
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <CashierSessionStatusBadge status={s.status} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {closings.map((c) => {
-              const diff = Number(c.difference || 0);
-              const isOpen = c.status === 'open';
+          /* ========================================================================= */
+          /* 2. CARD VIEW                                                              */
+          /* ========================================================================= */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sessions.map((s) => {
+              const diff = s.cash_difference;
+              const isOpen = s.status === 'open';
 
               return (
                 <div
-                  key={c.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-red-300 hover:shadow-md transition-all space-y-4"
+                  key={s.id}
+                  className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-red-200 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-base">
-                          {c.cashier?.full_name || 'Kasir'}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-                            isOpen
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 animate-pulse'
-                              : 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}
-                        >
-                          {isOpen ? 'Shift Aktif' : 'Shift Ditutup'}
+                  <div className="space-y-3">
+                    {/* Header Card */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs">
+                          {s.cashier?.full_name?.charAt(0) || 'K'}
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs text-slate-900 leading-tight">
+                            {s.cashier?.full_name || 'Kasir'}
+                          </p>
+                          <span className="text-[10px] text-slate-400">
+                            {formatTanggal(s.opened_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <CashierSessionStatusBadge status={s.status} />
+                    </div>
+
+                    {/* Jam Buka & Tutup */}
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 rounded-xl text-[11px]">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Waktu Buka</span>
+                        <span className="font-mono font-bold text-slate-700">
+                          {formatWaktu(s.opened_at)} WIB
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 font-medium">
-                        {formatTanggal(c.closing_date)} &bull; {formatWaktu(c.closed_at || c.opened_at)} WIB
-                      </p>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Waktu Tutup</span>
+                        <span className="font-mono font-bold text-slate-700">
+                          {s.closed_at ? `${formatWaktu(s.closed_at)} WIB` : '— (Berjalan)'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-lg font-black text-slate-900 font-mono leading-tight">
-                        {formatRupiah(c.total_sales)}
-                      </p>
-                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                        {c.transaction_count || 0} Transaksi
-                      </p>
+                    {/* Breakdown Saldo */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Saldo Awal:</span>
+                        <span className="font-mono font-bold text-slate-900">
+                          {formatRupiah(s.opening_cash)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Penjualan Tunai:</span>
+                        <span className="font-mono font-bold text-emerald-600">
+                          {formatRupiah(s.cash_sales)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Penjualan QRIS:</span>
+                        <span className="font-mono font-bold text-red-600">
+                          {formatRupiah(s.qris_sales)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t border-slate-100 pt-1 font-bold">
+                        <span className="text-slate-900">Total Penjualan:</span>
+                        <span className="font-mono text-sm text-slate-900">
+                          {formatRupiah(s.total_sales)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Rincian Kas Grid */}
-                  <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Modal Awal</span>
-                      <span className="font-black text-slate-800 font-mono">{formatRupiah(c.opening_cash)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Kas Aktual</span>
-                      <span className="font-black text-slate-800 font-mono">{formatRupiah(c.actual_cash)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Selisih</span>
-                      <span
-                        className={`font-black font-mono ${
-                          diff === 0 ? 'text-emerald-600' : diff > 0 ? 'text-amber-600' : 'text-rose-600'
-                        }`}
-                      >
-                        {diff > 0 ? '+' : ''}
-                        {formatRupiah(diff)}
+                  {/* Footer Card: Selisih Kas */}
+                  {!isOpen && diff !== null && (
+                    <div
+                      className={`p-2.5 rounded-xl border text-xs font-mono font-bold flex items-center justify-between ${
+                        diff === 0
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : diff < 0
+                          ? 'bg-rose-50 border-rose-200 text-rose-800'
+                          : 'bg-amber-50 border-amber-200 text-amber-800'
+                      }`}
+                    >
+                      <span className="text-[11px] font-sans">Selisih Kas:</span>
+                      <span>
+                        {diff === 0
+                          ? 'Sesuai (Rp 0)'
+                          : diff < 0
+                          ? `-${formatRupiah(Math.abs(diff))} (Kurang)`
+                          : `+${formatRupiah(diff)} (Lebih)`}
                       </span>
                     </div>
-                  </div>
-
-                  {c.notes && (
-                    <p className="text-xs text-slate-600 bg-amber-50/60 rounded-xl p-2.5 border border-amber-100 font-medium">
-                      📝 {c.notes}
-                    </p>
                   )}
                 </div>
               );
