@@ -7,6 +7,9 @@ import { Card } from '@/components/common/Card';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { UnregisteredPriceModal } from '@/components/prices/UnregisteredPriceModal';
 import { ConvertToProductModal } from '@/pages/owner/unregistered/ConvertToProductModal';
 import { formatRupiah } from '@/utils/formatters';
@@ -17,7 +20,6 @@ import {
   Barcode,
   Package,
   Layers,
-  AlertCircle,
   HelpCircle,
   Sparkles,
 } from 'lucide-react';
@@ -48,30 +50,34 @@ export function PriceListPage({ isOwnerView = false }) {
       queryClient.invalidateQueries({ queryKey: ['unregistered-prices'] });
       setToast({
         isOpen: true,
-        message: 'Harga barang berhasil dicatat ke Daftar Harga!',
+        message: 'Harga sementara berhasil dicatat.',
         type: 'success',
       });
+      setIsAddModalOpen(false);
     },
   });
 
-  // Mutation Konversi ke Data Barang Resmi
+  // Mutation Konversi ke Data Barang
   const convertMutation = useMutation({
-    mutationFn: ({ id, productData }) =>
-      unregisteredPriceService.convertToProduct(id, productData),
+    mutationFn: (data) => unregisteredPriceService.convertToProduct(data.unregistered_id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prices'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['unregistered-prices'] });
       setToast({
         isOpen: true,
-        message: 'Barang berhasil didaftarkan ke Data Master Barang!',
+        message: 'Barang berhasil didaftarkan ke Master Produk.',
         type: 'success',
       });
+      setConvertModal({ isOpen: false, item: null });
     },
   });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Daftar & Cek Harga' }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -81,10 +87,10 @@ export function PriceListPage({ isOwnerView = false }) {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-                Daftar & Cek Harga Barang
+                Daftar & Cek Harga Cepat
               </h1>
               <p className="text-xs sm:text-sm text-slate-500">
-                Pencarian cepat harga barang toko sembako (produk terdaftar & catatan sementara)
+                Pencarian instan harga seluruh barang toko sembako untuk kemudahan Kasir & Pelanggan
               </p>
             </div>
           </div>
@@ -96,7 +102,7 @@ export function PriceListPage({ isOwnerView = false }) {
           icon={Plus}
           className="shrink-0"
         >
-          + Tambah Harga Belum Terdaftar
+          Tambah Harga Belum Terdaftar
         </Button>
       </div>
 
@@ -135,32 +141,23 @@ export function PriceListPage({ isOwnerView = false }) {
             <LoadingSpinner size="lg" message="Mencari harga barang..." />
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-red-600 bg-white rounded-2xl border border-red-200">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
-            <p className="font-semibold text-sm">Gagal memuat daftar harga</p>
-            <p className="text-xs text-slate-500 mt-1">{error?.message || 'Silakan coba kembali'}</p>
+          <div className="p-6">
+            <Alert variant="danger" title="Gagal Memuat Daftar Harga">
+              {error?.message || 'Silakan coba beberapa saat lagi.'}
+            </Alert>
           </div>
         ) : items.length === 0 ? (
-          <div className="py-16 px-4 text-center bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-100">
-              <HelpCircle className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="font-bold text-base text-slate-900">
-                Harga Barang Tidak Ditemukan
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
-                Barang "{search}" belum terdaftar di sistem. Anda dapat langsung mencatat harganya agar tidak perlu bertanya lagi.
-              </p>
-            </div>
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
-              variant="primary"
-              icon={Plus}
-            >
-              Catat Harga "{search}" Sekarang
-            </Button>
-          </div>
+          <EmptyState
+            icon={HelpCircle}
+            title="Harga Barang Tidak Ditemukan"
+            description={
+              search
+                ? `Barang "${search}" belum terdaftar di sistem. Anda dapat langsung mencatat harganya agar tidak perlu bertanya lagi.`
+                : 'Belum ada data barang atau harga yang tercatat di sistem.'
+            }
+            actionLabel={search ? `Catat Harga "${search}" Sekarang` : 'Tambah Catatan Harga'}
+            onAction={() => setIsAddModalOpen(true)}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((item) => {

@@ -3,6 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { unregisteredPriceService } from '@/services/unregisteredPriceService';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { Select } from '@/components/common/Select';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -19,7 +23,6 @@ import {
   Clock,
   User,
   PowerOff,
-  AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -42,7 +45,7 @@ export function UnregisteredPriceListPage() {
     error,
   } = useQuery({
     queryKey: ['unregistered-prices', { search, status }],
-    queryFn: () => unregisteredPriceService.getUnregisteredPrices({ search, status }),
+    queryFn: () => unregisteredPriceService.getAll({ search, status }),
   });
 
   // Mutation Tambah Harga Sementara
@@ -75,7 +78,7 @@ export function UnregisteredPriceListPage() {
     },
   });
 
-  // Mutation Nonaktifkan
+  // Mutation Deactivate
   const deactivateMutation = useMutation({
     mutationFn: (id) => unregisteredPriceService.deactivate(id),
     onSuccess: () => {
@@ -105,11 +108,14 @@ export function UnregisteredPriceListPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Barang Belum Terdaftar' }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
+            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
               <Tag className="w-5 h-5" />
             </div>
             <div>
@@ -150,16 +156,18 @@ export function UnregisteredPriceListPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <select
+            <Select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
-            >
-              <option value="all">Semua Status</option>
-              <option value="pending">Belum Terdaftar (Pending)</option>
-              <option value="converted">Telah Jadi Produk</option>
-              <option value="inactive">Dinonaktifkan</option>
-            </select>
+              placeholder={null}
+              options={[
+                { value: 'all', label: 'Semua Status' },
+                { value: 'pending', label: 'Belum Terdaftar (Pending)' },
+                { value: 'converted', label: 'Telah Jadi Produk' },
+                { value: 'inactive', label: 'Dinonaktifkan' },
+              ]}
+              selectClassName="py-2 bg-slate-50"
+            />
 
             <span className="text-xs text-slate-500 whitespace-nowrap">
               Total: <span className="font-bold text-slate-900">{items.length}</span>
@@ -175,23 +183,23 @@ export function UnregisteredPriceListPage() {
             <LoadingSpinner size="md" message="Memuat data harga sementara..." />
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-red-600">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
-            <p className="font-semibold text-sm">Gagal memuat data</p>
-            <p className="text-xs text-slate-500 mt-1">{error?.message || 'Silakan coba kembali'}</p>
+          <div className="p-6">
+            <Alert variant="danger" title="Gagal Memuat Data">
+              {error?.message || 'Silakan coba beberapa saat lagi.'}
+            </Alert>
           </div>
         ) : items.length === 0 ? (
-          <div className="py-16 text-center text-slate-500">
-            <Tag className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700 text-sm">
-              {search ? 'Data tidak ditemukan' : 'Tidak ada catatan harga sementara'}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {status === 'pending'
+          <EmptyState
+            icon={Tag}
+            title={search ? 'Data Tidak Ditemukan' : 'Tidak Ada Catatan Harga Sementara'}
+            description={
+              status === 'pending'
                 ? 'Semua harga sementara telah dikonversi atau belum ada data baru yang dicatat.'
-                : 'Pilih filter status lain atau tambahkan catatan harga baru.'}
-            </p>
-          </div>
+                : 'Pilih filter status lain atau tambahkan catatan harga sementara baru.'
+            }
+            actionLabel="Tambah Harga Sementara"
+            onAction={() => setIsAddModalOpen(true)}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

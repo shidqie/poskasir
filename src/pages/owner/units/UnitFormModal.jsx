@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
+import { Checkbox } from '@/components/common/Checkbox';
+import { Alert } from '@/components/common/Alert';
 
 export function UnitFormModal({
   isOpen,
@@ -59,9 +61,9 @@ export function UnitFormModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 text-red-700 text-xs font-medium border border-red-200">
+          <Alert variant="danger" title="Terjadi Kesalahan">
             {error}
-          </div>
+          </Alert>
         )}
 
         <Input
@@ -95,23 +97,14 @@ export function UnitFormModal({
         />
 
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-          <label className="flex items-start gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={allowDecimal}
-              onChange={(e) => setAllowDecimal(e.target.checked)}
-              disabled={isLoading}
-              className="w-4 h-4 mt-0.5 text-red-600 rounded border-slate-300 focus:ring-red-500"
-            />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Boleh Menggunakan Kuantitas Desimal / Pecahan
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Centang untuk barang yang dijual timbangan/curah (seperti 0.5 Kg, 1.25 Liter, 250 Gram). Jangan dicentang untuk barang utuh seperti Pcs/Bungkus.
-              </p>
-            </div>
-          </label>
+          <Checkbox
+            id="unit-allow-decimal"
+            label="Boleh Menggunakan Kuantitas Desimal / Pecahan"
+            description="Centang untuk barang yang dijual timbangan/curah (seperti 0.5 Kg, 1.25 Liter, 250 Gram). Jangan dicentang untuk barang utuh seperti Pcs/Bungkus."
+            checked={allowDecimal}
+            onChange={(e) => setAllowDecimal(e.target.checked)}
+            disabled={isLoading}
+          />
         </div>
 
         <div className="flex items-center justify-end gap-2.5 pt-3">

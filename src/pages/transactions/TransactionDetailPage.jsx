@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { transactionService } from '@/services/transactionService';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { Alert } from '@/components/common/Alert';
+import { Button } from '@/components/common/Button';
 import { ArrowLeft, Printer, Package, Banknote, QrCode, CreditCard, CheckCircle2 } from 'lucide-react';
 
 const METHOD_ICONS = { cash: Banknote, qris: QrCode, transfer: CreditCard };
@@ -17,7 +20,7 @@ export default function TransactionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: trx, isLoading, isError } = useQuery({
+  const { data: trx, isLoading, isError, error } = useQuery({
     queryKey: ['transaction', id],
     queryFn: () => transactionService.getTransactionById(id),
     enabled: !!id,
@@ -25,7 +28,7 @@ export default function TransactionDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -33,9 +36,13 @@ export default function TransactionDetailPage() {
 
   if (isError || !trx) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
-        <p className="text-rose-600 text-sm font-semibold">Transaksi tidak ditemukan.</p>
-        <button onClick={() => navigate(-1)} className="text-red-600 text-sm font-bold hover:underline">← Kembali</button>
+      <div className="p-8 max-w-2xl mx-auto space-y-4">
+        <Alert variant="danger" title="Transaksi Tidak Ditemukan">
+          {error?.message || 'Nomor transaksi tidak valid atau telah dihapus.'}
+        </Alert>
+        <Button variant="outline" onClick={() => navigate('/transactions')}>
+          Kembali ke Riwayat Transaksi
+        </Button>
       </div>
     );
   }
@@ -44,6 +51,14 @@ export default function TransactionDetailPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto w-full space-y-4">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Riwayat Transaksi', to: '/transactions' },
+          { label: trx.transaction_number },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 text-sm font-bold cursor-pointer">

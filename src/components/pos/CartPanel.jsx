@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useCartStore } from '@/stores/cartStore';
 import { CartItem } from './CartItem';
 import { Button } from '@/components/common/Button';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatRupiah } from '@/utils/formatters';
 import {
   ShoppingCart,
   Trash2,
-  AlertTriangle,
   ArrowRight,
   Receipt,
   X,
@@ -36,7 +37,7 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
   const isEmpty = items.length === 0;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50">
+    <div className="flex flex-col h-full bg-slate-50 border-l border-slate-200/80">
       {/* Header Panel Keranjang */}
       <div className="p-4 bg-white border-b border-slate-200/80 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
@@ -44,12 +45,12 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
             <ShoppingCart className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-bold text-base text-slate-900 leading-tight">
+            <h2 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
               Keranjang Belanja
             </h2>
-            <span className="text-xs text-slate-500 font-medium">
-              {items.length} jenis produk
-            </span>
+            <p className="text-xs text-slate-500 font-medium">
+              {totalQuantity} {totalQuantity > 0 ? 'item terpilih' : 'item'}
+            </p>
           </div>
         </div>
 
@@ -58,10 +59,10 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
             <button
               type="button"
               onClick={() => setIsClearDialogOpen(true)}
-              className="p-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
               title="Kosongkan seluruh keranjang"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Kosongkan</span>
             </button>
           )}
@@ -80,25 +81,22 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
 
       {/* Warning Box jika stok tidak mencukupi */}
       {lastWarning && (
-        <div className="m-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2 animate-shake shrink-0">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="font-medium leading-relaxed">{lastWarning}</p>
+        <div className="m-3">
+          <Alert variant="warning" title="Peringatan Stok">
+            {lastWarning}
+          </Alert>
         </div>
       )}
 
       {/* List Items Keranjang */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5">
         {isEmpty ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-              <ShoppingCart className="w-8 h-8 text-slate-300" />
-            </div>
-            <p className="font-bold text-slate-700 text-sm">
-              Keranjang masih kosong
-            </p>
-            <p className="text-xs text-slate-400 mt-1 max-w-[220px]">
-              Cari atau scan barcode barang untuk memulai transaksi kasir.
-            </p>
+          <div className="h-full flex items-center justify-center">
+            <EmptyState
+              icon={ShoppingCart}
+              title="Keranjang Masih Kosong"
+              description="Pilih atau scan barcode barang untuk memulai transaksi kasir."
+            />
           </div>
         ) : (
           items.map((item) => (

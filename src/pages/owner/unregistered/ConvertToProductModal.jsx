@@ -5,10 +5,12 @@ import { unitService } from '@/services/unitService';
 import { productService } from '@/services/productService';
 import { Modal } from '@/components/common/Modal';
 import { Input } from '@/components/common/Input';
+import { Select } from '@/components/common/Select';
+import { Alert } from '@/components/common/Alert';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { Button } from '@/components/common/Button';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
-import { Barcode, Sparkles, AlertCircle, Camera } from 'lucide-react';
+import { Barcode, Sparkles, Camera } from 'lucide-react';
 
 export function ConvertToProductModal({
   isOpen,
@@ -28,69 +30,73 @@ export function ConvertToProductModal({
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [error, setError] = useState('');
 
-  // Query Kategori
+  // Fetch Categories
   const { data: categories = [] } = useQuery({
     queryKey: ['categories', 'active'],
     queryFn: () => categoryService.getCategories({ onlyActive: true }),
     enabled: isOpen,
   });
 
-  // Query Satuan
+  // Fetch Units
   const { data: units = [] } = useQuery({
     queryKey: ['units', 'active'],
     queryFn: () => unitService.getUnits({ onlyActive: true }),
     enabled: isOpen,
   });
 
+  // Fetch next product code
   useEffect(() => {
-    if (unregisteredItem && isOpen) {
-      setName(unregisteredItem.name || '');
-      setBarcode(unregisteredItem.barcode || '');
-      setSellingPrice(Number(unregisteredItem.selling_price) || 0);
-      setCategoryId('');
-      setUnitId('');
-      setStock(0);
-      setMinimumStock(5);
-      setError('');
-
+    if (isOpen) {
       productService.getNextProductCode().then((nextCode) => {
         setCode(nextCode);
       });
     }
+  }, [isOpen]);
+
+  // Pre-fill data dari item belum terdaftar
+  useEffect(() => {
+    if (unregisteredItem && isOpen) {
+      setName(unregisteredItem.name || '');
+      setBarcode(unregisteredItem.barcode || '');
+      setSellingPrice(Number(unregisteredItem.price) || 0);
+      setStock(0);
+      setMinimumStock(5);
+      setError('');
+    }
   }, [unregisteredItem, isOpen]);
 
+  // Handle unit allow decimal
   const selectedUnit = units.find((u) => u.id === unitId);
   const allowDecimal = Boolean(selectedUnit?.allow_decimal);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
     if (!name.trim()) {
       setError('Nama barang wajib diisi.');
       return;
     }
     if (!categoryId) {
-      setError('Kategori barang wajib dipilih.');
+      setError('Silakan pilih kategori barang.');
       return;
     }
     if (!unitId) {
-      setError('Satuan barang wajib dipilih.');
+      setError('Silakan pilih satuan barang.');
       return;
     }
-    if (Number(sellingPrice) < 0) {
-      setError('Harga jual tidak boleh negatif.');
+    if (Number(sellingPrice) <= 0) {
+      setError('Harga jual harus lebih besar dari 0.');
       return;
     }
 
     try {
-      await onSubmit(unregisteredItem.id, {
+      await onSubmit({
+        unregistered_id: unregisteredItem?.id,
         name: name.trim(),
-        code: code.trim(),
+        code: code,
         barcode: barcode.trim() || null,
         category_id: categoryId,
         unit_id: unitId,
-        selling_price: Number(sellingPrice) || 0,
+        selling_price: Number(sellingPrice),
         stock: Number(stock) || 0,
         minimum_stock: Number(minimumStock) || 0,
         status: true,
@@ -111,10 +117,9 @@ export function ConvertToProductModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 text-red-700 text-xs font-medium border border-red-200 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <span>{error}</span>
-          </div>
+          <Alert variant="danger" title="Terjadi Kesalahan">
+            {error}
+          </Alert>
         )}
 
         <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2.5 text-xs text-red-900">
@@ -174,59 +179,38 @@ export function ConvertToProductModal({
             }
           />
 
-          <div>
-            <label
-              htmlFor="conv-category"
-              className="block text-sm font-semibold text-slate-700 mb-1.5"
-            >
-              Kategori <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="conv-category"
-              value={categoryId}
-              onChange={(e) => {
-                setCategoryId(e.target.value);
-                setError('');
-              }}
-              required
-              disabled={isLoading}
-              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
-            >
-              <option value="">-- Pilih Kategori --</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Kategori Select */}
+          <Select
+            id="conv-category"
+            label="Kategori"
+            required
+            value={categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              setError('');
+            }}
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="-- Pilih Kategori --"
+            disabled={isLoading}
+          />
 
-          <div>
-            <label
-              htmlFor="conv-unit"
-              className="block text-sm font-semibold text-slate-700 mb-1.5"
-            >
-              Satuan <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="conv-unit"
-              value={unitId}
-              onChange={(e) => {
-                setUnitId(e.target.value);
-                setError('');
-              }}
-              required
-              disabled={isLoading}
-              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
-            >
-              <option value="">-- Pilih Satuan --</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.symbol})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Satuan Select */}
+          <Select
+            id="conv-unit"
+            label="Satuan"
+            required
+            value={unitId}
+            onChange={(e) => {
+              setUnitId(e.target.value);
+              setError('');
+            }}
+            options={units.map((u) => ({
+              value: u.id,
+              label: `${u.name} (${u.symbol})`,
+            }))}
+            placeholder="-- Pilih Satuan --"
+            disabled={isLoading}
+          />
 
           <CurrencyInput
             id="conv-price"

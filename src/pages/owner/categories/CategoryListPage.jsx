@@ -7,8 +7,11 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Toast } from '@/components/common/Toast';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { CategoryFormModal } from './CategoryFormModal';
-import { Plus, Edit2, ToggleLeft, ToggleRight, Layers, Search, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, ToggleLeft, ToggleRight, Layers, Search } from 'lucide-react';
 
 export function CategoryListPage() {
   const queryClient = useQueryClient();
@@ -29,11 +32,11 @@ export function CategoryListPage() {
 
   // Mutation Tambah / Update Kategori
   const saveMutation = useMutation({
-    mutationFn: async (formData) => {
+    mutationFn: (categoryData) => {
       if (selectedCategory) {
-        return categoryService.updateCategory(selectedCategory.id, formData);
+        return categoryService.updateCategory(selectedCategory.id, categoryData);
       }
-      return categoryService.createCategory(formData);
+      return categoryService.createCategory(categoryData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -44,19 +47,22 @@ export function CategoryListPage() {
           : 'Kategori baru berhasil ditambahkan.',
         type: 'success',
       });
+      setIsModalOpen(false);
+      setSelectedCategory(null);
     },
   });
 
   // Mutation Toggle Status
   const toggleStatusMutation = useMutation({
-    mutationFn: async (category) => {
-      return categoryService.toggleCategoryStatus(category.id, category.status);
-    },
-    onSuccess: () => {
+    mutationFn: (category) =>
+      categoryService.updateCategory(category.id, { status: !category.status }),
+    onSuccess: (_, category) => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setToast({
         isOpen: true,
-        message: 'Status kategori berhasil diperbarui.',
+        message: `Status kategori berhasil diubah menjadi ${
+          !category.status ? 'Aktif' : 'Tidak Aktif'
+        }.`,
         type: 'success',
       });
     },
@@ -93,6 +99,9 @@ export function CategoryListPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Kategori Barang' }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -150,23 +159,23 @@ export function CategoryListPage() {
             <LoadingSpinner size="md" message="Memuat data kategori..." />
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-red-600">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
-            <p className="font-semibold text-sm">Gagal memuat data kategori</p>
-            <p className="text-xs text-slate-500 mt-1">{error?.message || 'Silakan coba muat ulang'}</p>
+          <div className="p-6">
+            <Alert variant="danger" title="Gagal Memuat Data Kategori">
+              {error?.message || 'Silakan coba beberapa saat lagi.'}
+            </Alert>
           </div>
         ) : filteredCategories.length === 0 ? (
-          <div className="py-16 text-center text-slate-500">
-            <Layers className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700 text-sm">
-              {searchTerm ? 'Kategori tidak ditemukan' : 'Belum ada data kategori'}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {searchTerm
-                ? `Tidak ada kategori dengan kata kunci "${searchTerm}"`
-                : 'Klik tombol Tambah Kategori untuk menambahkan kelompok produk baru.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Layers}
+            title={searchTerm ? 'Kategori Tidak Ditemukan' : 'Belum Ada Kategori'}
+            description={
+              searchTerm
+                ? `Tidak ditemukan kategori dengan kata kunci "${searchTerm}".`
+                : 'Klik tombol Tambah Kategori untuk menambahkan kelompok produk baru.'
+            }
+            actionLabel={searchTerm ? null : 'Tambah Kategori Baru'}
+            onAction={handleOpenAdd}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

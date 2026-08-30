@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { transactionService } from '@/services/transactionService';
 import { useAuthStore } from '@/stores/authStore';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { History, Search, Eye, Printer, SlidersHorizontal, X } from 'lucide-react';
 
 const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
@@ -28,7 +31,7 @@ export default function TransactionListPage() {
   const [dateTo, setDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: transactions = [], isLoading, isError } = useQuery({
+  const { data: transactions = [], isLoading, isError, error } = useQuery({
     queryKey: ['transactions', { search, dateFrom, dateTo }],
     queryFn: () => transactionService.getTransactions({ search, dateFrom, dateTo }),
     staleTime: 1000 * 30,
@@ -44,6 +47,9 @@ export default function TransactionListPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-6xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Riwayat Transaksi' }]} />
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -118,14 +124,20 @@ export default function TransactionListPage() {
           </div>
         )}
         {isError && (
-          <div className="text-center py-16 text-red-500 text-sm">Gagal memuat data transaksi.</div>
+          <Alert variant="danger" title="Gagal Memuat Data Transaksi">
+            {error?.message || 'Silakan coba beberapa saat lagi.'}
+          </Alert>
         )}
         {!isLoading && !isError && transactions.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 text-slate-400">
-            <History size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-bold text-slate-700">Belum ada transaksi</p>
-            <p className="text-xs mt-1">Transaksi yang telah diselesaikan akan muncul di sini</p>
-          </div>
+          <EmptyState
+            icon={History}
+            title={search || dateFrom || dateTo ? 'Transaksi Tidak Ditemukan' : 'Belum Ada Transaksi'}
+            description={
+              search || dateFrom || dateTo
+                ? 'Coba sesuaikan kata kunci pencarian atau rentang tanggal.'
+                : 'Transaksi penjualan yang telah selesai diproses di kasir akan muncul di sini.'
+            }
+          />
         )}
         {transactions.map((trx) => (
           <div key={trx.id} className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs hover:border-red-200 transition-colors">

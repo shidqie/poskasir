@@ -5,6 +5,10 @@ import { productService } from '@/services/productService';
 import { categoryService } from '@/services/categoryService';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { Select } from '@/components/common/Select';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { StockBadge } from '@/components/common/StockBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -21,7 +25,6 @@ import {
   ToggleLeft,
   ToggleRight,
   Barcode,
-  AlertCircle,
 } from 'lucide-react';
 
 export function ProductListPage() {
@@ -91,19 +94,28 @@ export function ProductListPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Data Master Barang' },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
-            <Package className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Data Master Barang
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Kelola seluruh produk, harga jual, stok, dan barcode barang sembako
-            </p>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                Data Master Barang
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Katalog produk toko sembako, barcode, kategori, satuan, harga jual, dan stok
+              </p>
+            </div>
           </div>
         </div>
 
@@ -117,10 +129,10 @@ export function ProductListPage() {
         </Button>
       </div>
 
-      {/* Filter & Toolbar Box */}
+      {/* Toolbar & Filter */}
       <Card bodyClassName="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Pencarian */}
+          {/* Search */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Search className="w-4 h-4" />
@@ -135,47 +147,40 @@ export function ProductListPage() {
           </div>
 
           {/* Filter Kategori */}
-          <div>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
-            >
-              <option value="">Semua Kategori</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            placeholder="Semua Kategori"
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            selectClassName="py-2 bg-slate-50"
+          />
 
           {/* Filter Status */}
-          <div>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
-            >
-              <option value="all">Semua Status</option>
-              <option value="true">Aktif</option>
-              <option value="false">Tidak Aktif</option>
-            </select>
-          </div>
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            placeholder={null}
+            options={[
+              { value: 'all', label: 'Semua Status' },
+              { value: 'true', label: 'Aktif' },
+              { value: 'false', label: 'Tidak Aktif' },
+            ]}
+            selectClassName="py-2 bg-slate-50"
+          />
 
           {/* Filter Stok */}
-          <div>
-            <select
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
-            >
-              <option value="all">Semua Status Stok</option>
-              <option value="available">Stok Tersedia</option>
-              <option value="low">Stok Menipis (Di Bawah Min)</option>
-              <option value="out_of_stock">Stok Habis (0)</option>
-            </select>
-          </div>
+          <Select
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value)}
+            placeholder={null}
+            options={[
+              { value: 'all', label: 'Semua Status Stok' },
+              { value: 'available', label: 'Stok Tersedia' },
+              { value: 'low', label: 'Stok Menipis' },
+              { value: 'out_of_stock', label: 'Stok Habis (0)' },
+            ]}
+            selectClassName="py-2 bg-slate-50"
+          />
         </div>
 
         <div className="flex items-center justify-between text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
@@ -191,25 +196,31 @@ export function ProductListPage() {
             <LoadingSpinner size="md" message="Memuat data master barang..." />
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-red-600">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
-            <p className="font-semibold text-sm">Gagal memuat data barang</p>
-            <p className="text-xs text-slate-500 mt-1">{error?.message || 'Silakan coba kembali'}</p>
+          <div className="p-6">
+            <Alert variant="danger" title="Gagal Memuat Data Barang">
+              {error?.message || 'Silakan coba beberapa saat lagi atau hubungi administrator.'}
+            </Alert>
           </div>
         ) : products.length === 0 ? (
-          <div className="py-16 text-center text-slate-500">
-            <Package className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700 text-sm">
-              {search || categoryId || status !== 'all' || stockFilter !== 'all'
-                ? 'Barang tidak ditemukan'
-                : 'Belum ada data master barang'}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {search || categoryId || status !== 'all' || stockFilter !== 'all'
-                ? 'Coba sesuaikan kata kunci pencarian atau filter yang dipilih'
-                : 'Klik tombol Tambah Barang untuk mendaftarkan produk sembako baru.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Package}
+            title={
+              search || categoryId || status !== 'all' || stockFilter !== 'all'
+                ? 'Barang Tidak Ditemukan'
+                : 'Belum Ada Data Master Barang'
+            }
+            description={
+              search || categoryId || status !== 'all' || stockFilter !== 'all'
+                ? 'Coba sesuaikan kata kunci pencarian atau filter yang Anda pilih.'
+                : 'Klik tombol Tambah Barang untuk mendaftarkan produk sembako baru ke sistem.'
+            }
+            actionLabel={
+              search || categoryId || status !== 'all' || stockFilter !== 'all'
+                ? null
+                : 'Tambah Barang Baru'
+            }
+            onAction={() => navigate('/owner/products/new')}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

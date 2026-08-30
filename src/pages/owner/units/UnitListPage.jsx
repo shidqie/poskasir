@@ -7,8 +7,11 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Toast } from '@/components/common/Toast';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { UnitFormModal } from './UnitFormModal';
-import { Plus, Edit2, ToggleLeft, ToggleRight, Scale, Search, AlertCircle, Check, X } from 'lucide-react';
+import { Plus, Edit2, ToggleLeft, ToggleRight, Scale, Search, Check, X } from 'lucide-react';
 
 export function UnitListPage() {
   const queryClient = useQueryClient();
@@ -29,11 +32,11 @@ export function UnitListPage() {
 
   // Mutation Tambah / Update Satuan
   const saveMutation = useMutation({
-    mutationFn: async (formData) => {
+    mutationFn: (unitData) => {
       if (selectedUnit) {
-        return unitService.updateUnit(selectedUnit.id, formData);
+        return unitService.updateUnit(selectedUnit.id, unitData);
       }
-      return unitService.createUnit(formData);
+      return unitService.createUnit(unitData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
@@ -44,19 +47,22 @@ export function UnitListPage() {
           : 'Satuan baru berhasil ditambahkan.',
         type: 'success',
       });
+      setIsModalOpen(false);
+      setSelectedUnit(null);
     },
   });
 
   // Mutation Toggle Status
   const toggleStatusMutation = useMutation({
-    mutationFn: async (unit) => {
-      return unitService.toggleUnitStatus(unit.id, unit.status);
-    },
-    onSuccess: () => {
+    mutationFn: (unit) =>
+      unitService.updateUnit(unit.id, { status: !unit.status }),
+    onSuccess: (_, unit) => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
       setToast({
         isOpen: true,
-        message: 'Status satuan berhasil diperbarui.',
+        message: `Status satuan berhasil diubah menjadi ${
+          !unit.status ? 'Aktif' : 'Tidak Aktif'
+        }.`,
         type: 'success',
       });
     },
@@ -75,7 +81,7 @@ export function UnitListPage() {
   const handleToggleClick = (unit) => {
     setConfirmDialog({
       isOpen: true,
-      unit,
+      unit: unit,
     });
   };
 
@@ -95,6 +101,9 @@ export function UnitListPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Satuan Barang' }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -152,23 +161,23 @@ export function UnitListPage() {
             <LoadingSpinner size="md" message="Memuat data satuan..." />
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-red-600">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-400" />
-            <p className="font-semibold text-sm">Gagal memuat data satuan</p>
-            <p className="text-xs text-slate-500 mt-1">{error?.message || 'Silakan coba muat ulang'}</p>
+          <div className="p-6">
+            <Alert variant="danger" title="Gagal Memuat Data Satuan">
+              {error?.message || 'Silakan coba beberapa saat lagi.'}
+            </Alert>
           </div>
         ) : filteredUnits.length === 0 ? (
-          <div className="py-16 text-center text-slate-500">
-            <Scale className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700 text-sm">
-              {searchTerm ? 'Satuan tidak ditemukan' : 'Belum ada data satuan'}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {searchTerm
-                ? `Tidak ada satuan dengan kata kunci "${searchTerm}"`
-                : 'Klik tombol Tambah Satuan untuk menambahkan takaran produk baru.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Scale}
+            title={searchTerm ? 'Satuan Tidak Ditemukan' : 'Belum Ada Satuan'}
+            description={
+              searchTerm
+                ? `Tidak ditemukan satuan dengan kata kunci "${searchTerm}".`
+                : 'Klik tombol Tambah Satuan untuk menambahkan takaran produk baru.'
+            }
+            actionLabel={searchTerm ? null : 'Tambah Satuan Baru'}
+            onAction={handleOpenAdd}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

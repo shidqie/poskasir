@@ -7,11 +7,15 @@ import { unitService } from '@/services/unitService';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
+import { Select } from '@/components/common/Select';
+import { ToggleSwitch } from '@/components/common/ToggleSwitch';
+import { Alert } from '@/components/common/Alert';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
-import { ArrowLeft, Save, Package, Barcode, Camera, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Package, Barcode, Camera } from 'lucide-react';
 
 export function ProductFormPage() {
   const { id } = useParams();
@@ -149,6 +153,14 @@ export function ProductFormPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto w-full">
+      {/* Breadcrumbs Navigation */}
+      <Breadcrumbs
+        items={[
+          { label: 'Data Master Barang', to: '/owner/products' },
+          { label: isEdit ? 'Ubah Data Barang' : 'Tambah Barang Baru' },
+        ]}
+      />
+
       {/* Header Back Navigation */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -174,16 +186,9 @@ export function ProductFormPage() {
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {formError && (
-          <div
-            className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-3 text-sm"
-            role="alert"
-          >
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold">Terjadi Kesalahan</p>
-              <p className="text-xs text-red-600 mt-0.5">{formError}</p>
-            </div>
-          </div>
+          <Alert variant="danger" title="Terjadi Kesalahan">
+            {formError}
+          </Alert>
         )}
 
         <Card title="Informasi Utama Produk">
@@ -244,61 +249,38 @@ export function ProductFormPage() {
               helperText="Gunakan tombol Scan Kamera atau ketik manual jika ada barcode di kemasan produk."
             />
 
-            {/* Kategori */}
-            <div>
-              <label
-                htmlFor="product-category"
-                className="block text-sm font-semibold text-slate-700 mb-1.5"
-              >
-                Kategori <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="product-category"
-                value={categoryId}
-                onChange={(e) => {
-                  setCategoryId(e.target.value);
-                  setFormError('');
-                }}
-                required
-                disabled={saveMutation.isPending}
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
-              >
-                <option value="">-- Pilih Kategori --</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Kategori Select */}
+            <Select
+              id="product-category"
+              label="Kategori"
+              required
+              value={categoryId}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setFormError('');
+              }}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="-- Pilih Kategori --"
+              disabled={saveMutation.isPending}
+            />
 
-            {/* Satuan */}
-            <div>
-              <label
-                htmlFor="product-unit"
-                className="block text-sm font-semibold text-slate-700 mb-1.5"
-              >
-                Satuan <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="product-unit"
-                value={unitId}
-                onChange={(e) => {
-                  setUnitId(e.target.value);
-                  setFormError('');
-                }}
-                required
-                disabled={saveMutation.isPending}
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
-              >
-                <option value="">-- Pilih Satuan --</option>
-                {units.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.symbol}) {u.allow_decimal ? '— Pecahan/Kg' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Satuan Select */}
+            <Select
+              id="product-unit"
+              label="Satuan"
+              required
+              value={unitId}
+              onChange={(e) => {
+                setUnitId(e.target.value);
+                setFormError('');
+              }}
+              options={units.map((u) => ({
+                value: u.id,
+                label: `${u.name} (${u.symbol}) ${u.allow_decimal ? '(Pecahan/Kg)' : ''}`,
+              }))}
+              placeholder="-- Pilih Satuan --"
+              disabled={saveMutation.isPending}
+            />
           </div>
         </Card>
 
@@ -372,23 +354,14 @@ export function ProductFormPage() {
           </div>
 
           {/* Status Switch */}
-          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-slate-900">Status Produk</p>
-              <p className="text-xs text-slate-500">
-                Produk aktif dapat dicari dan dijual di terminal kasir
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={status}
-                onChange={(e) => setStatus(e.target.checked)}
-                disabled={saveMutation.isPending}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-            </label>
+          <div className="mt-5 pt-4 border-t border-slate-100">
+            <ToggleSwitch
+              label="Status Produk"
+              description="Produk aktif dapat dicari dan dijual di terminal kasir"
+              checked={status}
+              onChange={setStatus}
+              disabled={saveMutation.isPending}
+            />
           </div>
         </Card>
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { Input } from '@/components/common/Input';
+import { Textarea } from '@/components/common/Textarea';
+import { Alert } from '@/components/common/Alert';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { Button } from '@/components/common/Button';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
@@ -24,7 +26,7 @@ export function UnregisteredPriceModal({
   useEffect(() => {
     if (initialData) {
       setName(initialData.name || '');
-      setPrice(Number(initialData.selling_price) || 0);
+      setPrice(Number(initialData.price || initialData.selling_price) || 0);
       setBarcode(initialData.barcode || '');
       setUnitName(initialData.unit_name || '');
       setNotes(initialData.notes || '');
@@ -44,22 +46,22 @@ export function UnregisteredPriceModal({
       setError('Nama barang wajib diisi.');
       return;
     }
-    if (Number(price) < 0) {
-      setError('Harga jual tidak boleh bernilai negatif.');
+    if (Number(price) <= 0) {
+      setError('Harga jual harus lebih besar dari 0.');
       return;
     }
 
     try {
       await onSubmit({
         name: name.trim(),
-        selling_price: Number(price) || 0,
+        selling_price: Number(price),
         barcode: barcode.trim() || null,
         unit_name: unitName.trim() || null,
         notes: notes.trim() || null,
       });
       onClose();
     } catch (err) {
-      setError(err.message || 'Gagal menyimpan harga barang sementara.');
+      setError(err.message || 'Gagal menyimpan harga barang.');
     }
   };
 
@@ -72,9 +74,9 @@ export function UnregisteredPriceModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 text-red-700 text-xs font-medium border border-red-200">
+          <Alert variant="danger" title="Terjadi Kesalahan">
             {error}
-          </div>
+          </Alert>
         )}
 
         <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5">
@@ -155,24 +157,16 @@ export function UnregisteredPriceModal({
           disabled={isLoading}
         />
 
-        {/* Catatan */}
-        <div>
-          <label
-            htmlFor="unreg-notes"
-            className="block text-sm font-medium text-slate-700 mb-1.5"
-          >
-            Catatan Tambahan (Opsional)
-          </label>
-          <textarea
-            id="unreg-notes"
-            rows="2"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={isLoading}
-            placeholder="Keterangan ukuran, varian, atau harga beli jika ada..."
-            className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none font-medium"
-          />
-        </div>
+        {/* Catatan Textarea */}
+        <Textarea
+          id="unreg-notes"
+          label="Catatan Tambahan (Opsional)"
+          rows={2}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          disabled={isLoading}
+          placeholder="Keterangan ukuran, varian, atau harga beli jika ada..."
+        />
 
         <div className="flex items-center justify-end gap-2.5 pt-3">
           <Button

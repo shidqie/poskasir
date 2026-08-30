@@ -9,6 +9,9 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { StockBadge } from '@/components/common/StockBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Alert } from '@/components/common/Alert';
 import { formatRupiah, formatTanggal } from '@/utils/formatters';
 import {
   ArrowLeft,
@@ -19,7 +22,6 @@ import {
   TrendingUp,
   Clock,
   User,
-  AlertCircle,
 } from 'lucide-react';
 
 export function ProductDetailPage() {
@@ -56,12 +58,10 @@ export function ProductDetailPage() {
 
   if (isError || !product) {
     return (
-      <div className="p-8 max-w-2xl mx-auto text-center space-y-4">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-        <h2 className="text-xl font-bold text-slate-900">Produk Tidak Ditemukan</h2>
-        <p className="text-sm text-slate-500">
+      <div className="p-8 max-w-2xl mx-auto space-y-4">
+        <Alert variant="danger" title="Produk Tidak Ditemukan">
           {error?.message || 'Data produk mungkin telah dihapus atau URL tidak valid.'}
-        </p>
+        </Alert>
         <Button variant="outline" onClick={() => navigate('/owner/products')}>
           Kembali ke Daftar Barang
         </Button>
@@ -71,6 +71,14 @@ export function ProductDetailPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
+      {/* Breadcrumbs Navigation */}
+      <Breadcrumbs
+        items={[
+          { label: 'Data Master Barang', to: '/owner/products' },
+          { label: product.name },
+        ]}
+      />
+
       {/* Header Back Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -189,15 +197,11 @@ export function ProductDetailPage() {
             <LoadingSpinner size="md" message="Memuat riwayat harga..." />
           </div>
         ) : priceHistory.length === 0 ? (
-          <div className="py-12 text-center text-slate-500">
-            <History className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700 text-sm">
-              Belum ada riwayat perubahan harga
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Perubahan harga jual produk akan otomatis dicatat oleh sistem di tabel ini.
-            </p>
-          </div>
+          <EmptyState
+            icon={History}
+            title="Belum Ada Riwayat Perubahan Harga"
+            description="Perubahan harga jual produk ini akan otomatis dicatat oleh sistem di tabel ini."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/services/userService';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { Button } from '@/components/common/Button';
+import { Input } from '@/components/common/Input';
+import { Avatar } from '@/components/common/Avatar';
+import { Alert } from '@/components/common/Alert';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Modal } from '@/components/common/Modal';
 import { Users, UserPlus, ToggleLeft, ToggleRight, X, CheckCircle2 } from 'lucide-react';
 
 function formatDate(dt) {
@@ -11,86 +18,131 @@ function CreateCashierModal({ isOpen, onClose }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ fullName: '', email: '', password: '' });
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const createMutation = useMutation({
     mutationFn: () => userService.createCashier({ ...form }),
     onSuccess: () => {
       setSuccess(true);
       queryClient.invalidateQueries({ queryKey: ['cashiers'] });
-      setTimeout(() => { setSuccess(false); setForm({ fullName: '', email: '', password: '' }); onClose(); }, 2000);
+      setTimeout(() => {
+        setSuccess(false);
+        setForm({ fullName: '', email: '', password: '' });
+        onClose();
+      }, 1500);
+    },
+    onError: (err) => {
+      setError(err.message || 'Gagal membuat akun kasir.');
     },
   });
 
-  if (!isOpen) return null;
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    createMutation.mutate();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-        <div className="bg-gradient-to-r from-red-600 to-rose-700 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-white font-bold text-base">Tambah Kasir Baru</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white">
-            <X size={14} />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Tambah Kasir Baru"
+      subtitle="Daftarkan akun kasir untuk melayani penjualan di toko sembako"
+      maxWidth="max-w-md"
+    >
+      {success ? (
+        <div className="py-8 text-center space-y-2">
+          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+            <CheckCircle2 size={24} />
+          </div>
+          <p className="font-bold text-slate-800 text-base">Kasir Berhasil Dibuat!</p>
+          <p className="text-xs text-slate-500">Akun kasir sudah aktif dan siap digunakan untuk login.</p>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="danger" title="Terjadi Kesalahan">
+              {error}
+            </Alert>
+          )}
 
-        {success ? (
-          <div className="p-8 text-center">
-            <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-2" />
-            <p className="font-bold text-slate-800">Kasir berhasil dibuat!</p>
-            <p className="text-xs text-slate-500 mt-1">Akun kasir aktif dan siap digunakan.</p>
-          </div>
-        ) : (
-          <div className="p-5 space-y-3">
-            <div>
-              <label className="text-xs text-slate-600 font-semibold mb-1 block">Nama Lengkap</label>
-              <input type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                placeholder="Mis. Siti Rahma" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-600 font-semibold mb-1 block">Email</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="kasir@toko.com" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-600 font-semibold mb-1 block">Password</label>
-              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Min. 6 karakter" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium" />
-            </div>
+          <Input
+            id="cashier-name"
+            label="Nama Lengkap"
+            placeholder="Contoh: Budi Santoso"
+            required
+            value={form.fullName}
+            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+            disabled={createMutation.isPending}
+          />
 
-            <button
-              onClick={() => createMutation.mutate()}
-              disabled={!form.fullName || !form.email || !form.password || createMutation.isPending}
-              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm transition-all shadow-md shadow-red-500/25 active:scale-95 cursor-pointer"
+          <Input
+            id="cashier-email"
+            type="email"
+            label="Alamat Email"
+            placeholder="kasir@toko.com"
+            required
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            disabled={createMutation.isPending}
+          />
+
+          <Input
+            id="cashier-password"
+            type="password"
+            label="Kata Sandi Awal"
+            placeholder="Minimal 6 karakter"
+            required
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            disabled={createMutation.isPending}
+            helperText="Kasir dapat login langsung dengan email dan kata sandi ini"
+          />
+
+          <div className="flex items-center justify-end gap-2.5 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={createMutation.isPending}
             >
-              {createMutation.isPending ? 'Membuat akun...' : 'Buat Akun Kasir'}
-            </button>
-            {createMutation.isError && (
-              <p className="text-xs text-red-600 font-semibold text-center">{createMutation.error?.message}</p>
-            )}
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={createMutation.isPending}
+            >
+              Simpan Kasir
+            </Button>
           </div>
-        )}
-      </div>
-    </div>
+        </form>
+      )}
+    </Modal>
   );
 }
 
 export default function UserListPage() {
-  const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: cashiers = [], isLoading } = useQuery({
+  const { data: cashiers = [], isLoading, isError, error } = useQuery({
     queryKey: ['cashiers'],
     queryFn: () => userService.getCashiers(),
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, newStatus }) => userService.toggleCashierStatus(id, newStatus),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cashiers'] }),
+    mutationFn: ({ id, newStatus }) => userService.toggleStatus(id, newStatus),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashiers'] });
+    },
   });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: 'Data Kasir' }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -102,13 +154,14 @@ export default function UserListPage() {
             <p className="text-xs sm:text-sm text-slate-500">{cashiers.length} kasir terdaftar di toko</p>
           </div>
         </div>
-        <button
+        <Button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-all shadow-md shadow-red-500/25 active:scale-95 cursor-pointer"
+          variant="primary"
+          icon={UserPlus}
+          className="shrink-0"
         >
-          <UserPlus size={16} />
           Tambah Kasir
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-3">
@@ -117,19 +170,24 @@ export default function UserListPage() {
             <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         )}
-        {!isLoading && cashiers.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 text-slate-400">
-            <Users size={36} className="mx-auto mb-2 opacity-40" />
-            <p className="text-sm font-bold text-slate-700">Belum ada kasir</p>
-            <p className="text-xs text-slate-400 mt-1">Tambahkan kasir pertama untuk mulai melayani penjualan.</p>
-          </div>
+        {isError && (
+          <Alert variant="danger" title="Gagal Memuat Data Kasir">
+            {error?.message || 'Silakan coba beberapa saat lagi.'}
+          </Alert>
+        )}
+        {!isLoading && !isError && cashiers.length === 0 && (
+          <EmptyState
+            icon={Users}
+            title="Belum Ada Kasir"
+            description="Tambahkan kasir pertama untuk mulai melayani penjualan di toko sembako."
+            actionLabel="Tambah Kasir Baru"
+            onAction={() => setIsCreateOpen(true)}
+          />
         )}
         {cashiers.map((c) => (
           <div key={c.id} className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 flex items-center justify-between gap-3 shadow-xs hover:border-red-200 transition-colors">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 border border-red-100 font-black text-sm flex items-center justify-center shrink-0">
-                {c.full_name?.charAt(0)?.toUpperCase() || 'K'}
-              </div>
+              <Avatar name={c.full_name || 'Kasir'} role="kasir" size="md" />
               <div className="min-w-0">
                 <p className="font-bold text-slate-900 text-sm truncate">{c.full_name}</p>
                 <p className="text-xs text-slate-400">Bergabung {formatDate(c.created_at)}</p>
