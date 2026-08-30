@@ -153,7 +153,7 @@ export const productSubmissionService = {
   },
 
   /**
-   * Setujui Pengajuan & Daftarkan ke Data Barang Resmi (RPC PostgreSQL)
+   * Setujui Pengajuan & Daftarkan ke Data Barang Resmi
    */
   async approveSubmission({
     submission_id,
@@ -165,24 +165,135 @@ export const productSubmissionService = {
     has_variants = false,
     barcode = null,
   }) {
-    // Panggil RPC approve_product_submission di database
-    const { data, error } = await supabase.rpc('approve_product_submission', {
-      p_submission_id: submission_id,
-      p_category_id: category_id || null,
-      p_unit_id: unit_id || null,
-      p_cost_price: Number(cost_price) || 0,
-      p_initial_stock: Number(initial_stock) || 0,
-      p_minimum_stock: Number(minimum_stock) || 5,
-      p_has_variants: Boolean(has_variants),
-      p_barcode: barcode?.trim() || null,
-    });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (error) {
-      console.error('[productSubmissionService] RPC approve error:', error);
-      throw new Error(error.message || 'Gagal menyetujui pengajuan barang.');
+    // 1. Ambil detail pengajuan
+    const sub = await this.getSubmissionById(submission_id);
+    if (!sub) throw new Error('Data pengajuan tidak ditemukan.');
+
+    const finalCategoryId = category_id || sub.category_id;
+    const finalUnitId = unit_id || sub.unit_id;
+    const finalBarcode = barcode?.trim() || sub.barcode?.trim() || null;
+    const finalInitialStock = Number(initial_stock) || 0;
+    const finalMinStock = Number(minimum_stock) || 5;
+
+    // 2. Cek apakah varian baru untuk produk induk yang sudah ada
+    if (sub.submission_type === 'new_variant' && sub.parent_product_id) {
+      // Buat varian baru
+      const { data: varData, error: varErr } = await supabase
+        .from('product_variants')
+        .insert([
+          {
+            product_id: sub.parent_product_id,
+            variant_name: sub.variant_name || sub.name,
+            code: `VAR-${Date.now().toString().slice(-4)}`,
+            barcode: finalBarcode,
+            selling_price: Number(sub.selling_price) || 0,
+            stock: finalInitialStock,
+            minimum_stock: finalMinStock,
+            unit_id: finalUnitId,
+            status: true,
+            created_by: user?.id || null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (varErr) throw varErr;
+
+      // Update produk induk agar has_variants = true
+      await supabase
+        .from('products')
+        .update({ has_variants: true, updated_at: new Date().toISOString() })
+        .eq('id', sub.parent_product_id);
+
+      // Update status submission
+      await supabase
+        .from('product_submissions')
+        .update({
+          status: 'approved',
+          approved_variant_id: varData.id,
+          reviewed_by: user?.id || null,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', submission_id);
+
+      return {
+        success: true,
+        message: 'Varian produk berhasil disetujui & didaftarkan ke data resmi.',
+        variant_id: varData.id,
+      };
+    } else {
+      // Kasus Produk Baru
+      if (!finalCategoryId) throw new Error('Kategori barang wajib dipilih.');
+      if (!finalUnitId) throw new Error('Satuan barang wajib dipilih.');
+
+      const productCode = await productService.getNextProductCode();
+
+      const { data: newProd, error: prodErr } = await supabase
+        .from('products')
+        .insert([
+          {
+            name: sub.name.trim(),
+            code: productCode,
+            barcode: finalBarcode,
+            category_id: finalCategoryId,
+            unit_id: finalUnitId,
+            selling_price: has_variants ? 0 : Number(sub.selling_price) || 0,
+            stock: has_variants ? 0 : finalInitialStock,
+            minimum_stock: has_variants ? 0 : finalMinStock,
+            has_variants: Boolean(has_variants || sub.variant_name),
+            status: true,
+            created_by: user?.id || null,
+            updated_by: user?.id || null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (prodErr) throw prodErr;
+
+      // Jika ada nama varian, tambahkan varian pertama
+      if (sub.variant_name) {
+        await supabase.from('product_variants').insert([
+          {
+            product_id: newProd.id,
+            variant_name: sub.variant_name.trim(),
+            code: `${productCode}-V1`,
+            barcode: finalBarcode,
+            selling_price: Number(sub.selling_price) || 0,
+            stock: finalInitialStock,
+            minimum_stock: finalMinStock,
+            unit_id: finalUnitId,
+            status: true,
+            created_by: user?.id || null,
+          },
+        ]);
+      }
+
+      // Update status submission
+      await supabase
+        .from('product_submissions')
+        .update({
+          status: 'approved',
+          category_id: finalCategoryId,
+          unit_id: finalUnitId,
+          approved_product_id: newProd.id,
+          reviewed_by: user?.id || null,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', submission_id);
+
+      return {
+        success: true,
+        message: 'Barang baru berhasil disetujui & resmi masuk Data Barang.',
+        product_id: newProd.id,
+      };
     }
-
-    return data;
   },
 
   /**

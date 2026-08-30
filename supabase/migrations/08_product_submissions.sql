@@ -199,12 +199,11 @@ BEGIN
             barcode,
             category_id,
             unit_id,
-            cost_price,
             selling_price,
             stock,
             minimum_stock,
             has_variants,
-            is_active,
+            status,
             created_at,
             updated_at
         ) VALUES (
@@ -213,7 +212,6 @@ BEGIN
             v_barcode,
             v_category_id,
             v_unit_id,
-            v_cost_price,
             v_sub.selling_price,
             COALESCE(p_initial_stock, 0),
             COALESCE(p_minimum_stock, 5),
