@@ -189,43 +189,55 @@ export function PriceListPage({ isOwnerView = false }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {items.map((item) => {
               const isRegistered = item.sourceType === 'registered';
+              const imageUrl = getProductDummyImage(item.name, item.categoryName, item.image_url);
 
               return (
                 <div
                   key={`${item.sourceType}-${item.id}-${item.variantId || 'main'}`}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all duration-200 hover:shadow-md bg-white flex flex-col justify-between ${
+                  className={`p-3 sm:p-4 rounded-2xl border transition-all duration-200 hover:shadow-md bg-white flex flex-col justify-between ${
                     isRegistered
                       ? 'border-slate-200/90 shadow-xs hover:border-red-300'
                       : 'border-amber-200/90 bg-amber-50/20 shadow-xs hover:border-amber-400'
                   }`}
                 >
-                  <div className="space-y-2">
-                    {/* Top Row: Category & Status Badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 truncate">
-                        <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{item.categoryName}</span>
-                      </span>
-                      <StatusBadge
-                        status={isRegistered ? 'registered' : 'unregistered'}
-                        type="registration"
+                  <div>
+                    {/* Product Thumbnail & Overlay Badges */}
+                    <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden bg-slate-100 mb-2.5 border border-slate-100">
+                      <img
+                        src={imageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
                       />
+                      {/* Top-Left Category Pill */}
+                      <div className="absolute top-2 left-2 max-w-[120px]">
+                        <span className="inline-block truncate px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/65 text-white backdrop-blur-xs shadow-xs">
+                          {item.categoryName}
+                        </span>
+                      </div>
+                      {/* Top-Right Status Badge */}
+                      <div className="absolute top-2 right-2">
+                        <StatusBadge
+                          status={isRegistered ? 'registered' : 'unregistered'}
+                          type="registration"
+                        />
+                      </div>
                     </div>
 
                     {/* Nama Barang */}
-                    <h3 className="font-bold text-base text-slate-900 leading-snug line-clamp-2">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug line-clamp-2">
                       {item.name}
                     </h3>
 
                     {/* Barcode & Kode */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-slate-500 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-slate-500 pt-1">
                       {item.code && (
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200/80 text-[11px]">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200/80 text-[10px]">
                           {item.code}
                         </span>
                       )}
                       {item.barcode && (
-                        <span className="flex items-center gap-1 text-slate-500 text-[11px] bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60">
+                        <span className="flex items-center gap-1 text-slate-500 text-[10px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60">
                           <Barcode className="w-3 h-3 text-slate-400" />
                           {item.barcode}
                         </span>
