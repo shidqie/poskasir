@@ -5,6 +5,7 @@ export function ProductSearch({
   value,
   onChange,
   onClear,
+  onSubmit,
   autoFocus = true,
   placeholder = 'Cari nama barang, kode (BRG-...), atau barcode...',
 }) {
@@ -15,6 +16,15 @@ export function ProductSearch({
       inputRef.current.focus();
     }
   }, [autoFocus]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (onSubmit && value.trim()) {
+        onSubmit(value.trim());
+      }
+    }
+  };
 
   return (
     <div className="relative w-full">
@@ -27,6 +37,7 @@ export function ProductSearch({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all placeholder:text-slate-400 font-medium"
       />

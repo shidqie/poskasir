@@ -8,6 +8,7 @@ import { transactionService } from '@/services/transactionService';
 import { cashierSessionService } from '@/services/cashierSessionService';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 
 // POS Components
 import { POSHeader } from '@/components/pos/POSHeader';
@@ -209,32 +210,58 @@ export function POSPage() {
     }
   };
 
-  const handleScanSuccess = async (barcodeText) => {
-    try {
-      const result = await barcodeService.lookupBarcode(barcodeText);
+  const isSessionOpen = activeSession && activeSession.status === 'open';
 
-      if (result.found) {
-        addItem(result.data, 1);
-        setToast({
-          isOpen: true,
-          message: `${result.data.displayName || result.data.name} dimasukkan ke keranjang.`,
-          type: 'success',
-        });
-      } else {
-        setNotFoundBarcode(barcodeText);
-        setIsNotFoundModalOpen(true);
+  const handleScanSuccess = useCallback(
+    async (barcodeText) => {
+      if (!barcodeText || !barcodeText.trim()) return;
+      const clean = barcodeText.trim();
+
+      try {
+        const result = await barcodeService.lookupBarcode(clean);
+
+        if (result.found && result.data) {
+          // Jika produk memiliki banyak varian dan belum dipilih varian spesifik
+          if (
+            result.data.has_variants &&
+            result.data.product_variants?.length > 0 &&
+            !result.data.variantId
+          ) {
+            handleOpenVariants(result.data);
+          } else {
+            const addRes = addItem(result.data, 1);
+            if (addRes?.success !== false) {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(40);
+              }
+              setToast({
+                isOpen: true,
+                message: `${result.data.displayName || result.data.name} dimasukkan ke keranjang.`,
+                type: 'success',
+              });
+            }
+          }
+          setSearchTerm('');
+        } else {
+          setNotFoundBarcode(clean);
+          setIsNotFoundModalOpen(true);
+        }
+      } catch (err) {
+        console.error('[POSPage] Error handling barcode:', err);
       }
-    } catch (err) {
-      console.error('[POSPage] Error handling barcode:', err);
-    }
-  };
+    },
+    [addItem]
+  );
+
+  // Pasang listener global untuk hardware scanner (USB / Bluetooth / Keyboard Wedge)
+  useBarcodeScanner(handleScanSuccess, {
+    disabled: !isSessionOpen && role !== 'owner',
+  });
 
   const handleOpenAddUnreg = (prefilled = {}) => {
     setUnregInitialData(prefilled);
     setIsUnregModalOpen(true);
   };
-
-  const isSessionOpen = activeSession && activeSession.status === 'open';
 
   // =========================================================================
   // VIEW: KASIR TERKUNCI (BELUM BUKA KASIR ATAU SESI SUDAH DITUTUP)
@@ -330,6 +357,7 @@ export function POSPage() {
               value={searchTerm}
               onChange={(val) => setSearchTerm(val)}
               onClear={() => setSearchTerm('')}
+              onSubmit={(val) => handleScanSuccess(val)}
             />
             <CategoryFilter
               categories={categories}
