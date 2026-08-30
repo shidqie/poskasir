@@ -106,28 +106,8 @@ export function OwnerLayout() {
           </div>
         </div>
 
-        {/* User Card */}
-        <div className="p-3.5 mx-3 my-3 bg-slate-900/80 rounded-xl border border-slate-800/80">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center font-bold text-sm shrink-0">
-              {profile?.full_name?.charAt(0)?.toUpperCase() || 'P'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-white truncate">
-                {profile?.full_name || 'Pemilik'}
-              </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <ShieldCheck className="w-2.5 h-2.5" />
-                  Pemilik
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Navigation Menu */}
-        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
           {navItems.map((item, idx) => {
             const Icon = item.icon;
             return (
@@ -151,11 +131,32 @@ export function OwnerLayout() {
           })}
         </nav>
 
-        {/* Logout Section */}
-        <div className="p-3 border-t border-slate-900">
+        {/* Bottom Section: Profile Card + Logout */}
+        <div className="p-3 border-t border-slate-900 space-y-2">
+          {/* User Card */}
+          <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+                {profile?.full_name?.charAt(0)?.toUpperCase() || 'P'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate leading-tight">
+                  {profile?.full_name || 'Pemilik'}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <ShieldCheck className="w-2.5 h-2.5" />
+                    Pemilik
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Keluar (Logout)</span>
@@ -206,12 +207,7 @@ export function OwnerLayout() {
               </button>
             </div>
 
-            <div className="p-3 my-3 bg-slate-900 rounded-xl border border-slate-800">
-              <p className="text-xs font-bold text-white truncate">{profile?.full_name}</p>
-              <span className="text-[10px] text-emerald-400 font-medium">Pemilik Toko</span>
-            </div>
-
-            <nav className="flex-1 space-y-1 overflow-y-auto py-2">
+            <nav className="flex-1 space-y-1 overflow-y-auto py-3">
               {navItems.map((item, idx) => {
                 const Icon = item.icon;
                 return (
@@ -236,10 +232,16 @@ export function OwnerLayout() {
               })}
             </nav>
 
-            <div className="pt-3 border-t border-slate-900">
+            {/* Bottom Mobile Section */}
+            <div className="pt-3 border-t border-slate-900 space-y-2">
+              <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+                <p className="text-xs font-bold text-white truncate">{profile?.full_name}</p>
+                <span className="text-[10px] text-emerald-400 font-medium">Pemilik Toko</span>
+              </div>
+
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-400 hover:bg-rose-500/10"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Keluar (Logout)</span>
