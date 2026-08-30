@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { useCartStore } from './cartStore';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -252,6 +253,8 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       await supabase.auth.signOut();
+      // Reset cart store saat logout
+      useCartStore.getState().clearCart();
     } catch (err) {
       console.error('[AuthStore] Gagal keluar:', err);
     } finally {

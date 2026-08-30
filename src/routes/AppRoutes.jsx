@@ -23,6 +23,7 @@ import { UnregisteredPriceListPage } from '@/pages/owner/unregistered/Unregister
 // Cashier & Shared Pages
 import { CashierDashboard } from '@/pages/cashier/CashierDashboard';
 import { PriceListPage } from '@/pages/prices/PriceListPage';
+import { POSPage } from '@/pages/pos/POSPage';
 
 function IndexRedirect() {
   const { user, profile, role, isInitialized, isLoading } = useAuthStore();
@@ -36,7 +37,7 @@ function IndexRedirect() {
       return <Navigate to="/owner/dashboard" replace />;
     }
     if (role === 'cashier') {
-      return <Navigate to="/cashier/dashboard" replace />;
+      return <Navigate to="/pos" replace />;
     }
   }
 
@@ -70,15 +71,20 @@ export function AppRoutes() {
           <Route path="categories" element={<CategoryListPage />} />
           <Route path="units" element={<UnitListPage />} />
 
+          {/* POS Kasir untuk Pemilik */}
+          <Route path="pos" element={<POSPage />} />
+
           {/* Daftar Harga & Barang Belum Terdaftar */}
           <Route path="prices" element={<PriceListPage isOwnerView={true} />} />
           <Route path="unregistered-products" element={<UnregisteredPriceListPage />} />
         </Route>
       </Route>
 
-      {/* Protected Routes untuk Role CASHIER (Kasir) */}
-      <Route element={<ProtectedRoute allowedRoles={['cashier']} />}>
+      {/* Protected Routes untuk Role CASHIER (Kasir) & OWNER untuk route /pos */}
+      <Route element={<ProtectedRoute allowedRoles={['cashier', 'owner']} />}>
+        {/* Khusus jika Cashier membuka root */}
         <Route path="/" element={<CashierLayout />}>
+          <Route path="pos" element={<POSPage />} />
           <Route path="cashier/dashboard" element={<CashierDashboard />} />
           <Route path="price-list" element={<PriceListPage isOwnerView={false} />} />
         </Route>

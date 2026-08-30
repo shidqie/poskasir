@@ -36,6 +36,11 @@ export function OwnerLayout() {
       icon: LayoutDashboard,
     },
     {
+      label: 'Terminal Kasir / POS',
+      to: '/pos',
+      icon: Store,
+    },
+    {
       label: 'Data Master Barang',
       to: '/owner/products',
       icon: Package,

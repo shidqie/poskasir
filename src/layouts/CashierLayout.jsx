@@ -32,16 +32,14 @@ export function CashierLayout() {
       icon: LayoutDashboard,
     },
     {
+      label: 'Kasir / POS',
+      to: '/pos',
+      icon: ShoppingCart,
+    },
+    {
       label: 'Daftar & Cek Harga',
       to: '/price-list',
       icon: Tags,
-    },
-    {
-      label: 'POS / Kasir',
-      to: '#',
-      icon: ShoppingCart,
-      badge: 'Tahap 3',
-      disabled: true,
     },
     {
       label: 'Kalkulator Cepat',
