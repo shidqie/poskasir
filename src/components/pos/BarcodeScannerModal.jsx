@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   Zap,
   ZapOff,
+  SwitchCamera,
 } from 'lucide-react';
 
 // Helper Web Audio API Beep & Vibration
@@ -71,6 +72,8 @@ export function BarcodeScannerModal({
   const [isHttpsWarning, setIsHttpsWarning] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
   const [isTorchOn, setIsTorchOn] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
 
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
@@ -80,14 +83,17 @@ export function BarcodeScannerModal({
   const isMountedRef = useRef(true);
   const nativeDetectLoopRef = useRef(null);
 
-  const triggerScanSuccess = useCallback((code) => {
-    const clean = String(code || '').trim();
-    if (!clean) return;
-    if (onScanSuccess) onScanSuccess(clean);
-    if (onDetected) onDetected(clean);
-    if (onScan) onScan(clean);
-    if (onSuccess) onSuccess(clean);
-  }, [onScanSuccess, onDetected, onScan, onSuccess]);
+  const triggerScanSuccess = useCallback(
+    (code) => {
+      const clean = String(code || '').trim();
+      if (!clean) return;
+      if (onScanSuccess) onScanSuccess(clean);
+      if (onDetected) onDetected(clean);
+      if (onScan) onScan(clean);
+      if (onSuccess) onSuccess(clean);
+    },
+    [onScanSuccess, onDetected, onScan, onSuccess]
+  );
 
   const stopScanner = async () => {
     if (nativeDetectLoopRef.current) {
@@ -183,7 +189,18 @@ export function BarcodeScannerModal({
       return;
     }
 
-    // 2. CEK APAKAH PERANGKAT MENDUKUNG NATIVE BarcodeDetector (Hardware Accelerated, <10ms)
+    // 2. CEK DAFTAR KAMERA TERSEDIA PADA PERANGKAT
+    let deviceCameraList = [];
+    try {
+      deviceCameraList = await Html5Qrcode.getCameras();
+      if (deviceCameraList && deviceCameraList.length > 0) {
+        setCameras(deviceCameraList);
+      }
+    } catch (camErr) {
+      console.warn('[BarcodeScanner] getCameras error:', camErr);
+    }
+
+    // 3. CEK APAKAH PERANGKAT MENDUKUNG NATIVE BarcodeDetector (Hardware Accelerated)
     const hasNativeBarcodeDetector =
       typeof window !== 'undefined' &&
       'BarcodeDetector' in window &&
@@ -197,14 +214,23 @@ export function BarcodeScannerModal({
           formats: availableFormats.length > 0 ? availableFormats : supported,
         });
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-          },
-          audio: false,
-        });
+        const videoConstraints = selectedCameraId
+          ? { deviceId: { exact: selectedCameraId } }
+          : { facingMode: { ideal: 'environment' } };
+
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: videoConstraints,
+            audio: false,
+          });
+        } catch (mediaErr) {
+          // Fallback simple video constraint
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
 
         mediaStreamRef.current = stream;
 
@@ -226,7 +252,12 @@ export function BarcodeScannerModal({
           const detectFrame = async () => {
             if (!isMountedRef.current || !mediaStreamRef.current) return;
 
-            if (!isDetecting && !isLockedRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+            if (
+              !isDetecting &&
+              !isLockedRef.current &&
+              videoRef.current &&
+              videoRef.current.readyState >= 2
+            ) {
               isDetecting = true;
               try {
                 const barcodes = await detector.detect(videoRef.current);
@@ -247,12 +278,15 @@ export function BarcodeScannerModal({
           return;
         }
       } catch (nativeErr) {
-        console.warn('[BarcodeScanner] Native BarcodeDetector attempt skipped, falling back to Html5Qrcode:', nativeErr);
+        console.warn(
+          '[BarcodeScanner] Native BarcodeDetector attempt skipped, falling back to Html5Qrcode:',
+          nativeErr
+        );
         await stopScanner();
       }
     }
 
-    // 3. FALLBACK: Html5Qrcode Berkecepatan Tinggi (Optimized Configuration)
+    // 4. FALLBACK: Html5Qrcode Berkecepatan Tinggi (Optimized Configuration)
     try {
       const qrCodeId = 'reader-viewport';
       const html5QrCode = new Html5Qrcode(qrCodeId, {
@@ -263,7 +297,7 @@ export function BarcodeScannerModal({
       scannerRef.current = html5QrCode;
 
       const scanConfig = {
-        fps: 15, // Optimal 15 FPS: tidak membebani CPU HP sehingga scanning sangat responsif
+        fps: 15,
         aspectRatio: 1.333333,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
           return {
@@ -271,15 +305,25 @@ export function BarcodeScannerModal({
             height: Math.floor(viewfinderHeight * 0.65),
           };
         },
-        videoConstraints: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-        },
       };
 
+      // Tentukan target camera (prioritas kamera belakang)
+      let cameraToUse = { facingMode: 'environment' };
+      if (selectedCameraId) {
+        cameraToUse = selectedCameraId;
+      } else if (deviceCameraList && deviceCameraList.length > 0) {
+        const backCam = deviceCameraList.find(
+          (c) =>
+            c.label.toLowerCase().includes('back') ||
+            c.label.toLowerCase().includes('rear') ||
+            c.label.toLowerCase().includes('environment') ||
+            c.label.toLowerCase().includes('belakang')
+        );
+        cameraToUse = backCam ? backCam.id : deviceCameraList[0].id;
+      }
+
       await html5QrCode.start(
-        { facingMode: 'environment' },
+        cameraToUse,
         scanConfig,
         (decodedText) => handleBarcodeFound(decodedText),
         () => {}
@@ -288,18 +332,21 @@ export function BarcodeScannerModal({
       setIsScanning(true);
     } catch (err) {
       console.error('[BarcodeScanner] Html5Qrcode camera error:', err);
-      let msg = 'Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan di pengaturan browser Anda.';
+      let msg =
+        'Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan di pengaturan browser Anda.';
 
       if (
         err.name === 'NotAllowedError' ||
         err.name === 'PermissionDeniedError' ||
         String(err).includes('Permission denied')
       ) {
-        msg = 'Izin kamera ditolak. Silakan klik ikon gembok / perizinan di address bar browser Anda dan izinkan Kamera.';
+        msg =
+          'Izin kamera ditolak. Silakan klik ikon gembok / perizinan di address bar browser Anda dan izinkan Kamera.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         msg = 'Kamera tidak terdeteksi pada perangkat Anda.';
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        msg = 'Kamera sedang digunakan oleh aplikasi lain. Tutup aplikasi lain yang menggunakan kamera lalu coba lagi.';
+        msg =
+          'Kamera sedang digunakan oleh aplikasi lain. Tutup aplikasi lain yang menggunakan kamera lalu coba lagi.';
       }
 
       setCameraError(msg);
@@ -324,7 +371,7 @@ export function BarcodeScannerModal({
       isMountedRef.current = false;
       stopScanner();
     };
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, selectedCameraId]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -390,15 +437,15 @@ export function BarcodeScannerModal({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center border border-red-200 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center border border-slate-200 shadow-xs">
             <Camera className="w-4 h-4" />
           </div>
           <div>
             <h3 className="font-bold text-sm text-slate-900 leading-tight">
-              Pindai Barcode Produk
+              Pindai Barcode / QR Produk
             </h3>
             <p className="text-[11px] text-slate-500 font-normal">
-              Arahkan kamera ke kemasan barcode
+              Arahkan kamera ke kemasan barcode produk
             </p>
           </div>
         </div>
@@ -407,13 +454,13 @@ export function BarcodeScannerModal({
     >
       <div className="space-y-4">
         {/* Tab Switcher: Kamera | Upload | Ketik Manual */}
-        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl text-xs font-bold">
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl text-xs font-semibold">
           <button
             type="button"
             onClick={() => setActiveTab('camera')}
             className={`py-2 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'camera'
-                ? 'bg-red-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -426,7 +473,7 @@ export function BarcodeScannerModal({
             onClick={() => setActiveTab('upload')}
             className={`py-2 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'upload'
-                ? 'bg-red-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -439,7 +486,7 @@ export function BarcodeScannerModal({
             onClick={() => setActiveTab('manual')}
             className={`py-2 px-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'manual'
-                ? 'bg-red-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -467,7 +514,10 @@ export function BarcodeScannerModal({
                       <ShieldAlert size={13} />
                       Solusi Deployment:
                     </p>
-                    <p>1. Pastikan domain hosting (Vercel, Cloudflare, dll.) menggunakan SSL / HTTPS aktif.</p>
+                    <p>
+                      1. Pastikan domain hosting (Vercel, Cloudflare, dll.) menggunakan SSL / HTTPS
+                      aktif.
+                    </p>
                   </div>
                 )}
 
@@ -488,14 +538,14 @@ export function BarcodeScannerModal({
                     size="sm"
                     onClick={() => setActiveTab('manual')}
                     icon={Keyboard}
-                    className="text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl"
+                    className="text-xs font-bold bg-slate-900 hover:bg-black text-white rounded-xl"
                   >
                     Ketik Barcode
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="relative overflow-hidden rounded-2xl bg-black aspect-[4/3] flex items-center justify-center border-2 border-slate-900 shadow-inner">
+              <div className="relative overflow-hidden rounded-2xl bg-black aspect-4/3 flex items-center justify-center border border-slate-800 shadow-inner">
                 {/* Native Video Element */}
                 <video
                   ref={videoRef}
@@ -505,37 +555,62 @@ export function BarcodeScannerModal({
                 />
 
                 {/* Html5Qrcode Fallback Viewport Container */}
-                <div id="reader-viewport" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+                <div
+                  id="reader-viewport"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
 
                 {/* Overlay Viewfinder Guide */}
                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4">
-                  <div className="w-[85%] h-[55%] border-2 border-red-500 rounded-2xl relative shadow-lg bg-red-500/5 flex items-center justify-center">
-                    <div className="w-full h-0.5 bg-red-500 shadow-sm shadow-red-500" />
+                  <div className="w-[85%] h-[55%] border-2 border-emerald-400 rounded-2xl relative shadow-lg bg-emerald-500/5 flex items-center justify-center">
+                    <div className="w-full h-0.5 bg-emerald-400 shadow-sm shadow-emerald-400" />
                     <span className="absolute -bottom-6 text-[10px] font-bold text-white bg-black/80 px-3 py-0.5 rounded-full backdrop-blur-xs">
-                      Posisikan garis merah pada barcode
+                      Posisikan garis pada barcode
                     </span>
                   </div>
                 </div>
 
-                {/* Tombol Senter (Flashlight) jika didukung HP */}
-                {hasTorch && (
-                  <button
-                    type="button"
-                    onClick={toggleTorch}
-                    className={`absolute top-3 right-3 p-2 rounded-xl backdrop-blur-md transition-all cursor-pointer shadow-md ${
-                      isTorchOn
-                        ? 'bg-amber-400 text-slate-900 font-bold'
-                        : 'bg-black/60 text-white hover:bg-black/80'
-                    }`}
-                    title={isTorchOn ? 'Matikan Senter' : 'Nyalakan Senter'}
-                  >
-                    {isTorchOn ? <Zap size={16} className="fill-slate-900" /> : <ZapOff size={16} />}
-                  </button>
-                )}
+                {/* Top Controls: Camera Switcher & Torch */}
+                <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-auto">
+                  {cameras.length > 1 ? (
+                    <select
+                      value={selectedCameraId}
+                      onChange={(e) => setSelectedCameraId(e.target.value)}
+                      className="bg-black/60 text-white text-[11px] font-semibold px-2.5 py-1 rounded-xl backdrop-blur-md border border-white/20 outline-none cursor-pointer"
+                    >
+                      {cameras.map((c, i) => (
+                        <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                          {c.label || `Kamera ${i + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span />
+                  )}
+
+                  {hasTorch && (
+                    <button
+                      type="button"
+                      onClick={toggleTorch}
+                      className={`p-2 rounded-xl backdrop-blur-md transition-all cursor-pointer shadow-md ${
+                        isTorchOn
+                          ? 'bg-amber-400 text-slate-900 font-bold'
+                          : 'bg-black/60 text-white hover:bg-black/80'
+                      }`}
+                      title={isTorchOn ? 'Matikan Senter' : 'Nyalakan Senter'}
+                    >
+                      {isTorchOn ? (
+                        <Zap size={16} className="fill-slate-900" />
+                      ) : (
+                        <ZapOff size={16} />
+                      )}
+                    </button>
+                  )}
+                </div>
 
                 {/* Feedback Berhasil Scan */}
                 {lastScanned && (
-                  <div className="absolute inset-x-4 top-4 p-2.5 rounded-xl bg-emerald-600 text-white text-center text-xs font-bold shadow-lg animate-bounce flex items-center justify-center gap-1.5 z-20">
+                  <div className="absolute inset-x-4 top-4 p-2.5 rounded-xl bg-emerald-600 text-white text-center text-xs font-bold shadow-lg animate-bounce flex items-center justify-center gap-1.5 z-30">
                     <Sparkles className="w-4 h-4" />
                     <span>Barcode Terdeteksi: {lastScanned}</span>
                   </div>
@@ -550,17 +625,15 @@ export function BarcodeScannerModal({
           <div className="space-y-3">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-300 hover:border-red-500 rounded-2xl p-8 text-center bg-slate-50 hover:bg-red-50/40 transition-colors cursor-pointer flex flex-col items-center justify-center gap-2"
+              className="p-8 border-2 border-dashed border-slate-300 hover:border-slate-500 bg-slate-50 hover:bg-slate-100/70 rounded-2xl text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2"
             >
-              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center">
-                <Upload size={22} />
-              </div>
+              <Upload className="w-8 h-8 text-slate-400" />
               <div>
-                <p className="text-xs font-bold text-slate-800">
-                  {isUploading ? 'Menganalisis Barcode...' : 'Pilih Foto / Gambar Barcode'}
+                <p className="font-bold text-xs text-slate-800">
+                  {isUploading ? 'Sedang Membaca Barcode...' : 'Pilih Foto dari Galeri / Kamera HP'}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Format JPG, PNG, WEBP dari galeri kamera HP
+                  Format JPG, PNG, WEBP (maks. 10MB)
                 </p>
               </div>
               <input
@@ -573,11 +646,13 @@ export function BarcodeScannerModal({
             </div>
 
             {uploadError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2 font-medium">
-                <AlertCircle size={16} className="shrink-0 text-rose-500" />
+              <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-xl border border-rose-200 flex items-center gap-2 font-medium">
+                <AlertCircle size={15} className="shrink-0 text-rose-600" />
                 <span>{uploadError}</span>
               </div>
             )}
+
+            <div id="file-scanner-temp" className="hidden" />
           </div>
         )}
 
@@ -585,43 +660,32 @@ export function BarcodeScannerModal({
         {activeTab === 'manual' && (
           <form onSubmit={handleManualSubmit} className="space-y-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1.5">
+              <label className="text-xs font-semibold text-slate-700 block mb-1">
                 Nomor Barcode / Kode Barang
               </label>
-              <input
-                type="text"
-                autoFocus
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                placeholder="Contoh: 8992753112345 atau BRG-0001..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold outline-none focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-              />
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder="Contoh: 8996001600269 atau BRG-0001"
+                  autoFocus
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium outline-none focus:bg-white focus:border-slate-400"
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
               variant="primary"
               disabled={!manualCode.trim()}
-              className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
+              className="w-full py-2.5 text-xs font-bold bg-slate-900 hover:bg-black text-white rounded-xl shadow-xs cursor-pointer"
             >
-              Gunakan Barcode Ini
+              Cari & Masukkan ke Keranjang
             </Button>
           </form>
         )}
-
-        {/* Hidden temp element for file scanning */}
-        <div id="file-scanner-temp" className="hidden" />
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
-          <span className="text-[11px] text-slate-400 font-medium">
-            Scanner USB / Bluetooth juga otomatis aktif
-          </span>
-
-          <Button type="button" variant="outline" size="sm" onClick={handleClose} className="rounded-xl font-bold">
-            Tutup
-          </Button>
-        </div>
       </div>
     </Modal>
   );
