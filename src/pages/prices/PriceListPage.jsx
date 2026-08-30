@@ -15,6 +15,7 @@ import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissi
 import { SubmissionDetailModal } from '@/components/submissions/SubmissionDetailModal';
 import { ApprovalModal } from '@/components/submissions/ApprovalModal';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
+import { QuickEditPriceModal } from '@/components/prices/QuickEditPriceModal';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from '@/utils/formatters';
 import { getProductCategoryTheme, getProductDummyImage } from '@/utils/dummyImages';
@@ -32,10 +33,11 @@ import {
   CheckCircle2,
   XCircle,
   Eye,
+  Edit2,
   Send,
 } from 'lucide-react';
 
-function PriceItemCard({ item, isOwnerView, onConvert, onDetail }) {
+function PriceItemCard({ item, isOwnerView, onConvert, onDetail, onEdit }) {
   const [imgError, setImgError] = useState(false);
   const isRegistered = item.sourceType === 'registered' || item.status === 'approved';
   const isPending = item.status === 'pending' || item.sourceType === 'unregistered';
@@ -161,27 +163,40 @@ function PriceItemCard({ item, isOwnerView, onConvert, onDetail }) {
             </span>
           </div>
 
-          {isOwnerView && isPending && onConvert && (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => onConvert(item.rawSubmission)}
-              className="py-1 px-2.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs"
-            >
-              Setujui
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {isOwnerView && isPending && onConvert && (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => onConvert(item.rawSubmission)}
+                className="py-1 px-2.5 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-xs cursor-pointer"
+              >
+                Setujui
+              </Button>
+            )}
 
-          {onDetail && (
-            <button
-              type="button"
-              onClick={() => onDetail(item)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Lihat Detail"
-            >
-              <Eye size={14} />
-            </button>
-          )}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(item)}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                title="Ubah Data / Harga Barang"
+              >
+                <Edit2 size={14} />
+              </button>
+            )}
+
+            {onDetail && (
+              <button
+                type="button"
+                onClick={() => onDetail(item)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Lihat Detail"
+              >
+                <Eye size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -202,6 +217,7 @@ export function PriceListPage({ isOwnerView = false }) {
   const [initialBarcode, setInitialBarcode] = useState('');
   const [selectedItemDetail, setSelectedItemDetail] = useState(null);
   const [approvalItem, setApprovalItem] = useState(null);
+  const [editItem, setEditItem] = useState(null);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Reset page when tab, search, or pageSize changes
@@ -385,6 +401,7 @@ export function PriceListPage({ isOwnerView = false }) {
                     isOwnerView={isOwnerView}
                     onConvert={(sub) => setApprovalItem(sub)}
                     onDetail={(sub) => setSelectedItemDetail(sub)}
+                    onEdit={(itm) => setEditItem(itm)}
                   />
                 ))}
               </div>
@@ -497,15 +514,28 @@ export function PriceListPage({ isOwnerView = false }) {
                             <SubmissionStatusBadge status={sub.status} />
                           </td>
                           <td className="py-3.5 px-4 text-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              icon={Eye}
-                              onClick={() => setSelectedItemDetail(sub)}
-                              className="py-1 px-2.5 text-[11px] font-bold rounded-lg"
-                            >
-                              Detail
-                            </Button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              {sub.status === 'pending' && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  icon={Edit2}
+                                  onClick={() => setEditItem({ ...sub, sourceType: 'unregistered' })}
+                                  className="py-1 px-2 text-[11px] font-bold rounded-lg text-slate-600 hover:text-red-600 cursor-pointer"
+                                >
+                                  Ubah
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                icon={Eye}
+                                onClick={() => setSelectedItemDetail(sub)}
+                                className="py-1 px-2.5 text-[11px] font-bold rounded-lg cursor-pointer"
+                              >
+                                Detail
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -555,6 +585,24 @@ export function PriceListPage({ isOwnerView = false }) {
           )}
         </div>
       )}
+
+      {/* Modal Ubah Cepat Harga & Barang */}
+      <QuickEditPriceModal
+        isOpen={Boolean(editItem)}
+        onClose={() => setEditItem(null)}
+        item={editItem}
+        onSuccess={(msg) => {
+          setToast({
+            isOpen: true,
+            message: msg || 'Data barang berhasil diubah!',
+            type: 'success',
+          });
+          queryClient.invalidateQueries({ queryKey: ['price-list'] });
+          queryClient.invalidateQueries({ queryKey: ['my-product-submissions'] });
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          queryClient.invalidateQueries({ queryKey: ['pos-products'] });
+        }}
+      />
 
       {/* Modal Ajukan Barang Baru */}
       <ProductSubmissionModal
