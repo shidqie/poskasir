@@ -216,61 +216,94 @@ export function CategoryListPage() {
             onAction={handleOpenAdd}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-600 border-b border-slate-200/80 text-xs font-semibold uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3.5">Nama Kategori</th>
-                  <th className="px-6 py-3.5 text-center">Status</th>
-                  <th className="px-6 py-3.5 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredCategories.map((cat) => (
-                  <tr key={cat.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 text-slate-900 font-semibold">
+          <div>
+            {/* Mobile Card List View (< 768px) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredCategories.map((cat) => (
+                <div key={cat.id} className="p-4 flex items-center justify-between gap-3 bg-white hover:bg-slate-50">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 leading-tight">
                       {cat.name}
-                    </td>
-                    <td className="px-6 py-4 text-center">
+                    </h4>
+                    <div className="mt-1">
                       <StatusBadge status={cat.status} />
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(cat)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
-                          title="Ubah Nama Kategori"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleClick(cat)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            cat.status
-                              ? 'text-emerald-600 hover:bg-emerald-50'
-                              : 'text-slate-400 hover:bg-slate-100'
-                          }`}
-                          title={cat.status ? 'Nonaktifkan Kategori' : 'Aktifkan Kategori'}
-                        >
-                          {cat.status ? (
-                            <ToggleRight className="w-5 h-5" />
-                          ) : (
-                            <ToggleLeft className="w-5 h-5" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(cat)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Kategori"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleOpenEdit(cat)}
+                      className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px]"
+                      title="Ubah Nama"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleClick(cat)}
+                      className={`p-2 rounded-xl border font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] ${
+                        cat.status
+                          ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                          : 'border-slate-200 text-slate-400 hover:bg-slate-100'
+                      }`}
+                      title={cat.status ? 'Nonaktifkan' : 'Aktifkan'}
+                    >
+                      {cat.status ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200/80 text-xs font-semibold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-3.5">Nama Kategori</th>
+                    <th className="px-6 py-3.5 text-center">Status</th>
+                    <th className="px-6 py-3.5 text-right">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredCategories.map((cat) => (
+                    <tr key={cat.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4 text-slate-900 font-semibold">
+                        {cat.name}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <StatusBadge status={cat.status} />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEdit(cat)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                            title="Ubah Nama Kategori"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleClick(cat)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              cat.status
+                                ? 'text-emerald-600 hover:bg-emerald-50'
+                                : 'text-slate-400 hover:bg-slate-100'
+                            }`}
+                            title={cat.status ? 'Nonaktifkan Kategori' : 'Aktifkan Kategori'}
+                          >
+                            {cat.status ? (
+                              <ToggleRight className="w-5 h-5" />
+                            ) : (
+                              <ToggleLeft className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </Card>

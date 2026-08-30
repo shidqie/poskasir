@@ -694,12 +694,13 @@ export function ProductFormPage() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate('/owner/products')}
             disabled={saveMutation.isPending}
+            className="w-full sm:w-auto"
           >
             Batal
           </Button>
@@ -708,6 +709,7 @@ export function ProductFormPage() {
             variant="primary"
             icon={Save}
             isLoading={saveMutation.isPending}
+            className="w-full sm:w-auto py-3 sm:py-2.5 font-bold text-sm shadow-md"
           >
             {isEdit ? 'Simpan Perubahan Barang' : 'Simpan Barang Baru'}
           </Button>

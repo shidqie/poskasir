@@ -218,81 +218,136 @@ export function UnitListPage() {
             onAction={handleOpenAdd}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-600 border-b border-slate-200/80 text-xs font-semibold uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-3.5">Nama Satuan</th>
-                  <th className="px-6 py-3.5">Simbol</th>
-                  <th className="px-6 py-3.5 text-center">Tipe Desimal</th>
-                  <th className="px-6 py-3.5 text-center">Status</th>
-                  <th className="px-6 py-3.5 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredUnits.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 text-slate-900 font-semibold">
-                      {u.name}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-block px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-mono text-xs font-bold border border-slate-200">
-                        {u.symbol}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {u.allow_decimal ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
-                          <Check className="w-3.5 h-3.5 text-red-600" />
-                          Ya (Pecahan/Timbangan)
+          <div>
+            {/* Mobile Card List View (< 768px) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredUnits.map((u) => (
+                <div key={u.id} className="p-4 space-y-2.5 bg-white hover:bg-slate-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-slate-900 leading-tight">
+                          {u.name}
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono text-xs font-bold border border-slate-200">
+                          {u.symbol}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-                          <X className="w-3.5 h-3.5 text-slate-400" />
-                          Tidak (Bilangan Bulat)
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <StatusBadge status={u.status} />
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(u)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
-                          title="Ubah Satuan"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleClick(u)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            u.status
-                              ? 'text-emerald-600 hover:bg-emerald-50'
-                              : 'text-slate-400 hover:bg-slate-100'
-                          }`}
-                          title={u.status ? 'Nonaktifkan Satuan' : 'Aktifkan Satuan'}
-                        >
-                          {u.status ? (
-                            <ToggleRight className="w-5 h-5" />
-                          ) : (
-                            <ToggleLeft className="w-5 h-5" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(u)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Hapus Satuan"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    </td>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {u.allow_decimal ? 'Mendukung Pecahan / Desimal (0.25, 0.5 kg)' : 'Bilangan Bulat (Pcs, Dus)'}
+                      </p>
+                    </div>
+                    <StatusBadge status={u.status} />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100">
+                    <button
+                      onClick={() => handleOpenEdit(u)}
+                      className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px]"
+                      title="Ubah Satuan"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleClick(u)}
+                      className={`p-2 rounded-xl border font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] ${
+                        u.status
+                          ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                          : 'border-slate-200 text-slate-400 hover:bg-slate-100'
+                      }`}
+                      title={u.status ? 'Nonaktifkan' : 'Aktifkan'}
+                    >
+                      {u.status ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(u)}
+                      className="p-2 rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-200 transition-colors flex items-center justify-center min-w-[36px] min-h-[36px]"
+                      title="Hapus Satuan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200/80 text-xs font-semibold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-3.5">Nama Satuan</th>
+                    <th className="px-6 py-3.5">Simbol</th>
+                    <th className="px-6 py-3.5 text-center">Tipe Desimal</th>
+                    <th className="px-6 py-3.5 text-center">Status</th>
+                    <th className="px-6 py-3.5 text-right">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {filteredUnits.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4 text-slate-900 font-semibold">
+                        {u.name}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-block px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-mono text-xs font-bold border border-slate-200">
+                          {u.symbol}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {u.allow_decimal ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                            <Check className="w-3.5 h-3.5 text-red-600" />
+                            Ya (Pecahan/Timbangan)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                            <X className="w-3.5 h-3.5 text-slate-400" />
+                            Tidak (Bilangan Bulat)
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <StatusBadge status={u.status} />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEdit(u)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                            title="Ubah Satuan"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleClick(u)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              u.status
+                                ? 'text-emerald-600 hover:bg-emerald-50'
+                                : 'text-slate-400 hover:bg-slate-100'
+                            }`}
+                            title={u.status ? 'Nonaktifkan Satuan' : 'Aktifkan Satuan'}
+                          >
+                            {u.status ? (
+                              <ToggleRight className="w-5 h-5" />
+                            ) : (
+                              <ToggleLeft className="w-5 h-5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(u)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Satuan"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </Card>
