@@ -467,6 +467,50 @@ export const productService = {
   async toggleProductStatus(id, currentStatus) {
     return this.updateProduct(id, { status: !currentStatus });
   },
+
+  /**
+   * Menghapus produk dari database (dengan proteksi integritas transaksi)
+   */
+  async deleteProduct(id) {
+    if (!id) throw new Error('ID produk tidak valid.');
+
+    // 1. Cek apakah produk sudah ada di riwayat transaksi penjualan
+    const { data: trxItems } = await supabase
+      .from('transaction_items')
+      .select('id')
+      .eq('product_id', id)
+      .limit(1);
+
+    if (trxItems && trxItems.length > 0) {
+      // Jika sudah ada transaksi, nonaktifkan (soft delete) agar rekapan omzet kasir tetap akurat
+      await this.updateProduct(id, { status: false });
+      return {
+        softDeleted: true,
+        message: 'Barang ini telah memiliki riwayat transaksi kasir, sehingga statusnya dinonaktifkan dari katalog penjualan.',
+      };
+    }
+
+    // 2. Hapus data relasi pendukung (satuan penjualan, varian, riwayat harga)
+    try {
+      await supabase.from('product_sale_units').delete().eq('product_id', id);
+      await supabase.from('product_variants').delete().eq('product_id', id);
+      await supabase.from('product_price_histories').delete().eq('product_id', id);
+    } catch (e) {
+      console.warn('[productService] Delete child records warning:', e);
+    }
+
+    // 3. Hapus data produk utama
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) {
+      console.error('[productService] Error deleting product:', error);
+      throw error;
+    }
+
+    return {
+      softDeleted: false,
+      message: 'Barang berhasil dihapus secara permanen dari sistem.',
+    };
+  },
 };
 
 export default productService;

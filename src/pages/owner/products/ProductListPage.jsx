@@ -22,6 +22,7 @@ import {
   Filter,
   Eye,
   Edit2,
+  Trash2,
   ToggleLeft,
   ToggleRight,
   Barcode,
@@ -42,6 +43,7 @@ export function ProductListPage() {
 
   // Confirmation & Toast & Restock State
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, product: null });
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, product: null });
   const [restockTarget, setRestockTarget] = useState({ product: null, variant: null });
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
@@ -74,11 +76,42 @@ export function ProductListPage() {
       productService.toggleProductStatus(product.id, product.status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-products'] });
       setToast({
         isOpen: true,
         message: 'Status produk berhasil diubah.',
         type: 'success',
       });
+    },
+    onError: (err) => {
+      setToast({
+        isOpen: true,
+        message: err.message || 'Gagal mengubah status produk.',
+        type: 'danger',
+      });
+    },
+  });
+
+  // Delete Product Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (productId) => productService.deleteProduct(productId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-products'] });
+      setToast({
+        isOpen: true,
+        message: result.message || 'Barang berhasil dihapus.',
+        type: result.softDeleted ? 'warning' : 'success',
+      });
+      setDeleteDialog({ isOpen: false, product: null });
+    },
+    onError: (err) => {
+      setToast({
+        isOpen: true,
+        message: err.message || 'Gagal menghapus barang.',
+        type: 'danger',
+      });
+      setDeleteDialog({ isOpen: false, product: null });
     },
   });
 
@@ -348,6 +381,15 @@ export function ProductListPage() {
                         >
                           {p.status ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteDialog({ isOpen: true, product: p })}
+                          className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] transition-colors cursor-pointer"
+                          title="Hapus Barang"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -479,6 +521,7 @@ export function ProductListPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </Link>
+
                             <Link
                               to={`/owner/products/${p.id}/edit`}
                               className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -486,6 +529,7 @@ export function ProductListPage() {
                             >
                               <Edit2 className="w-4 h-4" />
                             </Link>
+
                             <button
                               onClick={() => handleToggleClick(p)}
                               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
@@ -500,6 +544,15 @@ export function ProductListPage() {
                               ) : (
                                 <ToggleLeft className="w-5 h-5" />
                               )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDeleteDialog({ isOpen: true, product: p })}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Hapus Barang"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -528,7 +581,7 @@ export function ProductListPage() {
         }}
       />
 
-      {/* Confirmation Dialog */}
+      {/* Toggle Status Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({ isOpen: false, product: null })}
@@ -542,6 +595,22 @@ export function ProductListPage() {
         confirmText={confirmDialog.product?.status ? 'Nonaktifkan' : 'Aktifkan'}
         type={confirmDialog.product?.status ? 'warning' : 'info'}
         isLoading={toggleMutation.isPending}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, product: null })}
+        onConfirm={() => {
+          if (deleteDialog.product) {
+            deleteMutation.mutate(deleteDialog.product.id);
+          }
+        }}
+        title="Hapus Data Barang?"
+        message={`Apakah Anda yakin ingin menghapus barang "${deleteDialog.product?.name}"? Jika barang ini sudah pernah ada transaksi di kasir, statusnya akan dinonaktifkan secara aman agar arsip laporan tetap rapi.`}
+        confirmText="Hapus Barang"
+        type="danger"
+        isLoading={deleteMutation.isPending}
       />
 
       {/* Toast Feedback */}
