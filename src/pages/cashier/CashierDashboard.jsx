@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { transactionService } from '@/services/transactionService';
-import { Card } from '@/components/common/Card';
+import { StatCard } from '@/components/common/StatCard';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { DollarSign, ShoppingCart, Package, UserCheck, Calendar, History, Calculator, ArrowRight } from 'lucide-react';
+import { TrendingUp, Receipt, ShoppingBag, UserCheck, Calendar, History, Calculator, ShoppingCart, DollarSign } from 'lucide-react';
 import { formatTanggal, formatRupiah } from '@/utils/formatters';
 
 export function CashierDashboard() {
@@ -20,30 +20,6 @@ export function CashierDashboard() {
     refetchInterval: 1000 * 60,
     enabled: !!user?.id,
   });
-
-  const summaryCards = [
-    {
-      title: 'Penjualan Saya Hari Ini',
-      value: isLoading ? '...' : formatRupiah(todaySummary.totalRevenue),
-      subtitle: 'Total transaksi berhasil',
-      icon: DollarSign,
-      iconBg: 'bg-red-50 text-red-600 border border-red-100',
-    },
-    {
-      title: 'Jumlah Transaksi',
-      value: isLoading ? '...' : (todaySummary.transactionCount || 0).toLocaleString('id-ID'),
-      subtitle: 'Jumlah nota / struk selesai',
-      icon: ShoppingCart,
-      iconBg: 'bg-rose-50 text-rose-600 border border-rose-100',
-    },
-    {
-      title: 'Barang Terjual',
-      value: isLoading ? '...' : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID'),
-      subtitle: 'Total kuantitas barang terlayani',
-      icon: Package,
-      iconBg: 'bg-orange-50 text-orange-600 border border-orange-100',
-    },
-  ];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto w-full">
@@ -69,35 +45,53 @@ export function CashierDashboard() {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary StatCards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {summaryCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <Card
-              key={idx}
-              className="hover:border-red-300 transition-all hover:shadow-md"
-              bodyClassName="p-5 flex flex-col justify-between h-full"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight">
-                    {card.title}
-                  </p>
-                  <p className="text-2xl font-black text-slate-900 mt-2 font-mono">
-                    {card.value}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1 font-medium">
-                    {card.subtitle}
-                  </p>
-                </div>
-                <div className={`p-2.5 rounded-xl ${card.iconBg} shrink-0`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+        <StatCard
+          title="PENJUALAN SAYA HARI INI"
+          value={isLoading ? '...' : formatRupiah(todaySummary.totalRevenue)}
+          subtitle={
+            todaySummary.totalRevenue > 0
+              ? 'Total transaksi berhasil'
+              : 'Belum ada transaksi hari ini'
+          }
+          subtitleColor={
+            todaySummary.totalRevenue > 0
+              ? 'text-emerald-600 font-bold'
+              : 'text-slate-400 font-medium'
+          }
+          icon={TrendingUp}
+          iconVariant="primary"
+          cardVariant="primary"
+        />
+
+        <StatCard
+          title="JUMLAH TRANSAKSI"
+          value={
+            isLoading
+              ? '...'
+              : (todaySummary.transactionCount || 0).toLocaleString('id-ID')
+          }
+          subtitle="Nota selesai"
+          subtitleColor="text-slate-400 font-medium"
+          icon={Receipt}
+          iconVariant="dark"
+          cardVariant="default"
+        />
+
+        <StatCard
+          title="BARANG TERJUAL"
+          value={
+            isLoading
+              ? '...'
+              : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID')
+          }
+          subtitle="Total kuantitas"
+          subtitleColor="text-slate-400 font-medium"
+          icon={ShoppingBag}
+          iconVariant="dark"
+          cardVariant="default"
+        />
       </div>
 
       {/* Shortcuts */}

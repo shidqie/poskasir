@@ -6,18 +6,18 @@ import { transactionService } from '@/services/transactionService';
 import { reportService } from '@/services/reportService';
 import { productService } from '@/services/productService';
 import { Card } from '@/components/common/Card';
+import { StatCard } from '@/components/common/StatCard';
 import { Badge } from '@/components/common/Badge';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Alert } from '@/components/common/Alert';
 import { Avatar } from '@/components/common/Avatar';
-import { Button } from '@/components/common/Button';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  DollarSign, ShoppingCart, Package, TrendingUp, ShieldCheck,
-  Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle, Boxes
+  TrendingUp, Receipt, ShoppingBag, Calculator, ShieldCheck,
+  Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle
 } from 'lucide-react';
 import { formatTanggal, formatRupiah } from '@/utils/formatters';
 
@@ -59,37 +59,6 @@ export function OwnerDashboard() {
     queryFn: () => productService.getProducts({ stockFilter: 'low' }),
     refetchInterval: 1000 * 60 * 10,
   });
-
-  const summaryCards = [
-    {
-      title: 'Pendapatan Hari Ini',
-      value: summaryLoading ? '...' : formatRupiah(todaySummary.totalRevenue),
-      subtitle: 'Total transaksi berhasil',
-      icon: DollarSign,
-      iconBg: 'bg-red-50 text-red-600 border border-red-100',
-    },
-    {
-      title: 'Transaksi Hari Ini',
-      value: summaryLoading ? '...' : (todaySummary.transactionCount || 0).toLocaleString('id-ID'),
-      subtitle: 'Jumlah nota / struk kasir',
-      icon: ShoppingCart,
-      iconBg: 'bg-rose-50 text-rose-600 border border-rose-100',
-    },
-    {
-      title: 'Barang Terjual',
-      value: summaryLoading ? '...' : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID'),
-      subtitle: 'Total kuantitas barang',
-      icon: Package,
-      iconBg: 'bg-orange-50 text-orange-600 border border-orange-100',
-    },
-    {
-      title: 'Rata-Rata Transaksi',
-      value: summaryLoading ? '...' : formatRupiah(todaySummary.avgTransaction),
-      subtitle: 'Nilai belanja per pelanggan',
-      icon: TrendingUp,
-      iconBg: 'bg-amber-50 text-amber-600 border border-amber-100',
-    },
-  ];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
@@ -135,35 +104,69 @@ export function OwnerDashboard() {
         </Alert>
       )}
 
-      {/* Summary Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <Card
-              key={idx}
-              className="hover:border-red-300 transition-all hover:shadow-md"
-              bodyClassName="p-4 sm:p-5 flex flex-col justify-between h-full"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight truncate">
-                    {card.title}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-2 font-mono truncate">
-                    {card.value}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1 font-medium line-clamp-1">
-                    {card.subtitle}
-                  </p>
-                </div>
-                <div className={`p-2.5 rounded-xl ${card.iconBg} shrink-0`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+      {/* 4 Stat Cards Matching Exact Design */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Pendapatan Hari Ini */}
+        <StatCard
+          title="PENDAPATAN HARI INI"
+          value={summaryLoading ? '...' : formatRupiah(todaySummary.totalRevenue)}
+          subtitle={
+            todaySummary.totalRevenue > 0
+              ? '+12.5% dari kemarin'
+              : 'Belum ada omzet hari ini'
+          }
+          subtitleColor={
+            todaySummary.totalRevenue > 0
+              ? 'text-emerald-600 font-bold'
+              : 'text-slate-400 font-medium'
+          }
+          icon={TrendingUp}
+          iconVariant="primary"
+          cardVariant="primary"
+        />
+
+        {/* Card 2: Jumlah Transaksi */}
+        <StatCard
+          title="JUMLAH TRANSAKSI"
+          value={
+            summaryLoading
+              ? '...'
+              : (todaySummary.transactionCount || 0).toLocaleString('id-ID')
+          }
+          subtitle="Hari ini"
+          subtitleColor="text-slate-400 font-medium"
+          icon={Receipt}
+          iconVariant="dark"
+          cardVariant="default"
+        />
+
+        {/* Card 3: Barang Terjual */}
+        <StatCard
+          title="BARANG TERJUAL"
+          value={
+            summaryLoading
+              ? '...'
+              : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID')
+          }
+          subtitle="Total kuantitas"
+          subtitleColor="text-slate-400 font-medium"
+          icon={ShoppingBag}
+          iconVariant="dark"
+          cardVariant="default"
+        />
+
+        {/* Card 4: Rata-Rata Transaksi */}
+        <StatCard
+          title="RATA-RATA TRANSAKSI"
+          value={
+            summaryLoading ? '...' : formatRupiah(todaySummary.avgTransaction)
+          }
+          subtitle="Basket size"
+          subtitleColor="text-slate-400 font-medium"
+          icon={Calculator}
+          iconVariant="dark"
+          cardVariant="default"
+        />
       </div>
 
       {/* Chart + Top Products */}

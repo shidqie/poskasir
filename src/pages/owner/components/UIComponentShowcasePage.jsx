@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/common/Card';
+import { StatCard } from '@/components/common/StatCard';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
@@ -410,77 +411,45 @@ export function UIComponentShowcasePage() {
       {activeSection === 'dashboard' && (
         <div className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-red-50/70 to-rose-50/40 border-red-100">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-red-600 text-white shadow-md shadow-red-500/25">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Pendapatan Hari Ini
-                  </p>
-                  <p className="text-xl font-black text-red-950 mt-0.5">
-                    {formatRupiah(2450000)}
-                  </p>
-                  <p className="text-[11px] text-emerald-600 font-bold mt-0.5">
-                    +12.5% dari kemarin
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <StatCard
+              title="PENDAPATAN HARI INI"
+              value={formatRupiah(2450000)}
+              subtitle="+12.5% dari kemarin"
+              subtitleColor="text-emerald-600 font-bold"
+              icon={TrendingUp}
+              iconVariant="primary"
+              cardVariant="primary"
+            />
 
-            <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-slate-900 text-white shadow-md">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Jumlah Transaksi
-                  </p>
-                  <p className="text-xl font-black text-slate-900 mt-0.5">45</p>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    Hari ini
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <StatCard
+              title="JUMLAH TRANSAKSI"
+              value="45"
+              subtitle="Hari ini"
+              subtitleColor="text-slate-400 font-medium"
+              icon={Receipt}
+              iconVariant="dark"
+              cardVariant="default"
+            />
 
-            <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-slate-900 text-white shadow-md">
-                  <ShoppingBag className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Barang Terjual
-                  </p>
-                  <p className="text-xl font-black text-slate-900 mt-0.5">320</p>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    Total kuantitas
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <StatCard
+              title="BARANG TERJUAL"
+              value="320"
+              subtitle="Total kuantitas"
+              subtitleColor="text-slate-400 font-medium"
+              icon={ShoppingBag}
+              iconVariant="dark"
+              cardVariant="default"
+            />
 
-            <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-slate-900 text-white shadow-md">
-                  <Calculator className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Rata-rata Transaksi
-                  </p>
-                  <p className="text-xl font-black text-slate-900 mt-0.5">
-                    {formatRupiah(54444)}
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    Basket size
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <StatCard
+              title="RATA-RATA TRANSAKSI"
+              value={formatRupiah(54444)}
+              subtitle="Basket size"
+              subtitleColor="text-slate-400 font-medium"
+              icon={Calculator}
+              iconVariant="dark"
+              cardVariant="default"
+            />
           </div>
         </div>
       )}
