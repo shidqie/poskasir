@@ -6,14 +6,14 @@ export function CategoryFilter({
   onSelectCategory,
 }) {
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 text-xs sm:text-sm font-semibold select-none">
+    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs font-semibold select-none">
       <button
         type="button"
         onClick={() => onSelectCategory('')}
-        className={`px-3.5 py-1.5 rounded-xl shrink-0 transition-all ${
+        className={`px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer ${
           selectedCategoryId === ''
-            ? 'bg-red-600 text-white shadow-xs shadow-red-500/25 font-bold'
-            : 'bg-white border border-slate-200 text-slate-700 hover:bg-red-50 hover:text-red-700'
+            ? 'bg-red-600 text-white shadow-xs font-bold'
+            : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
         }`}
       >
         Semua Kategori
@@ -26,10 +26,10 @@ export function CategoryFilter({
             key={cat.id}
             type="button"
             onClick={() => onSelectCategory(cat.id)}
-            className={`px-3.5 py-1.5 rounded-xl shrink-0 transition-all ${
+            className={`px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer ${
               isSelected
-                ? 'bg-red-600 text-white shadow-xs shadow-red-500/25 font-bold'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-red-50 hover:text-red-700'
+                ? 'bg-red-600 text-white shadow-xs font-bold'
+                : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
             }`}
           >
             {cat.name}

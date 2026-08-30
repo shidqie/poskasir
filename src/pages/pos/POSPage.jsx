@@ -310,8 +310,8 @@ export function POSPage() {
       {/* Main Layout 2 Kolom (Desktop) / 1 Kolom (Mobile) */}
       <div className="flex-1 flex overflow-hidden">
         {/* Kolom Kiri: Katalog & Pencarian */}
-        <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-5 overflow-y-auto space-y-3 sm:space-y-4">
-          <div className="space-y-2.5">
+        <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-4 overflow-y-auto space-y-2.5 sm:space-y-3">
+          <div className="space-y-2">
             <ProductSearch
               value={searchTerm}
               onChange={(val) => setSearchTerm(val)}
@@ -340,7 +340,7 @@ export function POSPage() {
         </div>
 
         {/* Kolom Kanan: Panel Keranjang Desktop */}
-        <div className="hidden lg:flex w-96 xl:w-[420px] border-l border-slate-200/90 bg-white shrink-0 flex-col h-full shadow-lg z-10">
+        <div className="hidden lg:flex w-80 xl:w-96 border-l border-slate-200/90 bg-white shrink-0 flex-col h-full shadow-lg z-10">
           <CartPanel onCheckout={handleOpenCheckout} />
         </div>
       </div>
