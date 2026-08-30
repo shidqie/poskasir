@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '@/services/transactionService';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { Modal } from '@/components/common/Modal';
 import { Toast } from '@/components/common/Toast';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
@@ -18,8 +19,15 @@ import {
   CheckCircle2,
   FileSpreadsheet,
   Coins,
+  FileText,
+  BookmarkPlus,
+  ArrowRight,
+  Clock,
+  Check,
+  AlertCircle,
+  Eye,
 } from 'lucide-react';
-import { formatRupiah } from '@/utils/formatters';
+import { formatRupiah, formatTanggal } from '@/utils/formatters';
 
 const parseRaw = (v) => {
   const n = Number(String(v).replace(/\D/g, ''));
@@ -34,6 +42,8 @@ const PAYMENT_METHODS = [
   { id: 'transfer', label: 'Transfer', icon: CreditCard },
 ];
 
+const DRAFT_STORAGE_KEY = 'quick_calc_drafts';
+
 // Tab 1 — Hitung Barang & Pembayaran
 function ItemCalculator() {
   const queryClient = useQueryClient();
@@ -42,9 +52,19 @@ function ItemCalculator() {
   const [inputLabel, setInputLabel] = useState('');
   const [receivedInput, setReceivedInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [completedTrx, setCompletedTrx] = useState(null);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
+  const [savedDrafts, setSavedDrafts] = useState([]);
   const inputRef = useRef(null);
+
+  // Load saved drafts from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (stored) setSavedDrafts(JSON.parse(stored));
+    } catch (e) {}
+  }, []);
 
   const total = entries.reduce((s, e) => s + e.amount, 0);
   const received = parseRaw(receivedInput);
@@ -52,19 +72,20 @@ function ItemCalculator() {
   const isShortage = total > 0 && received > 0 && received < total;
 
   // Preset tombol uang cepat
-  const quickReceivedAmounts = total > 0
-    ? [
-        total,
-        50000,
-        100000,
-        200000,
-        Math.ceil(total / 10000) * 10000,
-        Math.ceil(total / 50000) * 50000,
-      ]
-        .filter((v, idx, arr) => v >= total && arr.indexOf(v) === idx)
-        .sort((a, b) => a - b)
-        .slice(0, 5)
-    : [50000, 100000, 200000];
+  const quickReceivedAmounts =
+    total > 0
+      ? [
+          total,
+          50000,
+          100000,
+          200000,
+          Math.ceil(total / 10000) * 10000,
+          Math.ceil(total / 50000) * 50000,
+        ]
+          .filter((v, idx, arr) => v >= total && arr.indexOf(v) === idx)
+          .sort((a, b) => a - b)
+          .slice(0, 5)
+      : [50000, 100000, 200000];
 
   const handleAdd = useCallback(() => {
     const amount = parseRaw(inputValue);
@@ -79,7 +100,7 @@ function ItemCalculator() {
   }, [inputValue, inputLabel]);
 
   const handleRemove = (id) => setEntries((prev) => prev.filter((e) => e.id !== id));
-  
+
   const handleReset = () => {
     setEntries([]);
     setInputValue('');
@@ -91,6 +112,56 @@ function ItemCalculator() {
     if (e.key === 'Enter') handleAdd();
   };
 
+  // Simpan antrean draft ke localStorage
+  const handleSaveAsDraft = () => {
+    if (entries.length === 0) return;
+    const newDraft = {
+      id: `draft-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      entries,
+      total,
+      paymentMethod,
+      receivedInput,
+    };
+    const updated = [newDraft, ...savedDrafts.slice(0, 9)];
+    setSavedDrafts(updated);
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {}
+    setToast({
+      isOpen: true,
+      message: 'Transaksi berhasil disimpan sebagai Draft antrean.',
+      type: 'success',
+    });
+    handleReset();
+  };
+
+  // Muat draft kembali ke kalkulator
+  const handleLoadDraft = (draft) => {
+    setEntries(draft.entries || []);
+    setPaymentMethod(draft.paymentMethod || 'cash');
+    setReceivedInput(draft.receivedInput || '');
+    // Hapus draft yang dimuat dari list
+    const updated = savedDrafts.filter((d) => d.id !== draft.id);
+    setSavedDrafts(updated);
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {}
+    setToast({
+      isOpen: true,
+      message: 'Draft belanjaan berhasil dimuat ke kalkulator.',
+      type: 'success',
+    });
+  };
+
+  const handleDeleteDraft = (draftId) => {
+    const updated = savedDrafts.filter((d) => d.id !== draftId);
+    setSavedDrafts(updated);
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {}
+  };
+
   // Mutation simpan transaksi kalkulator cepat ke laporan
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -100,6 +171,7 @@ function ItemCalculator() {
         paymentMethod,
       }),
     onSuccess: (data) => {
+      setIsReviewModalOpen(false);
       setCompletedTrx(data);
       queryClient.invalidateQueries({ queryKey: ['today-summary'] });
       queryClient.invalidateQueries({ queryKey: ['daily-sales'] });
@@ -116,7 +188,7 @@ function ItemCalculator() {
     },
   });
 
-  const handleSaveTransaction = () => {
+  const handleOpenReview = () => {
     if (entries.length === 0) return;
     if (paymentMethod === 'cash' && received > 0 && received < total) {
       setToast({
@@ -126,11 +198,63 @@ function ItemCalculator() {
       });
       return;
     }
+    setIsReviewModalOpen(true);
+  };
+
+  const handleConfirmFinal = () => {
     saveMutation.mutate();
   };
 
   return (
     <div className="space-y-4">
+      {/* 0. Daftar Draft Tersimpan (Jika ada) */}
+      {savedDrafts.length > 0 && (
+        <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-amber-700" />
+              Antrean Draft Tersimpan ({savedDrafts.length})
+            </span>
+            <span className="text-[11px] text-amber-700">Dapat dimuat kembali</span>
+          </div>
+
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {savedDrafts.map((d) => (
+              <div
+                key={d.id}
+                className="p-2.5 bg-white rounded-xl border border-amber-200/80 flex items-center justify-between gap-2 text-xs shadow-2xs"
+              >
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-800 truncate">
+                    {d.entries.length} Item &bull; {formatRupiah(d.total)}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    {formatTanggal(d.createdAt)} &bull; {d.paymentMethod.toUpperCase()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleLoadDraft(d)}
+                    className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 font-bold border border-red-200 transition-colors cursor-pointer"
+                  >
+                    Muat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDraft(d.id)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    title="Hapus Draft"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 1. Input Nilai Barang */}
       <Card bodyClassName="p-4 sm:p-5 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -359,17 +483,29 @@ function ItemCalculator() {
               </div>
             )}
 
-            {/* Tombol Utama: Simpan Transaksi & Masuk ke Laporan Harian */}
-            <Button
-              onClick={handleSaveTransaction}
-              isLoading={saveMutation.isPending}
-              disabled={saveMutation.isPending || isShortage}
-              variant="primary"
-              icon={CheckCircle2}
-              className="w-full py-4 text-sm font-bold bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white shadow-lg shadow-red-500/25 active:scale-95 cursor-pointer rounded-xl"
-            >
-              Selesaikan Transaksi & Masukkan ke Laporan Harian
-            </Button>
+            {/* Tombol Aksi 2 Pilihan: Simpan Draft & Lanjutkan ke Konfirmasi */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                icon={BookmarkPlus}
+                onClick={handleSaveAsDraft}
+                className="sm:col-span-1 py-3.5 text-xs font-bold text-slate-700 border-slate-300 hover:bg-slate-50 rounded-xl"
+              >
+                Simpan Draft
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                icon={ArrowRight}
+                onClick={handleOpenReview}
+                disabled={isShortage}
+                className="sm:col-span-2 py-3.5 text-sm font-bold bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white shadow-lg shadow-red-500/25 active:scale-95 cursor-pointer rounded-xl"
+              >
+                Tinjau & Konfirmasi Pembayaran
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -379,12 +515,102 @@ function ItemCalculator() {
           <Calculator size={36} className="mx-auto mb-2 opacity-30 text-red-600" />
           <p className="text-sm font-bold text-slate-700">Belum ada item belanja</p>
           <p className="text-xs text-slate-400 mt-0.5">
-            Tambahkan harga barang di atas untuk menghitung total & mencatat langsung ke laporan kasir.
+            Tambahkan harga barang di atas untuk menghitung total & meninjau draft transaksi.
           </p>
         </div>
       )}
 
-      {/* Modal Sukses Transaksi + Cetak Struk */}
+      {/* Modal 1: Review & Konfirmasi Draft Transaksi Sebelum Masuk Penjualan */}
+      <Modal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        maxWidth="max-w-md"
+        title="Konfirmasi Transaksi Penjualan"
+        subtitle="Periksa kembali ringkasan belanja & pembayaran sebelum dicatat ke laporan resmi"
+      >
+        <div className="space-y-4">
+          {/* Ringkasan Belanja Box */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-500 pb-2 border-b border-slate-200">
+              <span className="font-semibold uppercase tracking-wider">Item Belanja ({entries.length})</span>
+              <span className="font-mono">Harga</span>
+            </div>
+
+            <div className="space-y-1.5 max-h-40 overflow-y-auto divide-y divide-slate-100">
+              {entries.map((item, idx) => (
+                <div key={item.id || idx} className="flex justify-between items-center text-xs pt-1.5">
+                  <span className="font-medium text-slate-800 truncate pr-2">
+                    {idx + 1}. {item.label}
+                  </span>
+                  <span className="font-bold text-slate-900 font-mono shrink-0">
+                    {formatRupiah(item.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs font-bold text-slate-700">Total Tagihan</span>
+                <span className="text-lg font-black text-red-600 font-mono">{formatRupiah(total)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium">Metode Pembayaran</span>
+                <span className="font-bold text-slate-800 uppercase px-2 py-0.5 rounded bg-slate-200/70">
+                  {paymentMethod}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium">Uang Diterima</span>
+                <span className="font-bold text-slate-900 font-mono">
+                  {formatRupiah(received || total)}
+                </span>
+              </div>
+              {paymentMethod === 'cash' && change > 0 && (
+                <div className="flex justify-between items-baseline pt-1">
+                  <span className="text-xs font-bold text-emerald-800">Kembalian</span>
+                  <span className="text-base font-black text-emerald-700 font-mono">
+                    {formatRupiah(change)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Notice */}
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              Setelah dikonfirmasi, transaksi ini akan <strong>resmi tercatat di Laporan Penjualan Hari Ini & Closing Kasir</strong>.
+            </p>
+          </div>
+
+          {/* Action Buttons Modal */}
+          <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReviewModalOpen(false)}
+              disabled={saveMutation.isPending}
+              className="py-2.5 text-xs font-bold rounded-xl"
+            >
+              Edit Lagi
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleConfirmFinal}
+              isLoading={saveMutation.isPending}
+              icon={Check}
+              className="py-2.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25 rounded-xl"
+            >
+              Konfirmasi & Masuk Laporan
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal 2: Sukses Transaksi + Cetak Struk */}
       <TransactionSuccessModal
         isOpen={Boolean(completedTrx)}
         transaction={completedTrx}
@@ -410,6 +636,7 @@ function ChangeCalculator() {
   const queryClient = useQueryClient();
   const [totalInput, setTotalInput] = useState('');
   const [receivedInput, setReceivedInput] = useState('');
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [completedTrx, setCompletedTrx] = useState(null);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
@@ -435,6 +662,7 @@ function ChangeCalculator() {
         paymentMethod: 'cash',
       }),
     onSuccess: (data) => {
+      setIsReviewModalOpen(false);
       setCompletedTrx(data);
       queryClient.invalidateQueries({ queryKey: ['today-summary'] });
       queryClient.invalidateQueries({ queryKey: ['daily-sales'] });
@@ -546,14 +774,13 @@ function ChangeCalculator() {
           {total > 0 && (
             <div className="pt-2">
               <Button
-                onClick={() => saveMutation.mutate()}
-                isLoading={saveMutation.isPending}
-                disabled={shortage > 0 || saveMutation.isPending}
+                onClick={() => setIsReviewModalOpen(true)}
+                disabled={shortage > 0}
                 variant="primary"
                 icon={FileSpreadsheet}
                 className="w-full py-3.5 text-sm font-bold bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25 rounded-xl cursor-pointer"
               >
-                Catat Transaksi Ini ke Laporan Harian
+                Tinjau & Konfirmasi ke Laporan
               </Button>
             </div>
           )}
@@ -569,6 +796,54 @@ function ChangeCalculator() {
           Reset Hitungan
         </button>
       )}
+
+      {/* Modal Konfirmasi Hitung Kembalian */}
+      <Modal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        maxWidth="max-w-sm"
+        title="Konfirmasi Penjualan Cepat"
+        subtitle="Simpan transaksi langsung ke laporan penjualan harian"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Total Belanja</span>
+              <span className="font-bold text-slate-900 font-mono">{formatRupiah(total)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Uang Diterima</span>
+              <span className="font-bold text-slate-900 font-mono">{formatRupiah(received || total)}</span>
+            </div>
+            <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-emerald-700">
+              <span>Kembalian</span>
+              <span className="font-mono text-sm">{formatRupiah(change)}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReviewModalOpen(false)}
+              disabled={saveMutation.isPending}
+              className="py-2.5 text-xs font-bold rounded-xl"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => saveMutation.mutate()}
+              isLoading={saveMutation.isPending}
+              icon={Check}
+              className="py-2.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl"
+            >
+              Konfirmasi
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Modal Sukses Transaksi */}
       <TransactionSuccessModal
@@ -610,7 +885,7 @@ export default function QuickCalculatorPage() {
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Kalkulator Cepat</h1>
-          <p className="text-xs sm:text-sm text-slate-500">Hitung belanja & catat langsung ke laporan harian</p>
+          <p className="text-xs sm:text-sm text-slate-500">Hitung belanja, simpan draft & konfirmasi penjualan</p>
         </div>
       </div>
 
