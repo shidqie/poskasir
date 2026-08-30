@@ -226,22 +226,49 @@ export const productService = {
   },
 
   /**
-   * Menghasilkan kode barang otomatis berikutnya
+   * Menghasilkan kode barang otomatis berikutnya (stabil & tidak bertambah jika form belum disimpan)
    */
   async getNextProductCode() {
     try {
-      const { data, error } = await supabase.rpc('generate_product_code');
-      if (!error && data) return data;
+      const { data, error } = await supabase
+        .from('products')
+        .select('code')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (!error && data && data.length > 0) {
+        let maxNum = 0;
+        data.forEach((p) => {
+          if (p.code) {
+            const match = p.code.match(/BRG-(\d+)/i);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (!isNaN(num) && num > maxNum) {
+                maxNum = num;
+              }
+            }
+          }
+        });
+
+        if (maxNum > 0) {
+          const nextNumber = maxNum + 1;
+          return `BRG-${String(nextNumber).padStart(4, '0')}`;
+        }
+      }
     } catch (e) {
-      console.warn('[ProductService] Fallback generate code:', e);
+      console.warn('[ProductService] Error getting next product code:', e);
     }
 
-    const { count } = await supabase
-      .from('products')
-      .select('*', { count: 'exact', head: true });
+    try {
+      const { count } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
 
-    const nextNumber = (count || 0) + 1;
-    return `BRG-${String(nextNumber).padStart(4, '0')}`;
+      const nextNumber = (count || 0) + 1;
+      return `BRG-${String(nextNumber).padStart(4, '0')}`;
+    } catch (e) {
+      return 'BRG-0001';
+    }
   },
 
   /**
