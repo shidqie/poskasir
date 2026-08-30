@@ -5,7 +5,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { transactionService } from '@/services/transactionService';
 import { reportService } from '@/services/reportService';
 import { productService } from '@/services/productService';
+import { productSubmissionService } from '@/services/productSubmissionService';
 import { Card } from '@/components/common/Card';
+import { Button } from '@/components/common/Button';
 import { StatCard } from '@/components/common/StatCard';
 import { Badge } from '@/components/common/Badge';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -17,7 +19,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, Receipt, ShoppingBag, Calculator, ShieldCheck,
-  Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle
+  Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle, Inbox
 } from 'lucide-react';
 import { formatTanggal, formatRupiah } from '@/utils/formatters';
 
@@ -60,6 +62,13 @@ export function OwnerDashboard() {
     refetchInterval: 1000 * 60 * 10,
   });
 
+  // Query Pengajuan Barang Baru Pending
+  const { data: pendingSubmissionsCount = 0 } = useQuery({
+    queryKey: ['pending-submissions-count'],
+    queryFn: () => productSubmissionService.getPendingCount(),
+    refetchInterval: 10000,
+  });
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
       {/* Minimalist Red Header Banner */}
@@ -84,6 +93,38 @@ export function OwnerDashboard() {
         </div>
       </div>
 
+      {/* Pengajuan Barang Baru Alert / Widget */}
+      {pendingSubmissionsCount > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
+              <Inbox className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-amber-950 flex items-center gap-2">
+                <span>Pengajuan Barang Baru</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black">
+                  {pendingSubmissionsCount} Menunggu Persetujuan
+                </span>
+              </h3>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Kasir mengajukan barang baru yang belum terdaftar. Periksa dan setujui agar masuk ke Data Barang resmi.
+              </p>
+            </div>
+          </div>
+          <Link to="/owner/product-submissions" className="shrink-0">
+            <Button
+              variant="primary"
+              size="sm"
+              icon={ArrowRight}
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 px-3.5 rounded-xl"
+            >
+              Lihat Pengajuan
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Low Stock Alert Component */}
       {lowStockProducts.length > 0 && (
         <Alert
@@ -95,7 +136,7 @@ export function OwnerDashboard() {
               Ada beberapa stok barang atau varian yang mendekati batas minimum persediaan.
             </span>
             <Link
-              to="/owner/stock/adjustments"
+              to="/owner/stock-adjustment"
               className="font-bold underline text-amber-900 hover:text-amber-950 shrink-0"
             >
               Lakukan Penyesuaian Stok →

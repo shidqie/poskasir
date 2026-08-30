@@ -2,13 +2,13 @@ import { supabase } from '@/lib/supabase';
 
 export const priceService = {
   /**
-   * Pencarian Harga Terpadu (Products + Product Variants + Unregistered Prices)
+   * Pencarian Harga Terpadu (Products + Product Variants + Pending Product Submissions)
    * Prioritas:
-   * 1. Produk Resmi Terdaftar & Varian (status = true)
-   * 2. Barang Belum Terdaftar (status = 'pending')
+   * 1. Produk Resmi Terdaftar & Varian (status = true / is_active = true)
+   * 2. Pengajuan Barang Belum Terdaftar (status = 'pending')
    */
   async searchAllPrices(search = '') {
-    const term = search.trim();
+    const term = search?.trim();
 
     // 1. Query produk resmi aktif
     let productsQuery = supabase
@@ -21,12 +21,11 @@ export const priceService = {
         selling_price,
         stock,
         minimum_stock,
-        status,
+        is_active,
         has_variants,
         category:categories(id, name),
         unit:units(id, name, symbol, allow_decimal)
       `)
-      .eq('status', true)
       .order('name', { ascending: true });
 
     if (term) {
@@ -35,35 +34,44 @@ export const priceService = {
       );
     }
 
-    // 2. Query barang belum terdaftar aktif (pending)
-    let unregisteredQuery = supabase
-      .from('unregistered_prices')
+    // 2. Query pengajuan barang berstatus 'pending' (Belum Terdaftar / Menunggu Persetujuan)
+    let submissionsQuery = supabase
+      .from('product_submissions')
       .select(`
         id,
         barcode,
         name,
+        variant_name,
+        submission_type,
         selling_price,
-        unit_name,
         notes,
         status,
-        created_at
+        created_at,
+        unit:units(name, symbol),
+        category:categories(name)
       `)
       .eq('status', 'pending')
-      .order('name', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (term) {
-      unregisteredQuery = unregisteredQuery.or(
-        `name.ilike.%${term}%,barcode.ilike.%${term}%`
+      submissionsQuery = submissionsQuery.or(
+        `name.ilike.%${term}%,barcode.ilike.%${term}%,variant_name.ilike.%${term}%`
       );
     }
 
-    const [productsRes, unregisteredRes] = await Promise.all([
+    // 3. Fallback query unregistered_prices jika ada
+    let unregisteredQuery = supabase
+      .from('unregistered_prices')
+      .select('id, barcode, name, selling_price, unit_name, notes, status, created_at')
+      .eq('status', 'pending');
+
+    const [productsRes, submissionsRes] = await Promise.all([
       productsQuery,
-      unregisteredQuery,
+      submissionsQuery,
     ]);
 
-    if (productsRes.error) throw productsRes.error;
-    if (unregisteredRes.error) throw unregisteredRes.error;
+    if (productsRes.error) console.warn('[priceService] products error:', productsRes.error);
+    if (submissionsRes.error) console.warn('[priceService] submissions error:', submissionsRes.error);
 
     let allProducts = productsRes.data || [];
 
@@ -76,17 +84,13 @@ export const priceService = {
           .select(`
             id,
             product_id,
-            variant_name,
-            code,
+            name,
             barcode,
-            selling_price,
+            price,
             stock,
-            minimum_stock,
-            status,
-            unit:units(id, name, symbol, allow_decimal)
+            is_active
           `)
-          .in('product_id', productIds)
-          .eq('status', true);
+          .in('product_id', productIds);
 
         if (variantsData) {
           const varMap = {};
@@ -100,85 +104,97 @@ export const priceService = {
             product_variants: varMap[p.id] || [],
           }));
         }
-      } catch (e) {}
+      } catch (err) {
+        console.warn('[priceService] fetch variants error:', err);
+      }
     }
 
-    // Format item hasil: Pecah produk bervarian menjadi item varian individual
+    // Format Produk Resmi
     const formattedProducts = [];
-
     allProducts.forEach((item) => {
       if (item.has_variants && item.product_variants?.length > 0) {
-        const variants = item.product_variants.filter((v) => v.status);
-        variants.forEach((v) => {
-          if (
-            !term ||
-            item.name.toLowerCase().includes(term.toLowerCase()) ||
-            v.variant_name.toLowerCase().includes(term.toLowerCase()) ||
-            (v.barcode && v.barcode.toLowerCase().includes(term.toLowerCase())) ||
-            (v.code && v.code.toLowerCase().includes(term.toLowerCase()))
-          ) {
-            formattedProducts.push({
-              id: item.id,
-              variantId: v.id,
-              sourceType: 'registered',
-              name: `${item.name} - ${v.variant_name}`,
-              productName: item.name,
-              variantName: v.variant_name,
-              code: v.code,
-              barcode: v.barcode || item.barcode,
-              price: v.selling_price,
-              unitSymbol: v.unit?.symbol || item.unit?.symbol || 'Pcs',
-              categoryName: item.category?.name || 'Umum',
-              stock: v.stock,
-              minimumStock: v.minimum_stock,
-              notes: null,
-              hasVariants: true,
-              raw: { ...item, activeVariant: v },
-            });
-          }
+        item.product_variants.forEach((v) => {
+          formattedProducts.push({
+            id: `${item.id}-${v.id}`,
+            productId: item.id,
+            variantId: v.id,
+            sourceType: 'registered',
+            status: 'approved',
+            name: `${item.name} (${v.name})`,
+            productName: item.name,
+            variantName: v.name,
+            code: item.code,
+            barcode: v.barcode || item.barcode,
+            price: v.price || item.selling_price,
+            selling_price: v.price || item.selling_price,
+            unitSymbol: item.unit?.symbol || 'Pcs',
+            categoryName: item.category?.name || 'Sembako',
+            stock: v.stock,
+            minimumStock: item.minimum_stock,
+            hasVariants: true,
+            raw: { ...item, activeVariant: v },
+          });
         });
       } else {
         formattedProducts.push({
           id: item.id,
+          productId: item.id,
           variantId: null,
           sourceType: 'registered',
+          status: 'approved',
           name: item.name,
           productName: item.name,
           variantName: null,
           code: item.code,
           barcode: item.barcode,
           price: item.selling_price,
-          unitSymbol: item.unit?.symbol || item.unit?.name || 'Pcs',
-          categoryName: item.category?.name || 'Umum',
+          selling_price: item.selling_price,
+          unitSymbol: item.unit?.symbol || 'Pcs',
+          categoryName: item.category?.name || 'Sembako',
           stock: item.stock,
           minimumStock: item.minimum_stock,
-          notes: null,
           hasVariants: false,
           raw: item,
         });
       }
     });
 
-    const formattedUnregistered = (unregisteredRes.data || []).map((item) => ({
-      id: item.id,
+    // Format Pengajuan Pending
+    const formattedSubmissions = (submissionsRes.data || []).map((sub) => ({
+      id: sub.id,
+      productId: null,
       variantId: null,
       sourceType: 'unregistered',
-      name: item.name,
-      productName: item.name,
-      variantName: null,
+      status: 'pending',
+      submission_type: sub.submission_type,
+      name: sub.submission_type === 'new_variant' ? `${sub.name} (${sub.variant_name})` : sub.name,
+      productName: sub.name,
+      variantName: sub.variant_name,
       code: null,
-      barcode: item.barcode,
-      price: item.selling_price,
-      unitSymbol: item.unit_name || 'Item',
-      categoryName: 'Belum Ada Kategori',
+      barcode: sub.barcode,
+      price: sub.selling_price,
+      selling_price: sub.selling_price,
+      unitSymbol: sub.unit?.symbol || 'Pcs',
+      categoryName: sub.category?.name || 'Belum Ada Kategori',
       stock: null,
       minimumStock: null,
-      notes: item.notes,
+      notes: sub.notes,
       hasVariants: false,
-      raw: item,
+      raw: sub,
     }));
 
-    return [...formattedProducts, ...formattedUnregistered];
+    return [...formattedProducts, ...formattedSubmissions];
+  },
+
+  /**
+   * Alias getAllPrices
+   */
+  async getAllPrices({ search = '', categoryId = '' } = {}) {
+    let items = await this.searchAllPrices(search);
+    if (categoryId) {
+      items = items.filter((item) => item.category_id === categoryId);
+    }
+    return items;
   },
 
   /**

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
+import { productSubmissionService } from '@/services/productSubmissionService';
 import {
   LayoutDashboard,
   Package,
@@ -22,6 +24,8 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Inbox,
+  DoorClosed,
 } from 'lucide-react';
 
 export function OwnerLayout() {
@@ -31,6 +35,13 @@ export function OwnerLayout() {
     return localStorage.getItem('owner_sidebar_collapsed') === 'true';
   });
   const navigate = useNavigate();
+
+  // Query jumlah pengajuan barang baru yang pending
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['pending-submissions-count'],
+    queryFn: () => productSubmissionService.getPendingCount(),
+    refetchInterval: 10000,
+  });
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => {
@@ -92,9 +103,10 @@ export function OwnerLayout() {
       icon: Tags,
     },
     {
-      label: 'Barang Belum Terdaftar',
-      to: '/owner/unregistered-products',
-      icon: Tag,
+      label: pendingCount > 0 ? `Pengajuan Barang (${pendingCount})` : 'Pengajuan Barang',
+      to: '/owner/product-submissions',
+      icon: Inbox,
+      badge: pendingCount > 0 ? pendingCount : null,
     },
     {
       label: 'Data Kasir',

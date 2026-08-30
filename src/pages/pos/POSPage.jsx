@@ -19,7 +19,7 @@ import { BarcodeNotFoundModal } from '@/components/pos/BarcodeNotFoundModal';
 import { VariantSelectorModal } from '@/components/pos/VariantSelectorModal';
 import PaymentModal from '@/components/pos/PaymentModal';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
-import { UnregisteredPriceModal } from '@/components/prices/UnregisteredPriceModal';
+import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissionModal';
 import { Toast } from '@/components/common/Toast';
 import { formatRupiah } from '@/utils/formatters';
 import { ShoppingCart, ArrowRight } from 'lucide-react';
@@ -332,13 +332,33 @@ export function POSPage() {
         onSearchByName={() => setSearchTerm('')}
       />
 
-      {/* Modal Tambah Harga Sementara */}
-      <UnregisteredPriceModal
+      {/* Modal Ajukan Barang Baru ke Pemilik */}
+      <ProductSubmissionModal
         isOpen={isUnregModalOpen}
         onClose={() => setIsUnregModalOpen(false)}
-        initialData={unregInitialData}
-        onSubmit={(data) => addUnregMutation.mutateAsync(data)}
-        isLoading={addUnregMutation.isPending}
+        initialBarcode={unregInitialData?.barcode || notFoundBarcode || ''}
+        initialName={unregInitialData?.name || ''}
+        onSuccess={(savedItem) => {
+          queryClient.invalidateQueries({ queryKey: ['pos-products'] });
+          queryClient.invalidateQueries({ queryKey: ['product-submissions'] });
+
+          addItem({
+            id: savedItem.id,
+            name: savedItem.name,
+            price: Number(savedItem.selling_price) || 0,
+            unit: 'Item',
+            unit_name: 'Item',
+            barcode: savedItem.barcode,
+            allowDecimal: false,
+            sourceType: 'temporary',
+          });
+
+          setToast({
+            isOpen: true,
+            message: `Pengajuan "${savedItem.name}" berhasil dikirim ke Pemilik & masuk keranjang!`,
+            type: 'success',
+          });
+        }}
       />
 
       {/* Modal Pilih Varian Produk */}

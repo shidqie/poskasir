@@ -19,6 +19,7 @@ import { ProductDetailPage } from '@/pages/owner/products/ProductDetailPage';
 import { CategoryListPage } from '@/pages/owner/categories/CategoryListPage';
 import { UnitListPage } from '@/pages/owner/units/UnitListPage';
 import { UnregisteredPriceListPage } from '@/pages/owner/unregistered/UnregisteredPriceListPage';
+import { OwnerProductSubmissionsPage } from '@/pages/owner/submissions/OwnerProductSubmissionsPage';
 import ReportPage from '@/pages/owner/ReportPage';
 import ClosingListPage from '@/pages/owner/closing/ClosingListPage';
 import StockAdjustmentPage from '@/pages/owner/stock/StockAdjustmentPage';
@@ -87,7 +88,8 @@ export function AppRoutes() {
           <Route path="categories" element={<CategoryListPage />} />
           <Route path="units" element={<UnitListPage />} />
           <Route path="prices" element={<PriceListPage isOwnerView={true} />} />
-          <Route path="unregistered-products" element={<UnregisteredPriceListPage />} />
+          <Route path="product-submissions" element={<OwnerProductSubmissionsPage />} />
+          <Route path="unregistered-products" element={<OwnerProductSubmissionsPage />} />
 
           {/* Tahap 4-8 */}
           <Route path="transactions" element={<TransactionListPage />} />

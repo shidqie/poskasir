@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
-import { Barcode, Plus, Search, HelpCircle } from 'lucide-react';
+import { Barcode, Send, Search, HelpCircle } from 'lucide-react';
 
 export function BarcodeNotFoundModal({
   isOpen,
@@ -15,7 +15,7 @@ export function BarcodeNotFoundModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Barang Belum Terdaftar"
-      subtitle="Barcode produk belum terdaftar di Master Produk maupun Catatan Harga Sementara"
+      subtitle="Barcode produk belum terdaftar di Data Barang resmi toko"
     >
       <div className="space-y-4 text-center">
         {/* Icon & Barcode Box */}
@@ -28,7 +28,7 @@ export function BarcodeNotFoundModal({
         </div>
 
         <p className="text-xs sm:text-sm text-slate-600 max-w-sm mx-auto">
-          Anda dapat langsung mencatat nama & harga barang ini agar dapat dimasukkan ke transaksi sekarang.
+          Barang belum terdaftar. Anda dapat mengajukan barang baru ini agar dapat direview & disetujui oleh Pemilik.
         </p>
 
         {/* Action Buttons */}
@@ -36,20 +36,20 @@ export function BarcodeNotFoundModal({
           <Button
             type="button"
             variant="primary"
-            className="w-full justify-center font-bold"
-            icon={Plus}
+            className="w-full justify-center font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md"
+            icon={Send}
             onClick={() => {
               onClose();
               if (onAddTemporaryPrice) onAddTemporaryPrice(scannedBarcode);
             }}
           >
-            Catat Harga Barang Ini
+            Ajukan Barang Baru ke Pemilik
           </Button>
 
           <Button
             type="button"
             variant="outline"
-            className="w-full justify-center"
+            className="w-full justify-center rounded-xl"
             icon={Search}
             onClick={() => {
               onClose();
