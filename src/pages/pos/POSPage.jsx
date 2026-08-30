@@ -229,9 +229,9 @@ export function POSPage() {
   const isSessionOpen = activeSession && activeSession.status === 'open';
 
   // =========================================================================
-  // VIEW: KASIR TERKUNCI (BELUM BUKA KASIR)
+  // VIEW: KASIR TERKUNCI (BELUM BUKA KASIR ATAU SESI SUDAH DITUTUP)
   // =========================================================================
-  if (!isSessionLoading && !isSessionOpen && role !== 'owner') {
+  if (!isSessionLoading && !isSessionOpen) {
     return (
       <div className="flex flex-col h-[calc(100vh-60px)] md:h-screen bg-slate-100 items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">

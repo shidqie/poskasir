@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { productSubmissionService } from '@/services/productSubmissionService';
+import { cashierSessionService } from '@/services/cashierSessionService';
 import {
   LayoutDashboard,
   Package,
@@ -44,6 +45,15 @@ export function OwnerLayout() {
     refetchInterval: 10000,
   });
 
+  // Query sesi kasir aktif
+  const { data: activeSession } = useQuery({
+    queryKey: ['active-cashier-session', profile?.id],
+    queryFn: () => cashierSessionService.getActiveSession(profile?.id),
+    refetchInterval: 10000,
+  });
+
+  const isSessionOpen = activeSession && activeSession.status === 'open';
+
   // Nav Groups Structure with Sub-menus
   const navSections = [
     {
@@ -58,9 +68,19 @@ export function OwnerLayout() {
       label: 'Transaksi & Kasir',
       icon: Store,
       children: [
-        { label: 'Terminal Kasir / POS', to: '/owner/pos' },
+        {
+          label: 'Terminal Kasir / POS',
+          to: '/owner/pos',
+          badge: isSessionOpen ? 'Buka' : 'Terkunci',
+          badgeColor: isSessionOpen ? 'bg-emerald-500 text-white' : 'bg-rose-500/80 text-white',
+        },
         { label: 'Riwayat Transaksi', to: '/owner/transactions' },
-        { label: 'Sesi Kasir & Closing', to: '/owner/closings' },
+        {
+          label: isSessionOpen ? 'Tutup Kasir (Shift)' : 'Buka Kasir',
+          to: '/owner/closings',
+          badge: isSessionOpen ? 'Aktif' : 'Buka',
+          badgeColor: isSessionOpen ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white',
+        },
       ],
     },
     {
