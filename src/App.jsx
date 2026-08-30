@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { AppRoutes } from '@/routes/AppRoutes';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 // Inisialisasi QueryClient untuk TanStack Query
 const queryClient = new QueryClient({
@@ -24,11 +25,13 @@ export function App() {
   }, [initializeAuth]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

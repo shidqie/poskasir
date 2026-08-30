@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatRupiah } from '@/utils/formatters';
-import { generateEMVCoQRIS, convertStaticToDynamic, crc16 } from '@/utils/qrisHelper';
+import {
+  generateEMVCoQRIS,
+  convertStaticToDynamic,
+  crc16,
+  WARUNG_GARINUL_STATIC_QRIS,
+  MIN_QRIS_AMOUNT,
+} from '@/utils/qrisHelper';
 import {
   QrCode,
   Sparkles,
@@ -36,22 +42,16 @@ export function QRISDisplay({
   const [showConfig, setShowConfig] = useState(false);
   const [inputCustomQRIS, setInputCustomQRIS] = useState(customStaticQRIS);
 
-  // Generate payload
-  const currentQRISPayload = useMemo(() => {
-    if (customStaticQRIS.trim()) {
-      if (qrisMode === 'dynamic') {
-        return convertStaticToDynamic(customStaticQRIS, totalAmount);
-      }
-      return customStaticQRIS.trim();
-    }
+  const isBelowMinAmount = Number(totalAmount || 0) < MIN_QRIS_AMOUNT;
 
-    return generateEMVCoQRIS({
-      nmid,
-      merchantName,
-      merchantCity: 'PACET',
-      amount: qrisMode === 'dynamic' ? totalAmount : null,
-    });
-  }, [customStaticQRIS, qrisMode, totalAmount, nmid, merchantName]);
+  // Generate payload menggunakan base QRIS resmi Warung Garinul
+  const currentQRISPayload = useMemo(() => {
+    const baseStatic = customStaticQRIS.trim() || WARUNG_GARINUL_STATIC_QRIS;
+    if (qrisMode === 'dynamic') {
+      return convertStaticToDynamic(baseStatic, totalAmount);
+    }
+    return baseStatic;
+  }, [customStaticQRIS, qrisMode, totalAmount]);
 
   // Countdown timer for dynamic QRIS
   useEffect(() => {
@@ -263,6 +263,15 @@ export function QRISDisplay({
         </div>
 
         {/* Dynamic vs Static Helper Info */}
+        {isBelowMinAmount && (
+          <div className="w-full p-2.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2 text-left animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] leading-relaxed">
+              <strong>Ketentuan Warung Garinul:</strong> Minimal transaksi QRIS adalah <strong>{formatRupiah(MIN_QRIS_AMOUNT)}</strong>.
+            </p>
+          </div>
+        )}
+
         {qrisMode === 'dynamic' ? (
           <div className="w-full space-y-2">
             <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between">

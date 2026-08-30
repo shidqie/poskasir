@@ -68,7 +68,7 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
   if (paymentMethod === 'cash') {
     canPay = received >= total;
   } else if (paymentMethod === 'qris') {
-    canPay = true;
+    canPay = total >= MIN_QRIS_AMOUNT;
   } else if (paymentMethod === 'debt') {
     canPay = Boolean(selectedCustomerId);
   }
@@ -298,6 +298,27 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
           {/* ========================================================================= */}
           {paymentMethod === 'qris' && (
             <div className="space-y-3 pt-1">
+              {total < MIN_QRIS_AMOUNT && (
+                <div className="p-3.5 bg-rose-50 border-2 border-rose-200 rounded-2xl text-xs text-rose-900 space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 text-rose-700 font-bold">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>Minimal Transaksi QRIS adalah {formatRupiah(MIN_QRIS_AMOUNT)}</span>
+                  </div>
+                  <p className="text-[11px] text-rose-700 leading-relaxed">
+                    Sesuai aturan toko Warung Garinul, pembayaran digital QRIS hanya berlaku untuk transaksi minimal <strong>{formatRupiah(MIN_QRIS_AMOUNT)}</strong>. Total belanja saat ini adalah <strong>{formatRupiah(total)}</strong>.
+                  </p>
+                  <div className="pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cash')}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer"
+                    >
+                      Ganti ke Pembayaran Tunai
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="p-3 bg-red-50/60 border border-red-200/90 rounded-2xl flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-red-500 font-bold uppercase block">
@@ -468,10 +489,17 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
                   <span>Simpan sebagai Hutang</span>
                 </>
               ) : paymentMethod === 'qris' ? (
-                <>
-                  <CheckCircle2 size={18} />
-                  <span>Konfirmasi Pembayaran QRIS</span>
-                </>
+                total < MIN_QRIS_AMOUNT ? (
+                  <>
+                    <AlertCircle size={18} />
+                    <span>Min. QRIS {formatRupiah(MIN_QRIS_AMOUNT)} (Total {formatRupiah(total)})</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} />
+                    <span>Konfirmasi Pembayaran QRIS</span>
+                  </>
+                )
               ) : (
                 <>
                   <CheckCircle2 size={18} />

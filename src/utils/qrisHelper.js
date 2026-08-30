@@ -3,6 +3,11 @@
  * Standar QR Code Indonesian Standard (QRIS) Bank Indonesia / ASPI
  */
 
+export const WARUNG_GARINUL_STATIC_QRIS =
+  '00020101021126610014COM.GO-JEK.WWW01189360091432845408950210G2845408950303UMI51440014ID.CO.QRIS.WWW0215ID10254149086530303UMI5204549953033605802ID5921Warung Garinul, PACET6007CIANJUR61054325362070703A016304A676';
+
+export const MIN_QRIS_AMOUNT = 10000; // Minimal transaksi QRIS: Rp 10.000 (10k)
+
 /**
  * CRC-16 / CCITT-FALSE (0x1021, init 0xFFFF)
  */
@@ -32,47 +37,80 @@ export function formatTLV(tag, value) {
 }
 
 /**
- * Konversi Static QRIS Payload menjadi Dynamic QRIS dengan Nominal Tersemat
- * Serta menghitung ulang CRC16
+ * Parse top-level TLV tags dari string payload EMVCo QRIS
  */
-export function convertStaticToDynamic(staticPayload, amount) {
-  if (!staticPayload || !amount) return staticPayload;
+export function parseEMVCo(payload) {
+  const tags = {};
+  if (!payload) return tags;
 
-  let clean = staticPayload.trim();
-
-  // Jika string memiliki CRC (6304XXXX) di belakang, hapus 4 karakter CRC
+  let clean = payload.trim();
   if (clean.includes('6304')) {
     clean = clean.substring(0, clean.lastIndexOf('6304'));
   }
 
-  // Ganti Point of Initiation Method dari 11 (Static) ke 12 (Dynamic)
-  // Tag 01: 010211 -> 010212
-  if (clean.includes('010211')) {
-    clean = clean.replace('010211', '010212');
+  let i = 0;
+  while (i < clean.length) {
+    if (i + 4 > clean.length) break;
+    const tag = clean.substring(i, i + 2);
+    const len = parseInt(clean.substring(i + 2, i + 4), 10);
+    if (isNaN(len)) break;
+    const val = clean.substring(i + 4, i + 4 + len);
+    tags[tag] = val;
+    i += 4 + len;
+  }
+  return tags;
+}
+
+/**
+ * Konversi Static QRIS Payload menjadi Dynamic QRIS dengan Nominal Tersemat
+ * Standar EMVCo TLV parsing & rekonstruksi ulang dengan CRC16 yang valid
+ */
+export function convertStaticToDynamic(staticPayload = WARUNG_GARINUL_STATIC_QRIS, amount = null) {
+  const base = (staticPayload && staticPayload.trim()) || WARUNG_GARINUL_STATIC_QRIS;
+  const tags = parseEMVCo(base);
+
+  // Jika ada nominal, ubah menjadi Dynamic (Tag 01 = 12) dan isi Tag 54
+  const numericAmount = Math.round(Number(amount) || 0);
+  if (numericAmount > 0) {
+    tags['01'] = '12'; // Dynamic QRIS
+    tags['54'] = String(numericAmount); // Transaction Amount
+  } else {
+    tags['01'] = '11'; // Static QRIS
+    delete tags['54'];
   }
 
-  // Format Tag 54 (Transaction Amount)
-  const amountStr = String(Math.round(Number(amount)));
-  const tag54 = formatTLV('54', amountStr);
+  // Urutan standar EMVCo tags
+  const standardOrder = [
+    '00', '01', '26', '27', '28', '29', '30', '31', '32', '33',
+    '34', '35', '36', '37', '38', '39', '40', '41', '42', '43',
+    '44', '45', '46', '47', '48', '49', '50', '51', '52', '53',
+    '54', '55', '56', '57', '58', '59', '60', '61', '62'
+  ];
 
-  // Jika tag 54 sudah ada, ganti dengan nominal baru
-  const tag54Regex = /54\d{2}\d+/;
-  if (tag54Regex.test(clean)) {
-    clean = clean.replace(tag54Regex, tag54);
-  } else {
-    // Sisipkan Tag 54 sebelum Tag 58 (Country Code '5802ID')
-    if (clean.includes('5802ID') || clean.includes('5802id')) {
-      clean = clean.replace('5802ID', `${tag54}5802ID`);
-    } else {
-      clean = clean + tag54;
+  let raw = '';
+  // Susun tag sesuai urutan standar
+  for (const t of standardOrder) {
+    if (tags[t] !== undefined) {
+      const v = tags[t];
+      const len = String(v.length).padStart(2, '0');
+      raw += `${t}${len}${v}`;
     }
   }
 
-  // Tambahkan tag 6304 dan hitung CRC16 baru
-  clean = clean + '6304';
-  const checksum = crc16(clean);
+  // Tambahkan tag lainnya jika ada
+  for (const t of Object.keys(tags)) {
+    if (!standardOrder.includes(t)) {
+      const v = tags[t];
+      const len = String(v.length).padStart(2, '0');
+      raw += `${t}${len}${v}`;
+    }
+  }
 
-  return clean + checksum;
+  // Hitung ulang CRC16
+  raw += '6304';
+  const checksum = crc16(raw);
+
+  return raw + checksum;
 }
 
 /**
@@ -81,37 +119,20 @@ export function convertStaticToDynamic(staticPayload, amount) {
 export function generateEMVCoQRIS({
   nmid = 'ID1025414908653',
   merchantName = 'WARUNG GARINUL, PACET',
-  merchantCity = 'PACET',
+  merchantCity = 'CIANJUR',
   amount = null,
-  acquirerId = '936009140000000000',
-  merchantCriteria = 'A01',
+  acquirerId = '936009143284540895',
+  merchantCriteria = 'UMI',
 }) {
-  // Sub-tags untuk Tag 26 (Merchant Account Information)
-  const sub00 = formatTLV('00', 'ID.CO.QRIS.WWW');
-  const sub01 = formatTLV('01', acquirerId);
-  const sub02 = formatTLV('02', nmid);
-  const sub03 = formatTLV('03', merchantCriteria);
-  const tag26 = formatTLV('26', sub00 + sub01 + sub02 + sub03);
-
-  let raw = '';
-  raw += formatTLV('00', '01'); // 00: Format Indicator (01)
-  raw += formatTLV('01', amount && Number(amount) > 0 ? '12' : '11'); // 01: 11 = Static, 12 = Dynamic
-  raw += tag26; // 26: Merchant Account Information
-  raw += formatTLV('51', formatTLV('00', 'ID.CO.QRIS.WWW') + formatTLV('02', nmid)); // 51: National Merchant ID
-  raw += formatTLV('52', '5411'); // 52: MCC (5411 = Grocery / Supermarket)
-  raw += formatTLV('53', '360'); // 53: Currency (360 = IDR)
-
-  if (amount && Number(amount) > 0) {
-    raw += formatTLV('54', String(Math.round(Number(amount)))); // 54: Amount
-  }
-
-  raw += formatTLV('58', 'ID'); // 58: Country (ID)
-  raw += formatTLV('59', merchantName.substring(0, 25)); // 59: Merchant Name
-  raw += formatTLV('60', merchantCity.substring(0, 15)); // 60: City
-
-  // Tag 63: CRC placeholder
-  raw += '6304';
-  const checksum = crc16(raw);
-
-  return raw + checksum;
+  return convertStaticToDynamic(WARUNG_GARINUL_STATIC_QRIS, amount);
 }
+
+export default {
+  WARUNG_GARINUL_STATIC_QRIS,
+  MIN_QRIS_AMOUNT,
+  crc16,
+  formatTLV,
+  parseEMVCo,
+  convertStaticToDynamic,
+  generateEMVCoQRIS,
+};
