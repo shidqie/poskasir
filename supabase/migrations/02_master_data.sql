@@ -226,13 +226,19 @@ USING (true);
 DROP POLICY IF EXISTS "Unregistered prices can be created by authenticated users" ON public.unregistered_prices;
 CREATE POLICY "Unregistered prices can be created by authenticated users"
 ON public.unregistered_prices FOR INSERT TO authenticated
-WITH CHECK (auth.uid() IS NOT NULL);
+WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Unregistered prices can be updated by owner" ON public.unregistered_prices;
-CREATE POLICY "Unregistered prices can be updated by owner"
+DROP POLICY IF EXISTS "Unregistered prices can be updated by authenticated users" ON public.unregistered_prices;
+CREATE POLICY "Unregistered prices can be updated by authenticated users"
 ON public.unregistered_prices FOR UPDATE TO authenticated
-USING (public.is_owner())
-WITH CHECK (public.is_owner());
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Unregistered prices can be deleted by owner" ON public.unregistered_prices;
+CREATE POLICY "Unregistered prices can be deleted by owner"
+ON public.unregistered_prices FOR DELETE TO authenticated
+USING (public.is_owner());
 
 -- ==============================================================================
 -- 9. SEED DATA AWAL (KATEGORI, SATUAN, & PRODUK SAMPLE)
