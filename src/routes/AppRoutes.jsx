@@ -100,6 +100,7 @@ export function AppRoutes() {
           <Route path="transactions" element={<TransactionListPage />} />
           <Route path="reports" element={<ReportPage />} />
           <Route path="closings" element={<ClosingListPage />} />
+          <Route path="closing" element={<ClosingPage />} />
           <Route path="sessions" element={<ClosingListPage />} />
           <Route path="stock-adjustment" element={<StockAdjustmentPage />} />
           <Route path="pos" element={<POSPage />} />

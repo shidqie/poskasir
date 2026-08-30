@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import {
   Camera,
@@ -6,6 +7,7 @@ import {
   ShieldCheck,
   UserCheck,
   DoorClosed,
+  DoorOpen,
   ArrowUpRight,
   ArrowDownLeft,
 } from 'lucide-react';
@@ -37,6 +39,7 @@ export function POSHeader({
   });
 
   const isOpen = activeSession && activeSession.status === 'open';
+  const closingUrl = role === 'owner' ? '/owner/closing' : '/closing';
 
   return (
     <header className="bg-white border-b border-slate-100 px-3 sm:px-5 py-2 shrink-0">
@@ -64,7 +67,7 @@ export function POSHeader({
                   onClick={onOpenCashier}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer shrink-0 transition-colors"
                 >
-                  <DoorClosed className="w-3 h-3 text-amber-700" />
+                  <DoorOpen className="w-3 h-3 text-amber-700" />
                   Buka Kasir
                 </button>
               )}
@@ -103,28 +106,53 @@ export function POSHeader({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {isOpen && onOpenCashMovement && (
+          {isOpen && (
             <>
-              <button
-                type="button"
-                onClick={() => onOpenCashMovement('cash_in')}
-                className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50/50 text-xs font-semibold transition-colors cursor-pointer"
-                title="Catat Uang Masuk ke Kas"
-              >
-                <ArrowDownLeft size={12} className="text-emerald-600" />
-                <span>+ Kas Masuk</span>
-              </button>
+              {onOpenCashMovement && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onOpenCashMovement('cash_in')}
+                    className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50/50 text-xs font-semibold transition-colors cursor-pointer"
+                    title="Catat Uang Masuk ke Kas"
+                  >
+                    <ArrowDownLeft size={12} className="text-emerald-600" />
+                    <span>+ Kas</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => onOpenCashMovement('cash_out')}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50/50 text-xs font-semibold transition-colors cursor-pointer"
-                title="Ambil Uang dari Laci Kas"
+                  <button
+                    type="button"
+                    onClick={() => onOpenCashMovement('cash_out')}
+                    className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50/50 text-xs font-semibold transition-colors cursor-pointer"
+                    title="Ambil Uang dari Laci Kas"
+                  >
+                    <ArrowUpRight size={12} className="text-rose-600" />
+                    <span>Tarik Kas</span>
+                  </button>
+                </>
+              )}
+
+              {/* Tombol Tutup Kasir Langsung */}
+              <Link
+                to={closingUrl}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                title="Tutup Kasir & Rekapitulasi Shift"
               >
-                <ArrowUpRight size={12} className="text-rose-600" />
-                <span>Ambil Kas</span>
-              </button>
+                <DoorClosed className="w-3.5 h-3.5 text-slate-600" />
+                <span>Tutup Kasir</span>
+              </Link>
             </>
+          )}
+
+          {!isOpen && (
+            <button
+              type="button"
+              onClick={onOpenCashier}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            >
+              <DoorOpen className="w-3.5 h-3.5" />
+              <span>Buka Kasir</span>
+            </button>
           )}
 
           <button

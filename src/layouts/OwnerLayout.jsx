@@ -92,10 +92,15 @@ export function OwnerLayout() {
         },
         {
           label: isSessionOpen ? 'Tutup Kasir (Shift)' : 'Buka Kasir',
-          to: '/owner/closings',
+          to: '/owner/closing',
           icon: isSessionOpen ? DoorClosed : DoorOpen,
           badge: isSessionOpen ? 'Aktif' : null,
           badgeColor: 'bg-emerald-500 text-white',
+        },
+        {
+          label: 'Riwayat Sesi Kasir',
+          to: '/owner/closings',
+          icon: History,
         },
       ],
     },

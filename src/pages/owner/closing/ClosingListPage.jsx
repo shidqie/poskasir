@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { cashierSessionService } from '@/services/cashierSessionService';
 import { Card } from '@/components/common/Card';
@@ -51,32 +52,42 @@ export default function ClosingListPage() {
           </p>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="bg-slate-100 p-1 rounded-xl flex gap-1 text-xs font-semibold self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setViewMode('table')}
-            className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-              viewMode === 'table'
-                ? 'bg-slate-900 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            to="/owner/closing"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
-            <TableIcon size={14} />
-            <span>Tabel</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('cards')}
-            className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-              viewMode === 'cards'
-                ? 'bg-slate-900 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <LayoutGrid size={14} />
-            <span>Kartu</span>
-          </button>
+            <DoorClosed size={14} />
+            <span>Buka / Tutup Kasir</span>
+          </Link>
+
+          {/* View Mode Toggle */}
+          <div className="bg-slate-100 p-1 rounded-xl flex gap-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-slate-900 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <TableIcon size={14} />
+              <span>Tabel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-slate-900 text-white shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <LayoutGrid size={14} />
+              <span>Kartu</span>
+            </button>
+          </div>
         </div>
       </div>
 
