@@ -286,11 +286,16 @@ export function POSPage() {
     async (barcodeText) => {
       if (!barcodeText || !barcodeText.trim()) return;
       const clean = barcodeText.trim();
+      setIsScannerOpen(false);
 
       try {
         const result = await barcodeService.lookupBarcode(clean);
 
         if (result.found && result.data) {
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(40);
+          }
+
           // Jika produk memiliki banyak varian dan belum dipilih varian spesifik
           if (
             result.data.has_variants &&
@@ -304,13 +309,16 @@ export function POSPage() {
           } else {
             const addRes = addItem(result.data, 1);
             if (addRes?.success !== false) {
-              if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate(40);
-              }
               setToast({
                 isOpen: true,
                 message: `${result.data.displayName || result.data.name} dimasukkan ke keranjang.`,
                 type: 'success',
+              });
+            } else {
+              setToast({
+                isOpen: true,
+                message: addRes?.message || 'Stok tidak mencukupi untuk item ini.',
+                type: 'warning',
               });
             }
           }
@@ -321,6 +329,11 @@ export function POSPage() {
         }
       } catch (err) {
         console.error('[POSPage] Error handling barcode:', err);
+        setToast({
+          isOpen: true,
+          message: 'Terjadi kesalahan saat memproses barcode.',
+          type: 'danger',
+        });
       }
     },
     [addItem, handleOpenVariants, handleOpenSaleUnits]

@@ -350,7 +350,63 @@ export const barcodeService = {
       console.error('[barcodeService] Unreg lookup error:', e);
     }
 
-    // 6. Tidak ditemukan sama sekali
+    // 6. Fallback: Cek pencarian nama produk jika barcode / kode tidak ditemukan persis
+    try {
+      const { data: byName, error: nameErr } = await supabase
+        .from('products')
+        .select(`
+          id,
+          code,
+          barcode,
+          name,
+          selling_price,
+          stock,
+          minimum_stock,
+          status,
+          has_variants,
+          category:categories (id, name),
+          unit:units (id, name, symbol, allow_decimal),
+          product_variants:product_variants (
+            id,
+            variant_name,
+            code,
+            barcode,
+            selling_price,
+            stock,
+            minimum_stock,
+            status,
+            unit:units(id, name, symbol, allow_decimal)
+          )
+        `)
+        .ilike('name', `%${barcode}%`)
+        .eq('status', true)
+        .limit(1);
+
+      if (!nameErr && byName && byName.length > 0) {
+        const product = byName[0];
+        let displayName = product.name;
+
+        return {
+          found: true,
+          type: 'product',
+          data: {
+            ...product,
+            productId: product.id,
+            sourceType: 'product',
+            saleUnitId: null,
+            saleUnitName: null,
+            conversionQty: 1,
+            price: Number(product.selling_price || 0),
+            selling_price: Number(product.selling_price || 0),
+            displayName,
+          },
+        };
+      }
+    } catch (e) {
+      console.warn('[barcodeService] Name fallback lookup error:', e);
+    }
+
+    // 7. Tidak ditemukan sama sekali
     return {
       found: false,
       type: 'not_found',

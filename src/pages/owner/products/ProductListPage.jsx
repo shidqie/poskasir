@@ -26,7 +26,9 @@ import {
   ToggleRight,
   Barcode,
   Layers,
+  PackagePlus,
 } from 'lucide-react';
+import { QuickRestockModal } from '@/components/stock/QuickRestockModal';
 
 export function ProductListPage() {
   const navigate = useNavigate();
@@ -38,8 +40,9 @@ export function ProductListPage() {
   const [status, setStatus] = useState('all');
   const [stockFilter, setStockFilter] = useState('all');
 
-  // Confirmation & Toast State
+  // Confirmation & Toast & Restock State
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, product: null });
+  const [restockTarget, setRestockTarget] = useState({ product: null, variant: null });
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Query Kategori untuk dropdown filter
@@ -120,14 +123,25 @@ export function ProductListPage() {
           </div>
         </div>
 
-        <Button
-          onClick={() => navigate('/owner/products/new')}
-          variant="primary"
-          icon={Plus}
-          className="shrink-0"
-        >
-          Tambah Barang
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            onClick={() => navigate('/owner/stock-adjustment')}
+            variant="outline"
+            icon={PackagePlus}
+            className="shrink-0 font-bold border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 text-xs sm:text-sm py-2 sm:py-2.5 rounded-xl cursor-pointer"
+          >
+            + Restok / Penyesuaian
+          </Button>
+
+          <Button
+            onClick={() => navigate('/owner/products/new')}
+            variant="primary"
+            icon={Plus}
+            className="shrink-0 font-bold text-xs sm:text-sm py-2 sm:py-2.5 rounded-xl cursor-pointer"
+          >
+            Tambah Barang
+          </Button>
+        </div>
       </div>
 
       {/* Toolbar & Filter */}
@@ -330,6 +344,16 @@ export function ProductListPage() {
                       {/* Aksi */}
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Tombol Tambah Stok Cepat */}
+                          <button
+                            type="button"
+                            onClick={() => setRestockTarget({ product: p, variant: null })}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer"
+                            title="Tambah Stok Masuk"
+                          >
+                            <PackagePlus className="w-4 h-4" />
+                          </button>
+
                           <Link
                             to={`/owner/products/${p.id}`}
                             className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -369,6 +393,21 @@ export function ProductListPage() {
           </div>
         )}
       </Card>
+
+      {/* Modal Tambah Stok Cepat */}
+      <QuickRestockModal
+        isOpen={Boolean(restockTarget.product)}
+        onClose={() => setRestockTarget({ product: null, variant: null })}
+        product={restockTarget.product}
+        variant={restockTarget.variant}
+        onSuccess={({ newStock, added }) => {
+          setToast({
+            isOpen: true,
+            message: `Stok berhasil ditambah (+${added})! Total stok sekarang: ${newStock}`,
+            type: 'success',
+          });
+        }}
+      />
 
       {/* Confirmation Dialog */}
       <ConfirmDialog
