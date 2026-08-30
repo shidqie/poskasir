@@ -116,6 +116,8 @@
 | 21 | **Laporan Penjualan** | `src/pages/owner/ReportPage.jsx` | Analisis omzet, laba kotor, performa kasir, dan ekspor data CSV. |
 | 22 | **Manajemen Kasir** | `src/pages/owner/users/UserListPage.jsx` | Tambah kasir baru, reset kata sandi, dan saklar status akses. |
 | 23 | **Showcase Design System** | `src/pages/owner/components/UIComponentShowcasePage.jsx` | Halaman interaktif untuk memvalidasi dan menguji semua komponen UI. |
+| 24 | **Pustaka Varian Produk** | `src/components/variants/*` | Pustaka komponen reusable varian produk (Badge, Price, Table, Card, BarcodeField, Selector). |
+| 25 | **QRIS Dual Mode** | `src/components/pos/QRISDisplay.jsx` | Tampilan QRIS Dinamis (otomatis nominal) & QRIS Statis resmi Warung Garinul (NMID: ID1025414908653). |
 
 ---
 

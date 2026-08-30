@@ -21,6 +21,16 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { Pagination } from '@/components/common/Pagination';
 import { Tooltip } from '@/components/common/Tooltip';
 import { Toast } from '@/components/common/Toast';
+import { QRISDisplay } from '@/components/pos/QRISDisplay';
+import {
+  VariantBadge,
+  VariantPrice,
+  VariantStockBadge,
+  VariantTable,
+  VariantCard,
+  VariantBarcodeField,
+  VariantSelector,
+} from '@/components/variants';
 import { formatRupiah, formatTanggal } from '@/utils/formatters';
 import {
   Palette,
@@ -72,9 +82,10 @@ export function UIComponentShowcasePage() {
     { id: 'global', label: '1. Global / Umum', icon: Palette },
     { id: 'dashboard', label: '2. Dashboard Widgets', icon: BarChart3 },
     { id: 'master', label: '3. Data Master & Harga', icon: Layers },
-    { id: 'pos', label: '4. POS & Transaksi', icon: Store },
-    { id: 'closing', label: '5. Closing & Laporan', icon: Calculator },
-    { id: 'compliance', label: '6. Anti-Slop Audit', icon: ShieldCheck },
+    { id: 'variants', label: '4. Varian Produk & QRIS', icon: ShoppingBag },
+    { id: 'pos', label: '5. POS & Transaksi', icon: Store },
+    { id: 'closing', label: '6. Closing & Laporan', icon: Calculator },
+    { id: 'compliance', label: '7. Anti-Slop Audit', icon: ShieldCheck },
   ];
 
   const handleCopyCode = (text) => {
@@ -521,7 +532,164 @@ export function UIComponentShowcasePage() {
         </div>
       )}
 
-      {/* SECTION 4: POS & TRANSAKSI */}
+      {/* SECTION 4: VARIAN PRODUK & QRIS */}
+      {activeSection === 'variants' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Card 1: Variant Badges & Prices */}
+          <Card title="Komponen Indikator Varian (Variant Badge & Price)">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Variant Badges
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <VariantBadge count={4} />
+                  <VariantBadge name="Goreng Original" />
+                  <VariantBadge name="Rendang" />
+                  <VariantBadge name="Ayam Bawang" />
+                  <VariantBadge name="Soto Spesial" />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Variant Price Formats
+                </p>
+                <div className="flex flex-wrap items-center gap-4">
+                  <VariantPrice price={3500} unit="Bks" size="sm" />
+                  <VariantPrice minPrice={3500} isRange={true} unit="Pcs" size="md" />
+                  <VariantPrice minPrice={15000} isRange={true} unit="Kg" size="lg" />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 2: Interactive Variant Selector */}
+          <Card
+            title="Interactive Variant Selector (Pilih Varian di POS)"
+            subtitle="Bottom sheet & modal yang digunakan saat produk bervarian diklik di POS"
+          >
+            <div className="max-w-md mx-auto p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-sm">Indomie Rasa Nusantara</h4>
+                  <p className="text-xs text-slate-500">Pilih salah satu varian rasa</p>
+                </div>
+                <VariantBadge count={3} />
+              </div>
+
+              <VariantSelector
+                variants={[
+                  {
+                    id: 'var-1',
+                    variant_name: 'Goreng Original',
+                    code: 'VAR-0001',
+                    barcode: '8996001301057',
+                    selling_price: 3500,
+                    stock: 25,
+                    minimum_stock: 5,
+                    unit: { symbol: 'Bks' },
+                  },
+                  {
+                    id: 'var-2',
+                    variant_name: 'Rendang Spesial',
+                    code: 'VAR-0002',
+                    barcode: '8996001301064',
+                    selling_price: 3500,
+                    stock: 18,
+                    minimum_stock: 5,
+                    unit: { symbol: 'Bks' },
+                  },
+                  {
+                    id: 'var-3',
+                    variant_name: 'Ayam Bawang',
+                    code: 'VAR-0003',
+                    barcode: '8996001301071',
+                    selling_price: 3500,
+                    stock: 0,
+                    minimum_stock: 5,
+                    unit: { symbol: 'Bks' },
+                  },
+                ]}
+                onSelectVariant={(v) => {
+                  setToast({
+                    isOpen: true,
+                    message: `Varian "${v.variant_name}" dipilih (Rp ${v.selling_price.toLocaleString('id-ID')})`,
+                    type: 'success',
+                  });
+                }}
+              />
+            </div>
+          </Card>
+
+          {/* Card 3: Variant Table */}
+          <Card title="Tabel Master Varian Produk">
+            <VariantTable
+              variants={[
+                {
+                  id: 'v1',
+                  variant_name: 'Goreng Original',
+                  code: 'VAR-0001',
+                  barcode: '8996001301057',
+                  selling_price: 3500,
+                  stock: 25,
+                  minimum_stock: 5,
+                  status: true,
+                  unit: { symbol: 'Bks' },
+                },
+                {
+                  id: 'v2',
+                  variant_name: 'Rendang',
+                  code: 'VAR-0002',
+                  barcode: '8996001301064',
+                  selling_price: 3500,
+                  stock: 18,
+                  minimum_stock: 5,
+                  status: true,
+                  unit: { symbol: 'Bks' },
+                },
+                {
+                  id: 'v3',
+                  variant_name: 'Ayam Bawang',
+                  code: 'VAR-0003',
+                  barcode: '8996001301071',
+                  selling_price: 3500,
+                  stock: 30,
+                  minimum_stock: 5,
+                  status: true,
+                  unit: { symbol: 'Bks' },
+                },
+              ]}
+              onEditVariant={(v) => {
+                setToast({
+                  isOpen: true,
+                  message: `Aksi edit varian: ${v.variant_name}`,
+                  type: 'info',
+                });
+              }}
+              onViewPriceHistory={(v) => {
+                setToast({
+                  isOpen: true,
+                  message: `Lihat riwayat harga: ${v.variant_name}`,
+                  type: 'info',
+                });
+              }}
+            />
+          </Card>
+
+          {/* Card 4: QRIS Dual Mode */}
+          <Card
+            title="Komponen QRIS Dual Mode (Statis & Dinamis)"
+            subtitle="Terintegrasi dengan standee resmi WARUNG GARINUL, PACET (NMID: ID1025414908653)"
+          >
+            <div className="max-w-md mx-auto">
+              <QRISDisplay totalAmount={75000} />
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* SECTION 5: POS & TRANSAKSI */}
       {activeSection === 'pos' && (
         <div className="space-y-6 animate-fade-in">
           <Card title="Pratinjau Ringkasan Pembayaran & Keranjang">
