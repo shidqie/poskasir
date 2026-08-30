@@ -111,6 +111,31 @@ export const unitService = {
   async toggleUnitStatus(id, currentStatus) {
     return this.updateUnit(id, { status: !currentStatus });
   },
+
+  /**
+   * Hapus satuan dari database
+   */
+  async deleteUnit(id) {
+    // Cek apakah ada produk yang masih memakai satuan ini
+    const { count, error: countError } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('unit_id', id);
+
+    if (countError) console.warn('Check unit products usage warning:', countError);
+
+    if (count && count > 0) {
+      throw new Error(`Satuan tidak dapat dihapus karena masih digunakan oleh ${count} produk.`);
+    }
+
+    const { error } = await supabase
+      .from('units')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
 };
 
 export default unitService;

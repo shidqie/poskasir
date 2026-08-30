@@ -266,6 +266,50 @@ export const productSubmissionService = {
 
     return { isDuplicate: false, hasSimilar: false };
   },
+
+  /**
+   * Mengubah / Mengedit data pengajuan barang (dapat dilakukan oleh Pemilik)
+   */
+  async updateSubmission(id, {
+    name,
+    variant_name,
+    selling_price,
+    barcode,
+    category_id,
+    unit_id,
+    notes,
+  }) {
+    const updatePayload = {};
+    if (name !== undefined) updatePayload.name = name.trim();
+    if (variant_name !== undefined) updatePayload.variant_name = variant_name?.trim() || null;
+    if (selling_price !== undefined) updatePayload.selling_price = Number(selling_price) || 0;
+    if (barcode !== undefined) updatePayload.barcode = barcode?.trim() || null;
+    if (category_id !== undefined) updatePayload.category_id = category_id || null;
+    if (unit_id !== undefined) updatePayload.unit_id = unit_id || null;
+    if (notes !== undefined) updatePayload.notes = notes?.trim() || null;
+    updatePayload.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('product_submissions')
+      .update(updatePayload)
+      .eq('id', id)
+      .select(`
+        *,
+        submitter:profiles!submitted_by(id, full_name, role),
+        reviewer:profiles!reviewed_by(id, full_name, role),
+        parent_product:products!parent_product_id(id, name, code),
+        approved_product:products!approved_product_id(id, name, code),
+        unit:units!unit_id(id, name, symbol),
+        category:categories!category_id(id, name)
+      `)
+      .single();
+
+    if (error) {
+      console.error('[productSubmissionService] updateSubmission error:', error);
+      throw error;
+    }
+    return data;
+  },
 };
 
 export default productSubmissionService;

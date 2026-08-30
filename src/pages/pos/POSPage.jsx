@@ -22,6 +22,7 @@ import PaymentModal from '@/components/pos/PaymentModal';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
 import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissionModal';
 import { OpenCashierModal } from '@/components/cashier/OpenCashierModal';
+import { CashMovementModal } from '@/components/cashier/CashMovementModal';
 import { Toast } from '@/components/common/Toast';
 import { Button } from '@/components/common/Button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -46,6 +47,10 @@ export function POSPage() {
   const [variantModalProduct, setVariantModalProduct] = useState(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [isOpenCashierOpen, setIsOpenCashierOpen] = useState(false);
+  const [cashMovementModalState, setCashMovementModalState] = useState({
+    isOpen: false,
+    type: 'cash_out',
+  });
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Cart Zustand Store
@@ -100,7 +105,7 @@ export function POSPage() {
 
   // Mutation Checkout via RPC process_sale
   const checkoutMutation = useMutation({
-    mutationFn: ({ paymentAmount, paymentMethod, idempotencyKey }) =>
+    mutationFn: ({ paymentAmount, paymentMethod, customerId, idempotencyKey }) =>
       transactionService.processSale({
         items: items.map((item) => ({
           sourceType: item.sourceType || 'product',
@@ -114,6 +119,7 @@ export function POSPage() {
         })),
         paymentAmount,
         paymentMethod,
+        customerId,
         idempotencyKey,
       }),
     onSuccess: (data) => {
@@ -122,6 +128,8 @@ export function POSPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['active-cashier-session'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-with-debt'] });
+      queryClient.invalidateQueries({ queryKey: ['debt-global-summary'] });
 
       setIsPaymentOpen(false);
       setLastTransaction(data);
@@ -142,9 +150,9 @@ export function POSPage() {
   }, [items.length]);
 
   const handleConfirmPayment = useCallback(
-    ({ paymentMethod, paymentAmount }) => {
+    ({ paymentMethod, paymentAmount, customerId }) => {
       const idempotencyKey = uuidv4();
-      checkoutMutation.mutate({ paymentAmount, paymentMethod, idempotencyKey });
+      checkoutMutation.mutate({ paymentAmount, paymentMethod, customerId, idempotencyKey });
     },
     [checkoutMutation]
   );
@@ -305,6 +313,12 @@ export function POSPage() {
         onOpenScanner={() => setIsScannerOpen(true)}
         activeSession={activeSession}
         onOpenCashier={() => setIsOpenCashierOpen(true)}
+        onOpenCashMovement={(type) =>
+          setCashMovementModalState({
+            isOpen: true,
+            type: type || 'cash_out',
+          })
+        }
       />
 
       {/* Main Layout 2 Kolom (Desktop) / 1 Kolom (Mobile) */}
@@ -467,6 +481,28 @@ export function POSPage() {
         transaction={lastTransaction}
         onNewTransaction={handleNewTransaction}
       />
+
+      {/* Modal Ambil Uang / Kas Masuk */}
+      {cashMovementModalState.isOpen && activeSession && (
+        <CashMovementModal
+          isOpen={cashMovementModalState.isOpen}
+          onClose={() => setCashMovementModalState({ ...cashMovementModalState, isOpen: false })}
+          sessionId={activeSession.id}
+          currentAvailableCash={activeSession.expected_cash || activeSession.opening_cash}
+          defaultType={cashMovementModalState.type}
+          onSuccess={() => {
+            refetchSession();
+            setToast({
+              isOpen: true,
+              message:
+                cashMovementModalState.type === 'cash_out'
+                  ? 'Pengambilan uang (kas keluar) berhasil dicatat!'
+                  : 'Kas masuk berhasil dicatat!',
+              type: 'success',
+            });
+          }}
+        />
+      )}
 
       {/* Toast Feedback */}
       <Toast

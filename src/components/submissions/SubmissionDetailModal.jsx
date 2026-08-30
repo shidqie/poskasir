@@ -14,6 +14,7 @@ import {
   FileText,
   AlertCircle,
   Tag,
+  Pencil,
 } from 'lucide-react';
 
 export function SubmissionDetailModal({
@@ -23,6 +24,7 @@ export function SubmissionDetailModal({
   isOwner = false,
   onApproveClick,
   onRejectClick,
+  onEditClick,
 }) {
   if (!submission) return null;
 
@@ -147,7 +149,19 @@ export function SubmissionDetailModal({
 
         {/* Owner Action Buttons (If pending and isOwner) */}
         {isOwner && isPending && (
-          <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              icon={Pencil}
+              onClick={() => {
+                onClose();
+                if (onEditClick) onEditClick(submission);
+              }}
+              className="py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 border-slate-200 rounded-xl"
+            >
+              Ubah Data
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -156,9 +170,9 @@ export function SubmissionDetailModal({
                 onClose();
                 if (onRejectClick) onRejectClick(submission);
               }}
-              className="py-3 text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 rounded-xl"
+              className="py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 rounded-xl"
             >
-              Tolak Pengajuan
+              Tolak
             </Button>
             <Button
               type="button"
@@ -168,9 +182,9 @@ export function SubmissionDetailModal({
                 onClose();
                 if (onApproveClick) onApproveClick(submission);
               }}
-              className="py-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25 rounded-xl"
+              className="py-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25 rounded-xl"
             >
-              Setujui & Daftarkan
+              Setujui
             </Button>
           </div>
         )}

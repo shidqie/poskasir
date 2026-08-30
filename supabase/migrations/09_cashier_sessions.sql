@@ -462,5 +462,9 @@ BEGIN
 END;
 $$;
 
+-- 7. Grant Permissions
+GRANT EXECUTE ON FUNCTION public.open_cashier_session TO authenticated;
+GRANT EXECUTE ON FUNCTION public.close_cashier_session TO authenticated;
+
 -- 8. Reload schema cache
 NOTIFY pgrst, 'reload schema';

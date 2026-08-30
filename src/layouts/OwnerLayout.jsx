@@ -75,6 +75,8 @@ export function OwnerLayout() {
           badgeColor: isSessionOpen ? 'bg-emerald-500 text-white' : 'bg-rose-500/80 text-white',
         },
         { label: 'Riwayat Transaksi', to: '/owner/transactions' },
+        { label: 'Hutang Pelanggan', to: '/owner/debts' },
+        { label: 'Kas Keluar & Masuk', to: '/owner/cash-movements' },
         {
           label: isSessionOpen ? 'Tutup Kasir (Shift)' : 'Buka Kasir',
           to: '/owner/closings',
@@ -185,8 +187,8 @@ export function OwnerLayout() {
           }`}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-600/30 shrink-0">
-              <Store className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-red-600/30 shrink-0 bg-white p-0.5 border border-slate-800">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0 truncate">
@@ -422,8 +424,8 @@ export function OwnerLayout() {
       {/* Topbar Mobile */}
       <header className="md:hidden bg-slate-950 text-white border-b border-slate-900 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-md">
-            <Store className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md shrink-0 bg-white p-0.5 border border-slate-800">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-extrabold text-sm leading-tight text-white">Kasir Sembako</h1>

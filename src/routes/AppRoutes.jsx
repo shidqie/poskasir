@@ -24,6 +24,7 @@ import ReportPage from '@/pages/owner/ReportPage';
 import ClosingListPage from '@/pages/owner/closing/ClosingListPage';
 import StockAdjustmentPage from '@/pages/owner/stock/StockAdjustmentPage';
 import UserListPage from '@/pages/owner/users/UserListPage';
+import { OwnerCashMovementsPage } from '@/pages/owner/cash-movements/OwnerCashMovementsPage';
 import { UIComponentShowcasePage } from '@/pages/owner/components/UIComponentShowcasePage';
 
 // Cashier & Shared Pages
@@ -37,6 +38,10 @@ import TransactionListPage from '@/pages/transactions/TransactionListPage';
 import TransactionDetailPage from '@/pages/transactions/TransactionDetailPage';
 import ReceiptPrintPage from '@/pages/transactions/ReceiptPrintPage';
 import ClosingPage from '@/pages/closing/ClosingPage';
+
+// Tahap 12 — Hutang Pelanggan
+import DebtListPage from '@/pages/debts/DebtListPage';
+import CustomerDebtDetailPage from '@/pages/debts/CustomerDebtDetailPage';
 
 function IndexRedirect() {
   const { user, profile, role, isInitialized, isLoading } = useAuthStore();
@@ -99,6 +104,13 @@ export function AppRoutes() {
           <Route path="stock-adjustment" element={<StockAdjustmentPage />} />
           <Route path="pos" element={<POSPage />} />
 
+          {/* Tahap 12 — Hutang Pelanggan */}
+          <Route path="debts" element={<DebtListPage />} />
+          <Route path="debts/:customerId" element={<CustomerDebtDetailPage />} />
+
+          {/* Tahap 13 — Kas Keluar & Masuk */}
+          <Route path="cash-movements" element={<OwnerCashMovementsPage />} />
+
           {/* Tahap 10 */}
           <Route path="users" element={<UserListPage />} />
 
@@ -120,6 +132,10 @@ export function AppRoutes() {
           {/* Tahap 6 */}
           <Route path="transactions" element={<TransactionListPage />} />
           <Route path="transactions/:id" element={<TransactionDetailPage />} />
+
+          {/* Tahap 12 — Hutang Pelanggan */}
+          <Route path="debts" element={<DebtListPage />} />
+          <Route path="debts/:customerId" element={<CustomerDebtDetailPage />} />
 
           {/* Tahap 8 */}
           <Route path="closing" element={<ClosingPage />} />

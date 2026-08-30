@@ -29,14 +29,23 @@ export const cashierSessionService = {
 
     if (!data) return null;
 
-    // Hitung penjualan real-time untuk sesi yang sedang berjalan
+    // Hitung penjualan, pembayaran hutang, serta kas masuk & keluar real-time
     const stats = await this.getSessionRealtimeStats(data.id, data.cashier_id, data.opened_at);
+
+    const openingCash = Number(data.opening_cash || 0);
+    const cashSales = Number(stats.cash_sales || 0);
+    const cashDebtPayments = Number(stats.cash_debt_payments || 0);
+    const cashIn = Number(stats.cash_in || 0);
+    const cashOut = Number(stats.cash_out || 0);
+
+    // Saldo Tunai Seharusnya = Saldo Awal + Penjualan Tunai + Setoran Tunai + Kas Masuk - Kas Keluar
+    const expectedCash = openingCash + cashSales + cashDebtPayments + cashIn - cashOut;
 
     return {
       ...data,
       ...stats,
-      expected_cash: Number(data.opening_cash || 0) + Number(stats.cash_sales || 0),
-      total_sales: Number(stats.cash_sales || 0) + Number(stats.qris_sales || 0),
+      expected_cash: expectedCash,
+      total_sales: cashSales + Number(stats.qris_sales || 0) + Number(stats.debt_sales || 0),
     };
   },
 
@@ -84,9 +93,10 @@ export const cashierSessionService = {
   },
 
   /**
-   * Mengambil statistik real-time transaksi pada sesi tertentu
+   * Mengambil statistik real-time transaksi, setoran hutang, dan kas masuk/keluar
    */
   async getSessionRealtimeStats(sessionId, cashierId = null, openedAt = null) {
+    // 1. Ambil transaksi penjualan
     let query = supabase
       .from('transactions')
       .select('total_amount, payment_method, status, transaction_date')
@@ -101,30 +111,81 @@ export const cashierSessionService = {
     const { data: txs = [], error } = await query;
     if (error) {
       console.warn('[cashierSessionService] getSessionRealtimeStats error:', error);
-      return {
-        cash_sales: 0,
-        qris_sales: 0,
-        total_sales: 0,
-        transaction_count: 0,
-        cash_tx_count: 0,
-        qris_tx_count: 0,
-      };
+    }
+
+    // 2. Ambil penerimaan pembayaran hutang pada sesi ini
+    let payQuery = supabase
+      .from('debt_payments')
+      .select('amount, payment_method, payment_date');
+
+    if (sessionId) {
+      payQuery = payQuery.eq('cashier_session_id', sessionId);
+    } else if (openedAt) {
+      payQuery = payQuery.gte('payment_date', openedAt);
+    }
+
+    const { data: payments = [], error: payErr } = await payQuery;
+    if (payErr) {
+      console.warn('[cashierSessionService] getSessionRealtimeStats payErr:', payErr);
+    }
+
+    // 3. Ambil pergerakan kas masuk & kas keluar pada sesi ini
+    let moveQuery = supabase
+      .from('cash_movements')
+      .select('amount, movement_type, created_at');
+
+    if (sessionId) {
+      moveQuery = moveQuery.eq('cashier_session_id', sessionId);
+    } else if (openedAt) {
+      moveQuery = moveQuery.gte('created_at', openedAt);
+    }
+
+    const { data: movements = [], error: moveErr } = await moveQuery;
+    if (moveErr) {
+      console.warn('[cashierSessionService] getSessionRealtimeStats moveErr:', moveErr);
     }
 
     const cashTxs = (txs || []).filter((t) => t.payment_method === 'cash');
     const qrisTxs = (txs || []).filter((t) => t.payment_method === 'qris' || t.payment_method === 'transfer');
+    const debtTxs = (txs || []).filter((t) => t.payment_method === 'debt');
 
     const cash_sales = cashTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
     const qris_sales = qrisTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
-    const total_sales = cash_sales + qris_sales;
+    const debt_sales = debtTxs.reduce((sum, t) => sum + Number(t.total_amount || 0), 0);
+    const total_sales = cash_sales + qris_sales + debt_sales;
+
+    const cashDebtPayments = (payments || [])
+      .filter((p) => p.payment_method === 'cash')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const qrisDebtPayments = (payments || [])
+      .filter((p) => p.payment_method === 'qris' || p.payment_method === 'transfer')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const total_debt_payments = cashDebtPayments + qrisDebtPayments;
+
+    const cash_in = (movements || [])
+      .filter((m) => m.movement_type === 'cash_in')
+      .reduce((sum, m) => sum + Number(m.amount || 0), 0);
+
+    const cash_out = (movements || [])
+      .filter((m) => m.movement_type === 'cash_out')
+      .reduce((sum, m) => sum + Number(m.amount || 0), 0);
 
     return {
       cash_sales,
       qris_sales,
+      debt_sales,
       total_sales,
+      cash_debt_payments: cashDebtPayments,
+      qris_debt_payments: qrisDebtPayments,
+      total_debt_payments,
+      cash_in,
+      cash_out,
       transaction_count: (txs || []).length,
       cash_tx_count: cashTxs.length,
       qris_tx_count: qrisTxs.length,
+      debt_tx_count: debtTxs.length,
     };
   },
 

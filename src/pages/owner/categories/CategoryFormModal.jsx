@@ -48,7 +48,7 @@ export function CategoryFormModal({
           id="category-name"
           name="name"
           label="Nama Kategori"
-          placeholder="Contoh: Sembako, Minuman, Bumbu..."
+          placeholder="Nama kategori..."
           required
           autoFocus
           value={name}

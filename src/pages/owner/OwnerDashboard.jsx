@@ -6,6 +6,7 @@ import { transactionService } from '@/services/transactionService';
 import { reportService } from '@/services/reportService';
 import { productService } from '@/services/productService';
 import { productSubmissionService } from '@/services/productSubmissionService';
+import { debtService } from '@/services/debtService';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { StatCard } from '@/components/common/StatCard';
@@ -20,7 +21,7 @@ import {
 import {
   TrendingUp, Receipt, ShoppingBag, Calculator, ShieldCheck,
   Calendar, ArrowRight, Trophy, Users, BarChart3, AlertTriangle, Inbox,
-  Banknote, QrCode, Wallet, DoorClosed
+  Banknote, QrCode, Wallet, DoorClosed, Coins
 } from 'lucide-react';
 import { formatTanggal, formatRupiah } from '@/utils/formatters';
 
@@ -68,6 +69,13 @@ export function OwnerDashboard() {
     queryKey: ['pending-submissions-count'],
     queryFn: () => productSubmissionService.getPendingCount(),
     refetchInterval: 10000,
+  });
+
+  // Query Ringkasan Piutang Toko
+  const { data: debtSummary = {}, isLoading: debtLoading } = useQuery({
+    queryKey: ['debt-global-summary'],
+    queryFn: () => debtService.getDebtGlobalSummary(),
+    refetchInterval: 1000 * 60,
   });
 
   return (
@@ -146,7 +154,7 @@ export function OwnerDashboard() {
         </Alert>
       )}
 
-      {/* 4 Stat Cards Matching Prompt Requirements Section 21 */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Pendapatan Hari Ini */}
         <StatCard
@@ -197,20 +205,22 @@ export function OwnerDashboard() {
           cardVariant="default"
         />
 
-        {/* Card 4: Jumlah Transaksi */}
-        <StatCard
-          title="JUMLAH TRANSAKSI"
-          value={
-            summaryLoading
-              ? '...'
-              : (todaySummary.transactionCount || 0).toLocaleString('id-ID')
-          }
-          subtitle="Nota selesai hari ini"
-          subtitleColor="text-slate-400 font-medium"
-          icon={Receipt}
-          iconVariant="dark"
-          cardVariant="default"
-        />
+        {/* Card 4: Total Piutang Toko */}
+        <Link to="/owner/debts" className="block group">
+          <StatCard
+            title="TOTAL PIUTANG TOKO"
+            value={
+              debtLoading
+                ? '...'
+                : formatRupiah(debtSummary.totalOutstandingDebt || 0)
+            }
+            subtitle={`${debtSummary.totalCustomersWithDebt || 0} Pelanggan Berhutang →`}
+            subtitleColor="text-amber-700 font-bold group-hover:underline"
+            icon={Coins}
+            iconVariant="dark"
+            cardVariant="default"
+          />
+        </Link>
       </div>
 
       {/* Chart + Top Products */}

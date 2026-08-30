@@ -25,6 +25,9 @@ const parseRaw = (v) => {
 export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
   const queryClient = useQueryClient();
 
+  const [name, setName] = useState('');
+  const [variantName, setVariantName] = useState('');
+  const [sellingPrice, setSellingPrice] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [unitId, setUnitId] = useState('');
   const [costPrice, setCostPrice] = useState('');
@@ -49,6 +52,9 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
   // Prefill from submission
   useEffect(() => {
     if (isOpen && submission) {
+      setName(submission.name || '');
+      setVariantName(submission.variant_name || '');
+      setSellingPrice(submission.selling_price ? String(submission.selling_price) : '');
       setBarcode(submission.barcode || '');
       setUnitId(submission.unit_id || (units.length > 0 ? units[0].id : ''));
       setCategoryId(submission.category_id || (categories.length > 0 ? categories[0].id : ''));
@@ -71,7 +77,7 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
       try {
         const res = await productSubmissionService.checkDuplicate({
           barcode,
-          name: submission?.name,
+          name: name || submission?.name,
         });
         if (res.isDuplicate) {
           setDuplicateWarning({
@@ -85,13 +91,30 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [barcode, submission]);
+  }, [barcode, name, submission]);
 
   const isVariant = submission?.submission_type === 'new_variant';
 
   const approveMutation = useMutation({
-    mutationFn: () =>
-      productSubmissionService.approveSubmission({
+    mutationFn: async () => {
+      // 1. Update nama / varian / harga jika diubah oleh owner
+      if (
+        name !== submission.name ||
+        variantName !== submission.variant_name ||
+        parseRaw(sellingPrice) !== submission.selling_price
+      ) {
+        await productSubmissionService.updateSubmission(submission.id, {
+          name,
+          variant_name: isVariant ? variantName : null,
+          selling_price: parseRaw(sellingPrice),
+          barcode,
+          category_id: categoryId || null,
+          unit_id: unitId || null,
+        });
+      }
+
+      // 2. Setujui secara resmi
+      return productSubmissionService.approveSubmission({
         submission_id: submission.id,
         category_id: categoryId || null,
         unit_id: unitId || null,
@@ -100,7 +123,8 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
         minimum_stock: parseRaw(minimumStock),
         has_variants: hasVariants,
         barcode: barcode || null,
-      }),
+      });
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['product-submissions'] });
       queryClient.invalidateQueries({ queryKey: ['pending-submissions-count'] });
@@ -148,45 +172,83 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
       subtitle="Lengkapi informasi master data sebelum barang resmi terdaftar di sistem POS"
     >
       <form onSubmit={handleApprove} className="space-y-4">
-        {/* Ringkasan Pengajuan Kasir Box */}
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
+        {/* Edit Info Dasar Barang */}
+        <div className="space-y-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-slate-500 uppercase tracking-wider">
-              {isVariant ? 'Pengajuan Varian Baru' : 'Pengajuan Produk Baru'}
+            <span className="text-xs font-bold text-slate-700">
+              Informasi Barang (Dapat Disesuaikan oleh Owner)
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
-              Menunggu Persetujuan
-            </span>
-          </div>
-
-          <div className="pt-1.5 flex justify-between items-baseline">
-            <h4 className="font-bold text-slate-900 text-sm">
-              {isVariant
-                ? `${submission.parent_product?.name || submission.name} — ${submission.variant_name}`
-                : submission.name}
-            </h4>
-            <span className="font-black text-red-600 font-mono text-base">
-              {formatRupiah(submission.selling_price)}
+            <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-500 font-bold text-[10px]">
+              {isVariant ? 'Varian Baru' : 'Produk Baru'}
             </span>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            Diajukan oleh: <strong className="text-slate-600">{submission.submitter?.full_name || 'Kasir'}</strong>
-            {submission.notes && <> &bull; Catatan: "{submission.notes}"</>}
-          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className={isVariant ? '' : 'sm:col-span-2'}>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Nama Barang <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nama barang..."
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold outline-none focus:border-red-500 text-slate-900"
+              />
+            </div>
+
+            {isVariant && (
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Nama Varian <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={variantName}
+                  onChange={(e) => setVariantName(e.target.value)}
+                  placeholder="Nama varian..."
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold outline-none focus:border-red-500 text-slate-900"
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">
+              Harga Jual Satuan (Rp) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                Rp
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                required
+                value={
+                  sellingPrice ? Number(sellingPrice.replace(/\D/g, '')).toLocaleString('id-ID') : ''
+                }
+                onChange={(e) => setSellingPrice(e.target.value.replace(/\D/g, ''))}
+                placeholder="0"
+                className="w-full pl-9 pr-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-black text-right outline-none focus:border-red-500 font-mono text-red-600"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Form Pelengkap Master Data */}
         {!isVariant && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
                 Kategori Barang <span className="text-red-500">*</span>
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:border-red-500 bg-white"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 cursor-pointer"
                 required
               >
                 <option value="">-- Pilih Kategori --</option>
@@ -199,13 +261,13 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
                 Satuan Barang <span className="text-red-500">*</span>
               </label>
               <select
                 value={unitId}
                 onChange={(e) => setUnitId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:border-red-500 bg-white"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 cursor-pointer"
                 required
               >
                 <option value="">-- Pilih Satuan --</option>

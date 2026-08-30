@@ -4,10 +4,10 @@ import { transactionService } from '@/services/transactionService';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { Alert } from '@/components/common/Alert';
 import { Button } from '@/components/common/Button';
-import { ArrowLeft, Printer, Package, Banknote, QrCode, CreditCard, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Printer, Package, Banknote, QrCode, CreditCard, CheckCircle2, BookOpen, User } from 'lucide-react';
 
-const METHOD_ICONS = { cash: Banknote, qris: QrCode, transfer: CreditCard };
-const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
+const METHOD_ICONS = { cash: Banknote, qris: QrCode, transfer: CreditCard, debt: BookOpen };
+const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer', debt: 'Hutang (Bon)' };
 
 function formatDate(dt) {
   return new Date(dt).toLocaleString('id-ID', {
@@ -87,7 +87,7 @@ export default function TransactionDetailPage() {
               <p className="text-xs text-slate-400">{formatDate(trx.transaction_date || trx.created_at)}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
             <div>
               <span className="text-slate-400">Kasir:</span>
               <p className="font-bold text-slate-800 mt-0.5">{trx.cashier?.full_name || 'Kasir'}</p>
@@ -99,6 +99,15 @@ export default function TransactionDetailPage() {
                 {METHOD_LABELS[trx.payment_method] || trx.payment_method}
               </div>
             </div>
+            {trx.customer && (
+              <div>
+                <span className="text-slate-400">Pelanggan:</span>
+                <p className="font-bold text-amber-900 mt-0.5 flex items-center gap-1">
+                  <User size={12} className="text-amber-700" />
+                  {trx.customer.name}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

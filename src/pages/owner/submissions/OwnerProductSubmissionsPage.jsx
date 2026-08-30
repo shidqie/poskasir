@@ -7,10 +7,12 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Toast } from '@/components/common/Toast';
+import { Pagination } from '@/components/common/Pagination';
 import { SubmissionStatusBadge } from '@/components/submissions/SubmissionStatusBadge';
 import { ApprovalModal } from '@/components/submissions/ApprovalModal';
 import { RejectionModal } from '@/components/submissions/RejectionModal';
 import { SubmissionDetailModal } from '@/components/submissions/SubmissionDetailModal';
+import { EditSubmissionModal } from '@/components/submissions/EditSubmissionModal';
 import {
   Inbox,
   Clock,
@@ -19,6 +21,7 @@ import {
   Search,
   Check,
   Eye,
+  Pencil,
   Barcode,
   Layers,
   Package,
@@ -34,10 +37,13 @@ const TABS = [
 export function OwnerProductSubmissionsPage() {
   const [activeTab, setActiveTab] = useState('pending');
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
   // Modals state
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [isRejectionOpen, setIsRejectionOpen] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
@@ -47,6 +53,15 @@ export function OwnerProductSubmissionsPage() {
     queryKey: ['product-submissions', { status: activeTab, search }],
     queryFn: () => productSubmissionService.getSubmissions({ status: activeTab, search }),
   });
+
+  // Reset current page when tab, search, or pageSize changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search, pageSize]);
+
+  const totalPages = Math.ceil(submissions.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedSubmissions = submissions.slice(startIndex, startIndex + pageSize);
 
   // Query pending count for badge
   const { data: pendingCount = 0 } = useQuery({
@@ -58,6 +73,11 @@ export function OwnerProductSubmissionsPage() {
   const handleOpenDetail = (sub) => {
     setSelectedSubmission(sub);
     setIsDetailOpen(true);
+  };
+
+  const handleOpenEdit = (sub) => {
+    setSelectedSubmission(sub);
+    setIsEditOpen(true);
   };
 
   const handleOpenApprove = (sub) => {
@@ -164,108 +184,160 @@ export function OwnerProductSubmissionsPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {submissions.map((sub) => {
-              const isVariant = sub.submission_type === 'new_variant';
-              const isPending = sub.status === 'pending';
+          <div className="space-y-6">
+            {/* Grid Kartu Pengajuan */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedSubmissions.map((sub) => {
+                const isVariant = sub.submission_type === 'new_variant';
+                const isPending = sub.status === 'pending';
 
-              return (
-                <div
-                  key={sub.id}
-                  className="p-4 sm:p-5 rounded-2xl border bg-white border-slate-200/90 hover:border-red-200 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
-                >
-                  <div className="space-y-2">
-                    {/* Header Card: Type & Status */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                          isVariant
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}
-                      >
-                        {isVariant ? <Layers size={11} /> : <Package size={11} />}
-                        <span>{isVariant ? 'Varian Baru' : 'Produk Baru'}</span>
-                      </span>
+                return (
+                  <div
+                    key={sub.id}
+                    className="p-4 sm:p-5 rounded-2xl border bg-white border-slate-200/90 hover:border-red-200 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-2">
+                      {/* Header Card: Type & Status */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                            isVariant
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}
+                        >
+                          {isVariant ? <Layers size={11} /> : <Package size={11} />}
+                          <span>{isVariant ? 'Varian Baru' : 'Produk Baru'}</span>
+                        </span>
 
-                      <SubmissionStatusBadge status={sub.status} />
-                    </div>
+                        <SubmissionStatusBadge status={sub.status} />
+                      </div>
 
-                    {/* Product Name */}
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900 line-clamp-2 leading-snug">
-                        {isVariant && sub.parent_product
-                          ? `${sub.parent_product.name} — ${sub.variant_name || sub.name}`
-                          : sub.name}
-                      </h3>
-                      {sub.barcode && (
-                        <p className="text-[11px] font-mono text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Barcode size={12} />
-                          <span>{sub.barcode}</span>
+                      {/* Product Name */}
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 line-clamp-2 leading-snug">
+                          {isVariant && sub.parent_product
+                            ? `${sub.parent_product.name} — ${sub.variant_name || sub.name}`
+                            : sub.name}
+                        </h3>
+                        {sub.barcode && (
+                          <p className="text-[11px] font-mono text-slate-400 flex items-center gap-1 mt-0.5">
+                            <Barcode size={12} />
+                            <span>{sub.barcode}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Price & Unit */}
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                        <span className="text-xs text-slate-500 font-medium">Harga Pengajuan:</span>
+                        <span className="text-base font-black text-red-600 font-mono">
+                          {formatRupiah(sub.selling_price)}
+                        </span>
+                      </div>
+
+                      {/* Metadata Submitter */}
+                      <div className="text-[11px] text-slate-400 space-y-0.5 pt-1">
+                        <p>
+                          Diajukan oleh: <strong className="text-slate-600">{sub.submitter?.full_name || 'Kasir'}</strong>
+                        </p>
+                        <p>{formatTanggalWaktu(sub.submitted_at)}</p>
+                      </div>
+
+                      {sub.rejection_reason && (
+                        <p className="text-xs text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-100 font-medium">
+                          Alasan Tolak: {sub.rejection_reason}
                         </p>
                       )}
                     </div>
 
-                    {/* Price & Unit */}
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                      <span className="text-xs text-slate-500 font-medium">Harga Pengajuan:</span>
-                      <span className="text-base font-black text-red-600 font-mono">
-                        {formatRupiah(sub.selling_price)}
-                      </span>
-                    </div>
+                    {/* Action Buttons */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        icon={Eye}
+                        onClick={() => handleOpenDetail(sub)}
+                        className="flex-1 py-2 text-xs font-bold rounded-xl"
+                      >
+                        Detail
+                      </Button>
 
-                    {/* Metadata Submitter */}
-                    <div className="text-[11px] text-slate-400 space-y-0.5 pt-1">
-                      <p>
-                        Diajukan oleh: <strong className="text-slate-600">{sub.submitter?.full_name || 'Kasir'}</strong>
-                      </p>
-                      <p>{formatTanggalWaktu(sub.submitted_at)}</p>
-                    </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        icon={Pencil}
+                        onClick={() => handleOpenEdit(sub)}
+                        className="py-2 px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 border-slate-200 rounded-xl"
+                        title="Ubah Data Pengajuan"
+                      >
+                        Ubah
+                      </Button>
 
-                    {sub.rejection_reason && (
-                      <p className="text-xs text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-100 font-medium">
-                        Alasan Tolak: {sub.rejection_reason}
-                      </p>
-                    )}
+                      {isPending && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            icon={XCircle}
+                            onClick={() => handleOpenReject(sub)}
+                            className="px-2.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 rounded-xl shrink-0"
+                            title="Tolak Pengajuan"
+                          />
+                          <Button
+                            type="button"
+                            variant="primary"
+                            icon={Check}
+                            onClick={() => handleOpenApprove(sub)}
+                            className="py-2 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-xl shrink-0"
+                          >
+                            Setujui
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Action Buttons */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      icon={Eye}
-                      onClick={() => handleOpenDetail(sub)}
-                      className="flex-1 py-2 text-xs font-bold rounded-xl"
+            {/* Pagination Controls */}
+            {submissions.length > 0 && (
+              <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 font-medium">
+                  <span>
+                    Menampilkan{' '}
+                    <strong className="text-slate-900 font-bold">
+                      {startIndex + 1} - {Math.min(startIndex + pageSize, submissions.length)}
+                    </strong>{' '}
+                    dari <strong className="text-slate-900 font-bold">{submissions.length}</strong> pengajuan
+                  </span>
+
+                  <span className="text-slate-300 hidden sm:inline">|</span>
+
+                  <div className="flex items-center gap-1.5">
+                    <span>Per halaman:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-red-500 cursor-pointer"
                     >
-                      Detail
-                    </Button>
-
-                    {isPending && (
-                      <>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          icon={XCircle}
-                          onClick={() => handleOpenReject(sub)}
-                          className="px-2.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 rounded-xl"
-                          title="Tolak Pengajuan"
-                        />
-                        <Button
-                          type="button"
-                          variant="primary"
-                          icon={Check}
-                          onClick={() => handleOpenApprove(sub)}
-                          className="py-2 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs rounded-xl"
-                        >
-                          Setujui
-                        </Button>
-                      </>
-                    )}
+                      <option value={12}>12</option>
+                      <option value={24}>24</option>
+                      <option value={48}>48</option>
+                      <option value={96}>96</option>
+                    </select>
                   </div>
                 </div>
-              );
-            })}
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  className="py-0 border-t-0"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -276,6 +348,10 @@ export function OwnerProductSubmissionsPage() {
         onClose={() => setIsDetailOpen(false)}
         submission={selectedSubmission}
         isOwner={true}
+        onEditClick={(sub) => {
+          setSelectedSubmission(sub);
+          setIsEditOpen(true);
+        }}
         onApproveClick={(sub) => {
           setSelectedSubmission(sub);
           setIsApprovalOpen(true);
@@ -283,6 +359,20 @@ export function OwnerProductSubmissionsPage() {
         onRejectClick={(sub) => {
           setSelectedSubmission(sub);
           setIsRejectionOpen(true);
+        }}
+      />
+
+      <EditSubmissionModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        submission={selectedSubmission}
+        onSuccess={() => {
+          setToast({
+            isOpen: true,
+            message: 'Data pengajuan barang berhasil diperbarui!',
+            type: 'success',
+          });
+          refetch();
         }}
       />
 

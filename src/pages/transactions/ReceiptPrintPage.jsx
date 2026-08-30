@@ -10,7 +10,7 @@ function formatDate(dt) {
   });
 }
 
-const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
+const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer', debt: 'HUTANG (BON)' };
 
 export default function ReceiptPrintPage() {
   const { id } = useParams();
@@ -40,6 +40,7 @@ export default function ReceiptPrintPage() {
   const total = Number(trx.total_amount);
   const paid = Number(trx.payment_amount);
   const change = Number(trx.change_amount);
+  const isDebt = trx.payment_method === 'debt';
 
   return (
     <>
@@ -58,8 +59,14 @@ export default function ReceiptPrintPage() {
       <div className="receipt no-receipt-shadow" style={{ fontSize: '11px', lineHeight: '1.5' }}>
         {/* Header Toko */}
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-          <div style={{ fontSize: '15px', fontWeight: 'bold' }}>KASIR SEMBAKO</div>
+          <img src="/logo.png" alt="Logo" style={{ width: '36px', height: '36px', margin: '0 auto 4px', display: 'block', objectFit: 'contain' }} />
+          <div style={{ fontSize: '15px', fontWeight: 'bold' }}>WARUNG GARINUL</div>
           <div style={{ fontSize: '10px', color: '#555' }}>Toko Sembako & Kebutuhan Harian</div>
+          {isDebt && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#b45309', marginTop: '2px' }}>
+              [ NOTA TRANSAKSI HUTANG ]
+            </div>
+          )}
         </div>
 
         <div className="dashed" />
@@ -74,13 +81,19 @@ export default function ReceiptPrintPage() {
             <span>Tanggal</span>
             <span>{formatDate(trx.transaction_date)}</span>
           </div>
+          {trx.customer?.name && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#111', fontWeight: 'bold' }}>
+              <span>Pelanggan</span>
+              <span>{trx.customer.name}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Kasir</span>
             <span>{trx.cashier?.full_name || '—'}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Metode</span>
-            <span>{METHOD_LABELS[trx.payment_method] || trx.payment_method}</span>
+            <span style={{ fontWeight: 'bold' }}>{METHOD_LABELS[trx.payment_method] || trx.payment_method}</span>
           </div>
         </div>
 
@@ -108,17 +121,26 @@ export default function ReceiptPrintPage() {
             <span>Rp{Number(trx.subtotal || trx.total_amount).toLocaleString('id-ID')}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', margin: '4px 0' }}>
-            <span>TOTAL</span>
-            <span>Rp{total.toLocaleString('id-ID')}</span>
+            <span>{isDebt ? 'TOTAL HUTANG' : 'TOTAL'}</span>
+            <span style={{ color: isDebt ? '#b45309' : '#111' }}>Rp{total.toLocaleString('id-ID')}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#444' }}>
-            <span>Bayar ({METHOD_LABELS[trx.payment_method] || ''})</span>
-            <span>Rp{paid.toLocaleString('id-ID')}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#16a34a' }}>
-            <span>Kembalian</span>
-            <span>Rp{change.toLocaleString('id-ID')}</span>
-          </div>
+
+          {!isDebt ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#444' }}>
+                <span>Bayar ({METHOD_LABELS[trx.payment_method] || ''})</span>
+                <span>Rp{paid.toLocaleString('id-ID')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#16a34a' }}>
+                <span>Kembalian</span>
+                <span>Rp{change.toLocaleString('id-ID')}</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', fontWeight: 'bold', color: '#b45309', margin: '6px 0', fontSize: '10px' }}>
+              *** TERCATAT KE BUKU PIUTANG ***
+            </div>
+          )}
         </div>
 
         <div className="dashed" />

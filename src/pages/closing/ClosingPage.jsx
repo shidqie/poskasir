@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { cashierSessionService } from '@/services/cashierSessionService';
+import { cashMovementService } from '@/services/cashMovementService';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Toast } from '@/components/common/Toast';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { CashierSessionStatusBadge } from '@/components/cashier/CashierSessionStatusBadge';
+import { CashMovementModal } from '@/components/cashier/CashMovementModal';
+import { CashMovementHistoryTable } from '@/components/cashier/CashMovementHistoryTable';
 import { Link } from 'react-router-dom';
 import {
   DoorOpen,
@@ -29,6 +32,9 @@ import {
   ShieldCheck,
   TrendingUp,
   Wallet,
+  BookOpen,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, formatWaktu, formatTanggalWaktu } from '@/utils/formatters';
 
@@ -49,6 +55,10 @@ export default function ClosingPage() {
   const [openingNotes, setOpeningNotes] = useState('');
   const [closingNotes, setClosingNotes] = useState('');
   const [closedSessionData, setClosedSessionData] = useState(null);
+  const [cashMovementModalState, setCashMovementModalState] = useState({
+    isOpen: false,
+    type: 'cash_out',
+  });
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
   const [showDenomCounter, setShowDenomCounter] = useState(false);
 
@@ -64,7 +74,7 @@ export default function ClosingPage() {
     coins: '',
   });
 
-  // Query Sesi Kasir Aktif
+  // 1. Query Sesi Kasir Aktif
   const {
     data: activeSession,
     isLoading: sessionLoading,
@@ -74,6 +84,14 @@ export default function ClosingPage() {
     queryFn: () => cashierSessionService.getActiveSession(user?.id),
     refetchInterval: 10000,
     enabled: !!user?.id,
+  });
+
+  // 2. Query Pergerakan Kas Sesi Aktif
+  const { data: movements = [], refetch: refetchMovements } = useQuery({
+    queryKey: ['session-cash-movements', activeSession?.id],
+    queryFn: () => cashMovementService.getSessionCashMovements(activeSession?.id),
+    enabled: Boolean(activeSession?.id),
+    refetchInterval: 10000,
   });
 
   // Update actual cash input when denoms change
@@ -161,8 +179,15 @@ export default function ClosingPage() {
   const openingCash = Number(activeSession?.opening_cash || 0);
   const cashSales = Number(activeSession?.cash_sales || 0);
   const qrisSales = Number(activeSession?.qris_sales || 0);
+  const debtSales = Number(activeSession?.debt_sales || 0);
   const totalSales = Number(activeSession?.total_sales || 0);
-  const expectedCash = openingCash + cashSales; // QRIS tidak masuk kas fisik laci!
+  const cashDebtPayments = Number(activeSession?.cash_debt_payments || 0);
+  const qrisDebtPayments = Number(activeSession?.qris_debt_payments || 0);
+  const cashIn = Number(activeSession?.cash_in || 0);
+  const cashOut = Number(activeSession?.cash_out || 0);
+
+  // Saldo Tunai Seharusnya: Saldo Awal + Penjualan Tunai + Pembayaran Hutang Tunai + Kas Masuk - Kas Keluar
+  const expectedCash = openingCash + cashSales + cashDebtPayments + cashIn - cashOut;
   const actualCash = parseRaw(actualCashInput);
   const diffCash = actualCashInput !== '' ? actualCash - expectedCash : null;
 
@@ -184,7 +209,7 @@ export default function ClosingPage() {
             Buka & Tutup Kasir (Shift)
           </h1>
           <p className="text-red-100 text-xs sm:text-sm mt-0.5 font-medium">
-            Kelola modal awal laci kasir, rekapitulasi penjualan Tunai & QRIS, serta rekonsiliasi uang fisik.
+            Kelola modal awal laci, omzet Tunai & QRIS, Kas Masuk/Keluar, dan rekonsiliasi uang fisik.
           </p>
         </div>
 
@@ -231,20 +256,44 @@ export default function ClosingPage() {
               </div>
             </div>
 
-            <Link to="/pos">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={ArrowDownLeft}
+                onClick={() => setCashMovementModalState({ isOpen: true, type: 'cash_in' })}
+                className="text-xs font-bold border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              >
+                + Kas Masuk
+              </Button>
+
               <Button
                 type="button"
                 variant="primary"
-                icon={ShoppingCart}
-                className="w-full sm:w-auto text-xs py-2.5 px-4 font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs"
+                size="sm"
+                icon={ArrowUpRight}
+                onClick={() => setCashMovementModalState({ isOpen: true, type: 'cash_out' })}
+                className="text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
               >
-                Buka POS Kasir
+                − Ambil Uang
               </Button>
-            </Link>
+
+              <Link to="/pos">
+                <Button
+                  type="button"
+                  variant="primary"
+                  icon={ShoppingCart}
+                  className="text-xs py-2 px-3.5 font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-xs"
+                >
+                  Buka POS
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          {/* 5 Ringkasan Saldo Cards Matching Exact Prompt Requirements */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 8 Ringkasan Saldo Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Card 1: Saldo Awal Tunai */}
             <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
@@ -258,8 +307,8 @@ export default function ClosingPage() {
                   Modal kembalian awal
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shrink-0">
-                <Coins size={18} />
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shrink-0">
+                <Coins size={16} />
               </div>
             </div>
 
@@ -276,8 +325,8 @@ export default function ClosingPage() {
                   {activeSession.cash_tx_count || 0} Transaksi Tunai
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
-                <Banknote size={18} />
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0">
+                <Banknote size={16} />
               </div>
             </div>
 
@@ -294,51 +343,137 @@ export default function ClosingPage() {
                   {activeSession.qris_tx_count || 0} Transaksi QRIS
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
-                <QrCode size={18} />
+              <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
+                <QrCode size={16} />
               </div>
             </div>
 
-            {/* Card 4: Total Penjualan */}
+            {/* Card 4: Penjualan Hutang (Piutang) */}
             <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                  Total Penjualan Sesi Ini
+                <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider block">
+                  Penjualan Hutang (Bon)
                 </span>
-                <p className="text-lg font-black text-slate-900 font-mono">
-                  {formatRupiah(totalSales)}
+                <p className="text-lg font-black text-amber-900 font-mono">
+                  {formatRupiah(debtSales)}
                 </p>
-                <span className="text-[10px] text-slate-500 font-medium block">
-                  {activeSession.transaction_count || 0} Total Transaksi
+                <span className="text-[10px] text-amber-700 font-medium block">
+                  {activeSession.debt_tx_count || 0} Transaksi Bon
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-200 flex items-center justify-center shrink-0">
-                <Receipt size={18} />
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center shrink-0">
+                <BookOpen size={16} />
               </div>
             </div>
 
-            {/* Card 5: Saldo Tunai Seharusnya (PROMPT RUMUS: opening_cash + cash_sales) */}
-            <div className="sm:col-span-2 lg:col-span-2 p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-md flex items-center justify-between border border-slate-700">
+            {/* Card 5: Setoran Hutang Tunai */}
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">
+                  Bayar Hutang Tunai
+                </span>
+                <p className="text-lg font-black text-emerald-700 font-mono">
+                  {formatRupiah(cashDebtPayments)}
+                </p>
+                <span className="text-[10px] text-emerald-600 font-medium block">
+                  Masuk fisik laci
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                <Wallet size={16} />
+              </div>
+            </div>
+
+            {/* Card 6: Kas Masuk */}
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">
+                  Kas Masuk (Laci)
+                </span>
+                <p className="text-lg font-black text-emerald-700 font-mono">
+                  + {formatRupiah(cashIn)}
+                </p>
+                <span className="text-[10px] text-emerald-600 font-medium block">
+                  Tambahan uang fisik
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                <ArrowDownLeft size={16} />
+              </div>
+            </div>
+
+            {/* Card 7: Kas Keluar (Ambil Uang) */}
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider block">
+                  Kas Keluar (Ambil Uang)
+                </span>
+                <p className="text-lg font-black text-rose-600 font-mono">
+                  − {formatRupiah(cashOut)}
+                </p>
+                <span className="text-[10px] text-rose-500 font-medium block">
+                  Pengambilan kas laci
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shrink-0">
+                <ArrowUpRight size={16} />
+              </div>
+            </div>
+
+            {/* Card 8: Setoran Hutang QRIS */}
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                  Bayar Hutang QRIS
+                </span>
+                <p className="text-lg font-black text-slate-800 font-mono">
+                  {formatRupiah(qrisDebtPayments)}
+                </p>
+                <span className="text-[10px] text-slate-400 font-medium block">
+                  Penerimaan digital
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                <QrCode size={16} />
+              </div>
+            </div>
+
+            {/* Card Utama: Saldo Tunai Seharusnya */}
+            <div className="sm:col-span-2 lg:col-span-4 p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-md flex items-center justify-between border border-slate-700">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
                     SALDO TUNAI SEHARUSNYA DI LACI (FISIK)
                   </span>
                   <span className="text-[9px] bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-mono">
-                    Saldo Awal + Penjualan Tunai
+                    Saldo Awal + Tunai + Setoran Tunai + Kas Masuk − Kas Keluar
                   </span>
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
                   {formatRupiah(expectedCash)}
                 </p>
                 <p className="text-[11px] text-slate-300">
-                  *Pendapatan QRIS ({formatRupiah(qrisSales)}) tidak dihitung dalam saldo uang fisik laci.
+                  *Penjualan Hutang ({formatRupiah(debtSales)}) & QRIS ({formatRupiah(qrisSales)}) tidak masuk laci uang fisik.
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-red-600/30 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
                 <Wallet className="w-6 h-6" />
               </div>
             </div>
+          </div>
+
+          {/* Riwayat Kas Masuk & Keluar Sesi Ini */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                <Coins size={16} className="text-slate-400" />
+                <span>Riwayat Kas Sesi Ini</span>
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold">
+                  {movements.length} Catatan
+                </span>
+              </h3>
+            </div>
+            <CashMovementHistoryTable movements={movements} />
           </div>
 
           {/* Form Rekonsiliasi Uang Aktual Laci & Tutup Kasir */}
@@ -438,7 +573,7 @@ export default function ClosingPage() {
                 </div>
               </div>
 
-              {/* Status Selisih Visual Indicator (Prompt Requirements 16 & 17) */}
+              {/* Status Selisih Visual Indicator */}
               <div className="flex flex-col justify-end">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
                   Status Rekonsiliasi Selisih:
@@ -732,6 +867,29 @@ export default function ClosingPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Ambil Uang / Kas Masuk */}
+      {cashMovementModalState.isOpen && activeSession && (
+        <CashMovementModal
+          isOpen={cashMovementModalState.isOpen}
+          onClose={() => setCashMovementModalState({ ...cashMovementModalState, isOpen: false })}
+          sessionId={activeSession.id}
+          currentAvailableCash={expectedCash}
+          defaultType={cashMovementModalState.type}
+          onSuccess={() => {
+            refetchSession();
+            refetchMovements();
+            setToast({
+              isOpen: true,
+              message:
+                cashMovementModalState.type === 'cash_out'
+                  ? 'Pengambilan uang (kas keluar) berhasil dicatat!'
+                  : 'Kas masuk berhasil dicatat!',
+              type: 'success',
+            });
+          }}
+        />
       )}
 
       {/* Toast Feedback */}

@@ -206,15 +206,15 @@ export function ProductSubmissionModal({
           {/* Form Fields: Produk Baru */}
           {submissionType === 'new_product' && (
             <div>
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
                 Nama Barang <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Sabun Mandi Lifebuoy 85gr"
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                placeholder="Nama barang..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 autoFocus
               />
             </div>
@@ -224,7 +224,7 @@ export function ProductSubmissionModal({
           {submissionType === 'new_variant' && (
             <div className="space-y-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
               <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                <label className="text-xs font-bold text-slate-700 block mb-1">
                   Pilih Produk Induk <span className="text-red-500">*</span>
                 </label>
                 <div className="relative mb-2">
@@ -233,8 +233,8 @@ export function ProductSubmissionModal({
                     type="text"
                     value={parentSearch}
                     onChange={(e) => setParentSearch(e.target.value)}
-                    placeholder="Cari produk induk (mis. Indomie)..."
-                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-red-500"
+                    placeholder="Cari produk induk..."
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                   />
                 </div>
 
@@ -248,16 +248,20 @@ export function ProductSubmissionModal({
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => setParentProductId(p.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                          parentProductId === p.id
+                        onClick={() => {
+                          setSelectedParentProduct(p);
+                          if (p.unit_id) setUnitId(p.unit_id);
+                          if (p.category_id) setCategoryId(p.category_id);
+                        }}
+                        className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                          selectedParentProduct?.id === p.id
                             ? 'bg-red-50 text-red-700 font-bold border border-red-200'
-                            : 'hover:bg-slate-50 text-slate-800'
+                            : 'hover:bg-slate-50 text-slate-700'
                         }`}
                       >
-                        <span className="truncate">{p.name}</span>
-                        <span className="text-slate-400 font-mono text-[10px]">
-                          {formatRupiah(p.selling_price)}
+                        <span>{p.name}</span>
+                        <span className="font-mono text-[10px] text-slate-400">
+                          {p.code}
                         </span>
                       </button>
                     ))
@@ -265,26 +269,49 @@ export function ProductSubmissionModal({
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                  Nama Varian Baru <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={variantName}
-                  onChange={(e) => setVariantName(e.target.value)}
-                  placeholder="Mis. Rasa Ayam Bawang, Ukuran 500ml..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-red-500"
-                />
-              </div>
+              {selectedParentProduct && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Nama Varian <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={variantName}
+                    onChange={(e) => setVariantName(e.target.value)}
+                    placeholder="Nama varian..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Kategori (khusus new_product) */}
+          {submissionType === 'new_product' && (
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Kategori Barang
+              </label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 cursor-pointer"
+              >
+                <option value="">-- Pilih Kategori --</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
           {/* Grid Harga Jual & Satuan */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                Harga Jual (Rp) <span className="text-red-500">*</span>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Harga Jual <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
@@ -300,19 +327,19 @@ export function ProductSubmissionModal({
                   }
                   onChange={(e) => setSellingPrice(e.target.value.replace(/\D/g, ''))}
                   placeholder="0"
-                  className="w-full pl-9 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-black text-right outline-none focus:border-red-500 font-mono"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-black text-right outline-none focus:bg-white focus:border-red-500 font-mono text-slate-900"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+              <label className="text-xs font-bold text-slate-700 block mb-1">
                 Satuan Barang
               </label>
               <select
                 value={unitId}
                 onChange={(e) => setUnitId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:border-red-500 bg-white"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-red-500 cursor-pointer"
               >
                 <option value="">-- Pilih Satuan --</option>
                 {units.map((u) => (
@@ -340,7 +367,7 @@ export function ProductSubmissionModal({
 
           {/* Barcode & Scan Kamera */}
           <div>
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+            <label className="text-xs font-bold text-slate-700 block mb-1">
               Barcode / SKU Barang (Opsional)
             </label>
             <div className="flex gap-2">
@@ -352,8 +379,8 @@ export function ProductSubmissionModal({
                   type="text"
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  placeholder="Scan atau ketik nomor barcode..."
-                  className="w-full pl-9 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-mono outline-none focus:border-red-500"
+                  placeholder="Nomor barcode..."
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-mono outline-none focus:bg-white focus:border-red-500"
                 />
               </div>
 
@@ -385,15 +412,15 @@ export function ProductSubmissionModal({
 
           {/* Catatan */}
           <div>
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
+            <label className="text-xs font-bold text-slate-700 block mb-1">
               Catatan Pengajuan (opsional)
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Contoh: Barang titipan supplier baru, sudah dicek fisik..."
+              placeholder="Catatan tambahan pengajuan..."
               rows={2}
-              className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-red-500 resize-none"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-red-500 resize-none"
             />
           </div>
 

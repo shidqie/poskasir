@@ -8,11 +8,12 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Alert } from '@/components/common/Alert';
 import { History, Search, Eye, Printer, SlidersHorizontal, X } from 'lucide-react';
 
-const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer' };
+const METHOD_LABELS = { cash: 'Tunai', qris: 'QRIS', transfer: 'Transfer', debt: 'Hutang' };
 const METHOD_COLORS = {
   cash: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   qris: 'bg-purple-50 text-purple-700 border border-purple-200',
   transfer: 'bg-red-50 text-red-700 border border-red-200',
+  debt: 'bg-amber-100 text-amber-900 border border-amber-300 font-black',
 };
 
 function formatDate(dt) {
@@ -150,6 +151,11 @@ export default function TransactionListPage() {
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${METHOD_COLORS[trx.payment_method] || 'bg-slate-100 text-slate-600'}`}>
                     {METHOD_LABELS[trx.payment_method] || trx.payment_method}
                   </span>
+                  {trx.customer?.name && (
+                    <span className="text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      Pelanggan: {trx.customer.name}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-slate-400">
                   {formatDate(trx.transaction_date || trx.created_at)} • Kasir: <span className="font-semibold text-slate-700">{trx.cashier?.full_name || 'Kasir'}</span>

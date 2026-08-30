@@ -84,33 +84,32 @@ export function ProductCard({ item, onAddToCart, onOpenVariants }) {
             </div>
           )}
 
-          {/* Top-Left Category Overlay Badge */}
-          <div className="absolute top-1.5 left-1.5 max-w-[100px]">
-            <span className="inline-block truncate px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/65 text-white backdrop-blur-xs shadow-xs">
+          {/* Top Badges Bar: Perfectly aligned and standardized */}
+          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none gap-1">
+            <span className="truncate max-w-[90px] px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-900/75 text-white backdrop-blur-xs shadow-xs leading-none">
               {categoryName}
             </span>
-          </div>
 
-          {/* Top-Right Status Badge */}
-          <div className="absolute top-1.5 right-1.5">
-            {hasVariants ? (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-red-600 text-white shadow-xs">
-                <Layers className="w-2.5 h-2.5" />
-                {item.product_variants.length} Varian
-              </span>
-            ) : isOutOfStock ? (
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-rose-600 text-white shadow-xs">
-                Habis
-              </span>
-            ) : isLowStock ? (
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500 text-white shadow-xs">
-                Menipis
-              </span>
-            ) : isProduct ? (
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-600 text-white shadow-xs">
-                Tersedia
-              </span>
-            ) : null}
+            <div className="shrink-0 flex items-center">
+              {hasVariants ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-red-600 text-white shadow-xs leading-none">
+                  <Layers className="w-2.5 h-2.5" />
+                  {item.product_variants.length} Varian
+                </span>
+              ) : isOutOfStock ? (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-rose-600 text-white shadow-xs leading-none">
+                  Habis
+                </span>
+              ) : isLowStock ? (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500 text-white shadow-xs leading-none">
+                  Menipis
+                </span>
+              ) : isProduct ? (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-600 text-white shadow-xs leading-none">
+                  Tersedia
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 

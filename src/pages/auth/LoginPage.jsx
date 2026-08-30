@@ -91,8 +91,8 @@ export function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-600 text-white shadow-xl shadow-red-600/30 mb-3">
-            <Store className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white shadow-xl shadow-red-600/15 mb-3 p-1.5 border border-slate-200">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Kasir Sembako

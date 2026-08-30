@@ -5,23 +5,31 @@ export const transactionService = {
    * Memanggil process_sale() RPC di Supabase
    * Semua validasi harga & stok dilakukan di sisi database
    */
-  async processSale({ items, paymentAmount, paymentMethod = 'cash', idempotencyKey }) {
+  async processSale({ items, paymentAmount, paymentMethod = 'cash', customerId = null }) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const payload = items.map((item) => ({
+      id: item.id || item.productId || item.temporaryPriceId,
       sourceType: item.sourceType || 'product',
-      productId: item.productId || null,
-      variantId: item.variantId || null,
-      temporaryPriceId: item.temporaryPriceId || null,
+      productId: item.productId || (item.sourceType === 'product' ? item.id : null),
+      variantId: item.variantId || item.variant_id || null,
+      temporaryPriceId: item.temporaryPriceId || (item.sourceType === 'temporary' ? item.id : null),
       name: item.productName || item.name,
-      variantName: item.variantName || null,
+      variantName: item.variantName || item.variant_name || null,
       displayName: item.displayName || (item.variantName ? `${item.name} - ${item.variantName}` : item.name),
+      price: Number(item.price || item.selling_price || 0),
       quantity: Number(item.quantity),
+      unit: item.unit || item.unitSymbol || item.unit_name || 'Pcs',
     }));
 
     const { data, error } = await supabase.rpc('process_sale', {
+      p_cashier_id: user?.id,
       p_items: payload,
-      p_payment_amount: Number(paymentAmount),
+      p_payment_amount: Number(paymentAmount || 0),
       p_payment_method: paymentMethod,
-      p_idempotency_key: idempotencyKey,
+      p_customer_id: customerId || null,
     });
 
     if (error) {
@@ -53,10 +61,9 @@ export const transactionService = {
         change_amount,
         payment_method,
         status,
-        cashier:profiles!cashier_id (
-          id,
-          full_name
-        )
+        customer_id,
+        customer:customers(id, name, phone),
+        cashier:profiles!cashier_id(id, full_name, email)
       `)
       .order('transaction_date', { ascending: false });
 

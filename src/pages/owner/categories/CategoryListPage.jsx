@@ -11,7 +11,7 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Alert } from '@/components/common/Alert';
 import { CategoryFormModal } from './CategoryFormModal';
-import { Plus, Edit2, ToggleLeft, ToggleRight, Layers, Search } from 'lucide-react';
+import { Plus, Edit2, ToggleLeft, ToggleRight, Layers, Search, Trash2 } from 'lucide-react';
 
 export function CategoryListPage() {
   const queryClient = useQueryClient();
@@ -19,6 +19,10 @@ export function CategoryListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    category: null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     category: null,
   });
@@ -68,6 +72,28 @@ export function CategoryListPage() {
     },
   });
 
+  // Mutation Hapus Kategori
+  const deleteMutation = useMutation({
+    mutationFn: (id) => categoryService.deleteCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setToast({
+        isOpen: true,
+        message: 'Kategori berhasil dihapus.',
+        type: 'success',
+      });
+      setDeleteDialog({ isOpen: false, category: null });
+    },
+    onError: (err) => {
+      setToast({
+        isOpen: true,
+        message: err.message || 'Gagal menghapus kategori.',
+        type: 'error',
+      });
+      setDeleteDialog({ isOpen: false, category: null });
+    },
+  });
+
   const handleOpenAdd = () => {
     setSelectedCategory(null);
     setIsModalOpen(true);
@@ -89,6 +115,19 @@ export function CategoryListPage() {
     if (confirmDialog.category) {
       await toggleStatusMutation.mutateAsync(confirmDialog.category);
       setConfirmDialog({ isOpen: false, category: null });
+    }
+  };
+
+  const handleDeleteClick = (cat) => {
+    setDeleteDialog({
+      isOpen: true,
+      category: cat,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteDialog.category) {
+      await deleteMutation.mutateAsync(deleteDialog.category.id);
     }
   };
 
@@ -199,14 +238,14 @@ export function CategoryListPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(cat)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                           title="Ubah Nama Kategori"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleToggleClick(cat)}
-                          className={`p-1.5 rounded-lg transition-colors ${
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                             cat.status
                               ? 'text-emerald-600 hover:bg-emerald-50'
                               : 'text-slate-400 hover:bg-slate-100'
@@ -218,6 +257,13 @@ export function CategoryListPage() {
                           ) : (
                             <ToggleLeft className="w-5 h-5" />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(cat)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Hapus Kategori"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -238,7 +284,7 @@ export function CategoryListPage() {
         isLoading={saveMutation.isPending}
       />
 
-      {/* Confirmation Dialog */}
+      {/* Toggle Status Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({ isOpen: false, category: null })}
@@ -252,6 +298,18 @@ export function CategoryListPage() {
         confirmText={confirmDialog.category?.status ? 'Nonaktifkan' : 'Aktifkan'}
         type={confirmDialog.category?.status ? 'warning' : 'info'}
         isLoading={toggleStatusMutation.isPending}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, category: null })}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Kategori?"
+        message={`Apakah Anda yakin ingin menghapus kategori "${deleteDialog.category?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus Kategori"
+        type="danger"
+        isLoading={deleteMutation.isPending}
       />
 
       {/* Toast Feedback */}

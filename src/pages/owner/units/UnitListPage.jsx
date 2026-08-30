@@ -11,7 +11,7 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Alert } from '@/components/common/Alert';
 import { UnitFormModal } from './UnitFormModal';
-import { Plus, Edit2, ToggleLeft, ToggleRight, Scale, Search, Check, X } from 'lucide-react';
+import { Plus, Edit2, ToggleLeft, ToggleRight, Scale, Search, Check, X, Trash2 } from 'lucide-react';
 
 export function UnitListPage() {
   const queryClient = useQueryClient();
@@ -19,6 +19,10 @@ export function UnitListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    unit: null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     unit: null,
   });
@@ -68,6 +72,28 @@ export function UnitListPage() {
     },
   });
 
+  // Mutation Hapus Satuan
+  const deleteMutation = useMutation({
+    mutationFn: (id) => unitService.deleteUnit(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['units'] });
+      setToast({
+        isOpen: true,
+        message: 'Satuan berhasil dihapus.',
+        type: 'success',
+      });
+      setDeleteDialog({ isOpen: false, unit: null });
+    },
+    onError: (err) => {
+      setToast({
+        isOpen: true,
+        message: err.message || 'Gagal menghapus satuan.',
+        type: 'error',
+      });
+      setDeleteDialog({ isOpen: false, unit: null });
+    },
+  });
+
   const handleOpenAdd = () => {
     setSelectedUnit(null);
     setIsModalOpen(true);
@@ -89,6 +115,19 @@ export function UnitListPage() {
     if (confirmDialog.unit) {
       await toggleStatusMutation.mutateAsync(confirmDialog.unit);
       setConfirmDialog({ isOpen: false, unit: null });
+    }
+  };
+
+  const handleDeleteClick = (unit) => {
+    setDeleteDialog({
+      isOpen: true,
+      unit: unit,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteDialog.unit) {
+      await deleteMutation.mutateAsync(deleteDialog.unit.id);
     }
   };
 
@@ -116,7 +155,7 @@ export function UnitListPage() {
                 Satuan Barang
               </h1>
               <p className="text-xs sm:text-sm text-slate-500">
-                Kelola ukuran dan takaran penjualan (Pcs, Kg, Liter, Bungkus, dll.)
+                Kelola satuan ukuran unit barang (Pcs, Kg, Dus, Liter, dll)
               </p>
             </div>
           </div>
@@ -141,7 +180,7 @@ export function UnitListPage() {
             </div>
             <input
               type="text"
-              placeholder="Cari nama atau simbol..."
+              placeholder="Cari nama atau simbol satuan..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
@@ -173,7 +212,7 @@ export function UnitListPage() {
             description={
               searchTerm
                 ? `Tidak ditemukan satuan dengan kata kunci "${searchTerm}".`
-                : 'Klik tombol Tambah Satuan untuk menambahkan takaran produk baru.'
+                : 'Klik tombol Tambah Satuan untuk mendaftarkan unit ukuran barang baru.'
             }
             actionLabel={searchTerm ? null : 'Tambah Satuan Baru'}
             onAction={handleOpenAdd}
@@ -185,7 +224,7 @@ export function UnitListPage() {
                 <tr>
                   <th className="px-6 py-3.5">Nama Satuan</th>
                   <th className="px-6 py-3.5">Simbol</th>
-                  <th className="px-6 py-3.5 text-center">Boleh Desimal</th>
+                  <th className="px-6 py-3.5 text-center">Tipe Desimal</th>
                   <th className="px-6 py-3.5 text-center">Status</th>
                   <th className="px-6 py-3.5 text-right">Aksi</th>
                 </tr>
@@ -221,14 +260,14 @@ export function UnitListPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(u)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                           title="Ubah Satuan"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleToggleClick(u)}
-                          className={`p-1.5 rounded-lg transition-colors ${
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                             u.status
                               ? 'text-emerald-600 hover:bg-emerald-50'
                               : 'text-slate-400 hover:bg-slate-100'
@@ -240,6 +279,13 @@ export function UnitListPage() {
                           ) : (
                             <ToggleLeft className="w-5 h-5" />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(u)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Hapus Satuan"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -260,7 +306,7 @@ export function UnitListPage() {
         isLoading={saveMutation.isPending}
       />
 
-      {/* Confirmation Dialog */}
+      {/* Toggle Status Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog({ isOpen: false, unit: null })}
@@ -274,6 +320,18 @@ export function UnitListPage() {
         confirmText={confirmDialog.unit?.status ? 'Nonaktifkan' : 'Aktifkan'}
         type={confirmDialog.unit?.status ? 'warning' : 'info'}
         isLoading={toggleStatusMutation.isPending}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, unit: null })}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Satuan?"
+        message={`Apakah Anda yakin ingin menghapus satuan "${deleteDialog.unit?.name} (${deleteDialog.unit?.symbol})"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus Satuan"
+        type="danger"
+        isLoading={deleteMutation.isPending}
       />
 
       {/* Toast Feedback */}

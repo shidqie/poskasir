@@ -70,7 +70,7 @@ export function UnitFormModal({
           id="unit-name"
           name="name"
           label="Nama Satuan"
-          placeholder="Contoh: Kilogram, Pieces, Bungkus..."
+          placeholder="Nama satuan..."
           required
           autoFocus
           value={name}
@@ -85,7 +85,7 @@ export function UnitFormModal({
           id="unit-symbol"
           name="symbol"
           label="Simbol / Singkatan"
-          placeholder="Contoh: Kg, Pcs, Bks, Ltr..."
+          placeholder="Simbol (kg, pcs, bks...)"
           required
           value={symbol}
           onChange={(e) => {

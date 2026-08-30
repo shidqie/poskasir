@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Pagination } from '@/components/common/Pagination';
 import { SubmissionStatusBadge } from '@/components/submissions/SubmissionStatusBadge';
 import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissionModal';
 import { SubmissionDetailModal } from '@/components/submissions/SubmissionDetailModal';
@@ -38,114 +39,111 @@ function PriceItemCard({ item, isOwnerView, onConvert, onDetail }) {
   const isRegistered = item.sourceType === 'registered' || item.status === 'approved';
   const isPending = item.status === 'pending' || item.sourceType === 'unregistered';
   const categoryName = item.categoryName || 'Sembako';
-  const theme = getProductCategoryTheme(item.name, categoryName);
-  const IconComponent = theme.Icon;
-  const imageUrl = item.image_url || getProductDummyImage(item.name, categoryName);
+  const dummyTheme = getProductCategoryTheme(categoryName);
+  const dummyImgUrl = getProductDummyImage(categoryName);
 
   return (
     <div
-      className={`p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-md bg-white flex flex-col justify-between ${
+      className={`rounded-2xl border bg-white overflow-hidden transition-all duration-200 hover:shadow-md flex flex-col justify-between ${
         isRegistered
-          ? 'border-slate-200/90 shadow-xs hover:border-red-300'
-          : 'border-amber-200/90 bg-amber-50/15 shadow-xs hover:border-amber-400'
+          ? 'border-slate-200/90 hover:border-red-200'
+          : 'border-amber-200/90 bg-amber-50/10 hover:border-amber-400'
       }`}
     >
-      <div>
-        {/* Product Thumbnail & Overlay Badges */}
-        <div
-          className={`relative w-full h-24 sm:h-28 rounded-xl overflow-hidden mb-2 bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center`}
-        >
-          {!imgError ? (
-            <img
-              src={imageUrl}
-              alt={item.name}
-              onError={() => setImgError(true)}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-white drop-shadow-xs">
-              <div className="p-2 rounded-xl bg-white/20 backdrop-blur-xs mb-1">
-                <IconComponent className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-[10px] font-black tracking-wider uppercase opacity-90">
-                {theme.tag}
-              </span>
+      {/* Product Image / Icon Banner */}
+      <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-100 flex items-center justify-center">
+        {item.image_url && !imgError ? (
+          <img
+            src={item.image_url}
+            alt={item.name}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div
+            className="w-full h-full flex flex-col items-center justify-center p-3 text-center"
+            style={{
+              background: `linear-gradient(135deg, ${dummyTheme.bg} 0%, #1e293b 100%)`,
+              color: '#ffffff',
+            }}
+          >
+            <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-xs flex items-center justify-center mb-1.5 border border-white/20">
+              <Package size={18} className="text-white" />
             </div>
-          )}
-
-          {/* Top-Left Category Pill */}
-          <div className="absolute top-1.5 left-1.5 max-w-[85px]">
-            <span className="inline-block truncate px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/60 text-white backdrop-blur-xs shadow-xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-white/90 truncate max-w-full px-2">
               {categoryName}
             </span>
           </div>
-
-          {/* Top-Right Status Badge */}
-          <div className="absolute top-1.5 right-1.5">
-            {isRegistered ? (
-              <span className="inline-block px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-600 text-white shadow-xs">
-                Terdaftar
-              </span>
-            ) : (
-              <span className="inline-block px-1.5 py-0.5 rounded-md text-[9px] font-black bg-amber-500 text-white shadow-xs animate-pulse">
-                Belum Terdaftar
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Nama Barang */}
-        <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2">
-          {item.name}
-        </h3>
-
-        {/* Barcode & Kode */}
-        <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px] font-mono text-slate-500">
-          {item.code && (
-            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[9px] border border-slate-200/80">
-              {item.code}
-            </span>
-          )}
-          {item.barcode && (
-            <span className="flex items-center gap-0.5 text-slate-500 text-[9px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 truncate max-w-[110px]">
-              <Barcode className="w-2.5 h-2.5 text-slate-400" />
-              {item.barcode}
-            </span>
-          )}
-          {item.unitName && (
-            <span className="text-[10px] text-slate-400 font-sans">
-              /{item.unitName}
-            </span>
-          )}
-        </div>
-
-        {/* Pending Approval Badge Notice */}
-        {isPending && (
-          <div className="mt-1.5">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded border border-amber-200">
-              <Clock size={10} />
-              <span>Menunggu Persetujuan</span>
-            </span>
-          </div>
         )}
+
+        {/* Status Badge Over Image */}
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+          <span
+            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+              isRegistered
+                ? 'bg-slate-900/80 text-white backdrop-blur-xs'
+                : 'bg-amber-500 text-white shadow-xs'
+            }`}
+          >
+            {categoryName}
+          </span>
+
+          {!isRegistered && (
+            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 shadow-xs">
+              Belum Terdaftar
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Harga & Tombol Aksi */}
-      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+      {/* Product Information */}
+      <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between space-y-2.5">
         <div>
-          <span className="text-[9px] text-slate-400 block uppercase font-semibold">Harga Jual</span>
-          <span className="text-sm sm:text-base font-black text-red-600 font-mono">
-            {formatRupiah(item.selling_price || item.price)}
-          </span>
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2">
+              {item.name}
+            </h3>
+          </div>
+
+          {item.variantName && (
+            <p className="text-[11px] font-semibold text-purple-700 mt-0.5 flex items-center gap-1">
+              <Layers size={11} />
+              <span>Varian: {item.variantName}</span>
+            </p>
+          )}
+
+          {item.barcode && (
+            <p className="text-[10px] font-mono text-slate-400 flex items-center gap-1 mt-1">
+              <Barcode size={11} />
+              <span>{item.barcode}</span>
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* Status Pengajuan jika Pending */}
+        {isPending && (
+          <div className="text-[10px] text-amber-800 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200/80 font-medium flex items-center gap-1">
+            <Clock size={11} className="shrink-0 text-amber-600" />
+            <span>Menunggu Persetujuan</span>
+          </div>
+        )}
+
+        {/* Price Tag & Action */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">
+              Harga Jual
+            </span>
+            <span className="text-xs sm:text-sm font-black text-red-600 font-mono tracking-tight">
+              {formatRupiah(item.selling_price)}
+            </span>
+          </div>
+
           {isOwnerView && isPending && onConvert && (
             <Button
               type="button"
               variant="primary"
-              onClick={() => onConvert(item)}
+              onClick={() => onConvert(item.rawSubmission)}
               className="py-1 px-2.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs"
             >
               Setujui
@@ -156,7 +154,7 @@ function PriceItemCard({ item, isOwnerView, onConvert, onDetail }) {
             <button
               type="button"
               onClick={() => onDetail(item)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               title="Lihat Detail"
             >
               <Eye size={14} />
@@ -175,12 +173,19 @@ export function PriceListPage({ isOwnerView = false }) {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'my_submissions'
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(24);
   const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [initialBarcode, setInitialBarcode] = useState('');
   const [selectedItemDetail, setSelectedItemDetail] = useState(null);
   const [approvalItem, setApprovalItem] = useState(null);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
+
+  // Reset page when tab, search, or pageSize changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search, selectedCategory, pageSize]);
 
   // 1. Query Semua Harga (Produk Resmi + Pengajuan Pending)
   const { data: priceItems = [], isLoading: pricesLoading } = useQuery({
@@ -206,6 +211,16 @@ export function PriceListPage({ isOwnerView = false }) {
   };
 
   const filteredPrices = priceItems;
+
+  // Pagination for Tab 1 (Semua Harga)
+  const totalPagesPrices = Math.ceil(filteredPrices.length / pageSize) || 1;
+  const startPriceIdx = (currentPage - 1) * pageSize;
+  const paginatedPrices = filteredPrices.slice(startPriceIdx, startPriceIdx + pageSize);
+
+  // Pagination for Tab 2 (Pengajuan Saya)
+  const totalPagesSubmissions = Math.ceil(mySubmissions.length / pageSize) || 1;
+  const startSubIdx = (currentPage - 1) * pageSize;
+  const paginatedSubmissions = mySubmissions.slice(startSubIdx, startSubIdx + pageSize);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
@@ -307,7 +322,7 @@ export function PriceListPage({ isOwnerView = false }) {
       {/* TAB 1: SEMUA HARGA (PRODUK RESMI + PENGAJUAN PENDING) */}
       {/* ========================================================================= */}
       {activeTab === 'all' && (
-        <div>
+        <div className="space-y-6">
           {pricesLoading ? (
             <div className="text-center py-16">
               <LoadingSpinner size="md" message="Memuat daftar harga..." />
@@ -322,24 +337,64 @@ export function PriceListPage({ isOwnerView = false }) {
                   onClick={() => handleOpenSubmissionWithBarcode(search)}
                   variant="primary"
                   icon={Plus}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md"
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md cursor-pointer"
                 >
                   Ajukan "{search}" Sebagai Barang Baru
                 </Button>
               }
             />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
-              {filteredPrices.map((item) => (
-                <PriceItemCard
-                  key={item.id}
-                  item={item}
-                  isOwnerView={isOwnerView}
-                  onConvert={(sub) => setApprovalItem(sub)}
-                  onDetail={(sub) => setSelectedItemDetail(sub)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                {paginatedPrices.map((item) => (
+                  <PriceItemCard
+                    key={item.id}
+                    item={item}
+                    isOwnerView={isOwnerView}
+                    onConvert={(sub) => setApprovalItem(sub)}
+                    onDetail={(sub) => setSelectedItemDetail(sub)}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination Controls Tab 1 */}
+              {filteredPrices.length > 0 && (
+                <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 font-medium">
+                    <span>
+                      Menampilkan{' '}
+                      <strong className="text-slate-900 font-bold">
+                        {startPriceIdx + 1} - {Math.min(startPriceIdx + pageSize, filteredPrices.length)}
+                      </strong>{' '}
+                      dari <strong className="text-slate-900 font-bold">{filteredPrices.length}</strong> barang
+                    </span>
+
+                    <span className="text-slate-300 hidden sm:inline">|</span>
+
+                    <div className="flex items-center gap-1.5">
+                      <span>Per halaman:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-red-500 cursor-pointer"
+                      >
+                        <option value={12}>12</option>
+                        <option value={24}>24</option>
+                        <option value={48}>48</option>
+                        <option value={96}>96</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPagesPrices}
+                    onPageChange={setCurrentPage}
+                    className="py-0 border-t-0"
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -348,7 +403,7 @@ export function PriceListPage({ isOwnerView = false }) {
       {/* TAB 2: PENGAJUAN SAYA (STATUS PENGAJUAN BARANG) */}
       {/* ========================================================================= */}
       {activeTab === 'my_submissions' && (
-        <div>
+        <div className="space-y-6">
           {mySubmissionsLoading ? (
             <div className="text-center py-16">
               <LoadingSpinner size="md" message="Memuat riwayat pengajuan..." />
@@ -363,68 +418,108 @@ export function PriceListPage({ isOwnerView = false }) {
                   onClick={() => handleOpenSubmissionWithBarcode('')}
                   variant="primary"
                   icon={Plus}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md"
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md cursor-pointer"
                 >
                   Ajukan Barang Baru Sekarang
                 </Button>
               }
             />
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
-                    <tr>
-                      <th className="py-3.5 px-4">Barang / Varian</th>
-                      <th className="py-3.5 px-4 text-right">Harga Jual</th>
-                      <th className="py-3.5 px-4">Barcode</th>
-                      <th className="py-3.5 px-4">Tanggal Pengajuan</th>
-                      <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-4 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {mySubmissions.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-slate-900">
-                          <div>
-                            <p>{sub.name}</p>
-                            {sub.variant_name && (
-                              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 mt-0.5 inline-block">
-                                Varian: {sub.variant_name}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-black font-mono text-red-600 text-right">
-                          {formatRupiah(sub.selling_price)}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-slate-500">
-                          {sub.barcode || '—'}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-500">
-                          {formatTanggal(sub.submitted_at)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <SubmissionStatusBadge status={sub.status} />
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            icon={Eye}
-                            onClick={() => setSelectedItemDetail(sub)}
-                            className="py-1 px-2.5 text-[11px] font-bold rounded-lg"
-                          >
-                            Detail
-                          </Button>
-                        </td>
+            <>
+              <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="py-3.5 px-4">Barang / Varian</th>
+                        <th className="py-3.5 px-4 text-right">Harga Jual</th>
+                        <th className="py-3.5 px-4">Barcode</th>
+                        <th className="py-3.5 px-4">Tanggal Pengajuan</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4 text-center">Aksi</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {paginatedSubmissions.map((sub) => (
+                        <tr key={sub.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-slate-900">
+                            <div>
+                              <p>{sub.name}</p>
+                              {sub.variant_name && (
+                                <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 mt-0.5 inline-block">
+                                  Varian: {sub.variant_name}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 font-black font-mono text-red-600 text-right">
+                            {formatRupiah(sub.selling_price)}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-500">
+                            {sub.barcode || '—'}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-500">
+                            {formatTanggal(sub.submitted_at)}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <SubmissionStatusBadge status={sub.status} />
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              icon={Eye}
+                              onClick={() => setSelectedItemDetail(sub)}
+                              className="py-1 px-2.5 text-[11px] font-bold rounded-lg"
+                            >
+                              Detail
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Pagination Controls Tab 2 */}
+              {mySubmissions.length > 0 && (
+                <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 font-medium">
+                    <span>
+                      Menampilkan{' '}
+                      <strong className="text-slate-900 font-bold">
+                        {startSubIdx + 1} - {Math.min(startSubIdx + pageSize, mySubmissions.length)}
+                      </strong>{' '}
+                      dari <strong className="text-slate-900 font-bold">{mySubmissions.length}</strong> pengajuan
+                    </span>
+
+                    <span className="text-slate-300 hidden sm:inline">|</span>
+
+                    <div className="flex items-center gap-1.5">
+                      <span>Per halaman:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-red-500 cursor-pointer"
+                      >
+                        <option value={12}>12</option>
+                        <option value={24}>24</option>
+                        <option value={48}>48</option>
+                        <option value={96}>96</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPagesSubmissions}
+                    onPageChange={setCurrentPage}
+                    className="py-0 border-t-0"
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { Button } from '@/components/common/Button';
-import { Camera, Clock, User, ShieldCheck, UserCheck, DoorOpen, DoorClosed, Coins, Wallet } from 'lucide-react';
+import {
+  Camera,
+  Clock,
+  ShieldCheck,
+  UserCheck,
+  DoorClosed,
+  ArrowUpRight,
+  ArrowDownLeft,
+} from 'lucide-react';
 import { formatRupiah } from '@/utils/formatters';
 
-export function POSHeader({ onOpenScanner, activeSession, onOpenCashier }) {
+export function POSHeader({
+  onOpenScanner,
+  activeSession,
+  onOpenCashier,
+  onOpenCashMovement,
+}) {
   const { profile, role } = useAuthStore();
   const [time, setTime] = useState(new Date());
 
@@ -16,95 +28,113 @@ export function POSHeader({ onOpenScanner, activeSession, onOpenCashier }) {
   const formattedTime = time.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   });
 
   const formattedDate = time.toLocaleDateString('id-ID', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
   });
 
   const isOpen = activeSession && activeSession.status === 'open';
 
   return (
-    <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-2.5 shrink-0 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <header className="bg-white border-b border-slate-100 px-3 sm:px-5 py-2 shrink-0">
+      <div className="flex items-center justify-between gap-3">
         {/* Left: Terminal & Kasir Info */}
-        <div className="flex items-center gap-3">
-          <div>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0 bg-slate-50 border border-slate-100 p-0.5">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
+
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Terminal Kasir / POS
+              <h1 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">
+                Terminal Kasir
               </h1>
+
               {isOpen ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Sesi Aktif
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Aktif
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={onOpenCashier}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 cursor-pointer shrink-0 transition-colors"
                 >
                   <DoorClosed className="w-3 h-3 text-amber-700" />
-                  Kasir Belum Dibuka
+                  Buka Kasir
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-              <span className="flex items-center gap-1 font-bold text-slate-700">
-                {role === 'owner' ? (
-                  <ShieldCheck className="w-3.5 h-3.5 text-red-600" />
-                ) : (
-                  <UserCheck className="w-3.5 h-3.5 text-red-600" />
-                )}
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 leading-none mt-0.5 truncate">
+              <span className="font-medium text-slate-600 truncate">
                 {profile?.full_name || 'Kasir'}
               </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 font-mono text-slate-400">
-                <Clock className="w-3 h-3 text-slate-400" />
+              <span>·</span>
+              <span className="font-mono text-slate-400 whitespace-nowrap">
                 {formattedDate}, {formattedTime}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Center: Realtime Shift Saldo Pill (If active session) */}
+        {/* Center: Minimalist Realtime Shift Saldo Pill */}
         {isOpen && (
-          <div className="hidden md:flex items-center gap-3 bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl text-xs">
-            <div className="flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-amber-600" />
-              <span className="text-slate-500 font-medium">Saldo Awal:</span>
+          <div className="hidden md:flex items-center gap-2.5 bg-slate-50 border border-slate-200/70 px-3 py-1 rounded-lg text-xs text-slate-500">
+            <div className="flex items-center gap-1">
+              <span>Laci:</span>
               <span className="font-bold text-slate-800 font-mono">
-                {formatRupiah(activeSession.opening_cash)}
+                {formatRupiah(activeSession.expected_cash || activeSession.opening_cash)}
               </span>
             </div>
             <span className="text-slate-300">|</span>
-            <div className="flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-red-600" />
-              <span className="text-slate-500 font-medium">Penjualan:</span>
-              <span className="font-black text-red-600 font-mono">
+            <div className="flex items-center gap-1">
+              <span>Penjualan:</span>
+              <span className="font-bold text-slate-800 font-mono">
                 {formatRupiah(activeSession.total_sales || 0)}
               </span>
             </div>
           </div>
         )}
 
-        {/* Right: Barcode Scanner Trigger Button */}
-        <div className="flex items-center gap-2">
-          <Button
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {isOpen && onOpenCashMovement && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenCashMovement('cash_in')}
+                className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50/50 text-xs font-semibold transition-colors cursor-pointer"
+                title="Catat Uang Masuk ke Kas"
+              >
+                <ArrowDownLeft size={12} className="text-emerald-600" />
+                <span>+ Kas Masuk</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenCashMovement('cash_out')}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50/50 text-xs font-semibold transition-colors cursor-pointer"
+                title="Ambil Uang dari Laci Kas"
+              >
+                <ArrowUpRight size={12} className="text-rose-600" />
+                <span>Ambil Kas</span>
+              </button>
+            </>
+          )}
+
+          <button
             type="button"
-            variant="primary"
-            icon={Camera}
             onClick={onOpenScanner}
-            className="w-full sm:w-auto shadow-xs shadow-red-500/25 text-xs py-2 font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
           >
-            Scan Barcode
-          </Button>
+            <Camera size={14} />
+            <span>Scan Barcode</span>
+          </button>
         </div>
       </div>
     </header>

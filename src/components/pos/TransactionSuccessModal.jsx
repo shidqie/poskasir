@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CheckCircle2, Printer, ShoppingCart, Eye, Banknote, QrCode } from 'lucide-react';
+import { CheckCircle2, Printer, ShoppingCart, Eye, Banknote, QrCode, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatRupiah } from '@/utils/formatters';
 
@@ -25,6 +25,7 @@ export default function TransactionSuccessModal({ isOpen, transaction, onNewTran
 
   if (!isOpen || !transaction) return null;
 
+  const isDebt = transaction.payment_method === 'debt';
   const isQris = transaction.payment_method === 'qris';
   const isCash = transaction.payment_method === 'cash' || !transaction.payment_method;
 
@@ -42,12 +43,20 @@ export default function TransactionSuccessModal({ isOpen, transaction, onNewTran
 
       <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Success Banner */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-6 text-center text-white">
+        <div
+          className={`px-6 py-6 text-center text-white ${
+            isDebt
+              ? 'bg-gradient-to-br from-amber-600 to-orange-700'
+              : 'bg-gradient-to-br from-emerald-600 to-teal-700'
+          }`}
+        >
           <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-2.5 backdrop-blur-xs">
-            <CheckCircle2 size={32} className="text-white" />
+            {isDebt ? <BookOpen size={30} className="text-white" /> : <CheckCircle2 size={32} className="text-white" />}
           </div>
-          <h2 className="text-white font-black text-lg">Transaksi Berhasil!</h2>
-          <p className="text-emerald-100 text-xs font-mono mt-0.5">
+          <h2 className="text-white font-black text-lg">
+            {isDebt ? 'Hutang Berhasil Dicatat!' : 'Transaksi Berhasil!'}
+          </h2>
+          <p className="text-white/80 text-xs font-mono mt-0.5">
             {transaction.transaction_number}
           </p>
         </div>
@@ -56,9 +65,21 @@ export default function TransactionSuccessModal({ isOpen, transaction, onNewTran
         <div className="p-5 space-y-3 text-xs">
           <div className="flex justify-between items-center pb-2 border-b border-slate-100">
             <span className="text-slate-500 font-medium">Metode Pembayaran</span>
-            <span className="font-bold inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 uppercase">
-              {isQris ? <QrCode size={13} className="text-red-600" /> : <Banknote size={13} className="text-emerald-600" />}
-              {isQris ? 'QRIS' : 'Tunai'}
+            <span
+              className={`font-bold inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md uppercase ${
+                isDebt
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                  : 'bg-slate-100 text-slate-800'
+              }`}
+            >
+              {isDebt ? (
+                <BookOpen size={13} className="text-amber-700" />
+              ) : isQris ? (
+                <QrCode size={13} className="text-red-600" />
+              ) : (
+                <Banknote size={13} className="text-emerald-600" />
+              )}
+              {isDebt ? 'Hutang (Bon)' : isQris ? 'QRIS' : 'Tunai'}
             </span>
           </div>
 
@@ -69,22 +90,36 @@ export default function TransactionSuccessModal({ isOpen, transaction, onNewTran
             </span>
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-slate-500 font-medium">
-              {isQris ? 'Dibayar (QRIS)' : 'Uang Diterima'}
-            </span>
-            <span className="font-semibold text-slate-900 font-mono">
-              {formatRupiah(transaction.payment_amount)}
-            </span>
-          </div>
-
-          {isCash && (
-            <div className="flex justify-between items-center border-t border-slate-100 pt-2.5">
-              <span className="font-bold text-slate-700">Uang Kembalian</span>
-              <span className="text-base font-black text-emerald-600 font-mono">
-                {formatRupiah(transaction.change_amount)}
-              </span>
+          {isDebt ? (
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+              <div className="flex justify-between items-center font-bold text-amber-900">
+                <span>Total Hutang Baru:</span>
+                <span className="font-mono text-sm">{formatRupiah(transaction.total_amount)}</span>
+              </div>
+              <p className="text-[10px] text-amber-700">
+                Tercatat ke buku piutang pelanggan.
+              </p>
             </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">
+                  {isQris ? 'Dibayar (QRIS)' : 'Uang Diterima'}
+                </span>
+                <span className="font-semibold text-slate-900 font-mono">
+                  {formatRupiah(transaction.payment_amount)}
+                </span>
+              </div>
+
+              {isCash && (
+                <div className="flex justify-between items-center border-t border-slate-100 pt-2.5">
+                  <span className="font-bold text-slate-700">Uang Kembalian</span>
+                  <span className="text-base font-black text-emerald-600 font-mono">
+                    {formatRupiah(transaction.change_amount)}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 

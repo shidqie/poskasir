@@ -303,7 +303,7 @@ export function ProductFormPage() {
                 id="product-name"
                 name="name"
                 label="Nama Barang Induk"
-                placeholder="Contoh: Indomie, Aqua, Beras Ramos, Minyak Goreng..."
+                placeholder="Nama barang..."
                 required
                 value={name}
                 onChange={(e) => {
@@ -366,7 +366,7 @@ export function ProductFormPage() {
           <div className="mt-5 pt-4 border-t border-slate-100">
             <ToggleSwitch
               label="Produk Memiliki Varian?"
-              description="Aktifkan jika produk memiliki berbagai rasa, ukuran, atau kemasan (contoh: Indomie Goreng, Rendang, Soto)"
+              description="Aktifkan jika produk memiliki berbagai rasa, ukuran, atau kemasan"
               checked={hasVariants}
               onChange={(val) => {
                 setHasVariants(val);
@@ -389,7 +389,7 @@ export function ProductFormPage() {
                   id="product-barcode"
                   name="barcode"
                   label="Barcode Bawaan Produk (Opsional)"
-                  placeholder="Contoh: 8996001301057 (Kosongkan jika tidak ada)"
+                  placeholder="Nomor barcode kemasan..."
                   value={barcode}
                   onChange={(e) => {
                     setBarcode(e.target.value);
@@ -431,10 +431,10 @@ export function ProductFormPage() {
               />
 
               {/* Stok Awal */}
-              <div>
+              <div className="space-y-1">
                 <label
                   htmlFor="product-stock"
-                  className="block text-sm font-semibold text-slate-700 mb-1.5"
+                  className="block text-xs font-bold text-slate-700"
                 >
                   Jumlah Stok {selectedUnit ? `(${selectedUnit.symbol})` : ''}{' '}
                   <span className="text-red-500">*</span>
@@ -448,15 +448,15 @@ export function ProductFormPage() {
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
                   disabled={saveMutation.isPending}
-                  className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold font-mono"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 font-bold font-mono text-slate-900"
                 />
               </div>
 
               {/* Stok Minimum */}
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 space-y-1">
                 <label
                   htmlFor="product-min-stock"
-                  className="block text-sm font-semibold text-slate-700 mb-1.5"
+                  className="block text-xs font-bold text-slate-700"
                 >
                   Peringatan Stok Minimum
                 </label>
@@ -468,9 +468,9 @@ export function ProductFormPage() {
                   value={minimumStock}
                   onChange={(e) => setMinimumStock(e.target.value)}
                   disabled={saveMutation.isPending}
-                  className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold font-mono"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 font-bold font-mono text-slate-900"
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-400 mt-1">
                   Status akan menjadi "Menipis" jika stok mencapai angka ini
                 </p>
               </div>
@@ -551,13 +551,13 @@ export function ProductFormPage() {
                           </label>
                           <input
                             type="text"
-                            placeholder="Contoh: Goreng Original, Rendang, 600 ml..."
+                            placeholder="Nama varian..."
                             required
                             value={v.variant_name}
                             onChange={(e) =>
                               handleUpdateVariant(idx, 'variant_name', e.target.value)
                             }
-                            className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-semibold"
+                            className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none font-semibold text-slate-900"
                           />
                         </div>
 
@@ -574,7 +574,7 @@ export function ProductFormPage() {
                               onChange={(e) =>
                                 handleUpdateVariant(idx, 'barcode', e.target.value)
                               }
-                              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-mono"
+                              className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none font-mono"
                             />
                             <button
                               type="button"
@@ -582,7 +582,7 @@ export function ProductFormPage() {
                                 setActiveScanningVariantIdx(idx);
                                 setIsScannerOpen(true);
                               }}
-                              className="p-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                              className="p-2 bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
                               title="Scan Barcode Varian"
                             >
                               <Camera className="w-4 h-4" />
@@ -604,7 +604,7 @@ export function ProductFormPage() {
                             onChange={(e) =>
                               handleUpdateVariant(idx, 'selling_price', e.target.value)
                             }
-                            className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-bold font-mono text-right"
+                            className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none font-bold font-mono text-right text-slate-900"
                           />
                         </div>
 
@@ -621,7 +621,7 @@ export function ProductFormPage() {
                             onChange={(e) =>
                               handleUpdateVariant(idx, 'stock', e.target.value)
                             }
-                            className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none font-bold font-mono"
+                            className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none font-bold font-mono text-right text-slate-900"
                           />
                         </div>
 

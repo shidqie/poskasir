@@ -92,6 +92,45 @@ export const categoryService = {
   async toggleCategoryStatus(id, currentStatus) {
     return this.updateCategory(id, { status: !currentStatus });
   },
+
+  /**
+   * Hapus kategori dari database
+   */
+  async deleteCategory(id) {
+    // Cek apakah ada produk yang masih memakai kategori ini
+    const { count, error: countError } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('category_id', id);
+
+    if (countError) console.warn('Check category products usage warning:', countError);
+
+    if (count && count > 0) {
+      throw new Error(`Kategori tidak dapat dihapus karena masih digunakan oleh ${count} produk.`);
+    }
+
+    // Cek apakah ada pengajuan barang yang memakai kategori ini
+    const { count: subCount } = await supabase
+      .from('product_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('category_id', id);
+
+    if (subCount && subCount > 0) {
+      // Lepas relasi pengajuan ke null
+      await supabase
+        .from('product_submissions')
+        .update({ category_id: null })
+        .eq('category_id', id);
+    }
+
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
 };
 
 export default categoryService;

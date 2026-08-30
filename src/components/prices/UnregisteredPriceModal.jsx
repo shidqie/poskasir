@@ -93,7 +93,7 @@ export function UnregisteredPriceModal({
           id="unreg-name"
           name="name"
           label="Nama Barang"
-          placeholder="Contoh: Korek Api Gas, Plastik Sampah, Kerupuk..."
+          placeholder="Nama barang..."
           required
           autoFocus
           value={name}

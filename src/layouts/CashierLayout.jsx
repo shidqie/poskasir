@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Lock,
+  BookOpen,
 } from 'lucide-react';
 
 export function CashierLayout() {
@@ -70,6 +71,11 @@ export function CashierLayout() {
       icon: Tags,
     },
     {
+      label: 'Hutang Pelanggan',
+      to: '/debts',
+      icon: BookOpen,
+    },
+    {
       label: 'Kalkulator Cepat',
       to: '/quick-calculator',
       icon: Calculator,
@@ -99,8 +105,8 @@ export function CashierLayout() {
         {/* Brand Header */}
         <div className={`p-4 border-b border-slate-900 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between gap-3'}`}>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-600/30 shrink-0">
-              <Store className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-red-600/30 shrink-0 bg-white p-0.5 border border-slate-800">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0 truncate">
@@ -228,8 +234,8 @@ export function CashierLayout() {
       {/* Topbar Mobile */}
       <header className="md:hidden bg-slate-950 text-white border-b border-slate-900 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-md">
-            <Store className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md shrink-0 bg-white p-0.5 border border-slate-800">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-extrabold text-sm leading-tight text-white">Kasir Sembako</h1>
