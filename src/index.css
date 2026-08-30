@@ -10,9 +10,19 @@
     --text: #0F172A;
   }
 
-  body {
+  html, body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  /* Prevent iOS automatic input focus zoom (iOS zooms if font-size is below 16px) */
+  @media screen and (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 
   /* Custom scrollbar */

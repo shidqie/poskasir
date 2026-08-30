@@ -165,6 +165,12 @@ export function POSPage() {
     [checkoutMutation]
   );
 
+  const handleNewTransaction = useCallback(() => {
+    setIsSuccessOpen(false);
+    setLastTransaction(null);
+    clearCart();
+  }, [clearCart]);
+
   const handleOpenSaleUnits = useCallback((product, variant = null, customSaleUnits = null) => {
     const suList = customSaleUnits || (variant ? (variant.sale_units || []) : (product.sale_units || []));
     setSaleUnitModalState({
