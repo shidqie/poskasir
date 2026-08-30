@@ -45,7 +45,7 @@ export function UnregisteredPriceListPage() {
     error,
   } = useQuery({
     queryKey: ['unregistered-prices', { search, status }],
-    queryFn: () => unregisteredPriceService.getAll({ search, status }),
+    queryFn: () => unregisteredPriceService.getUnregisteredPrices({ search, status }),
   });
 
   // Mutation Tambah Harga Sementara

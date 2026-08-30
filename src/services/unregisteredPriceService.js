@@ -19,7 +19,7 @@ export const unregisteredPriceService = {
       query = query.eq('status', status);
     }
 
-    if (search.trim()) {
+    if (search && search.trim()) {
       const term = search.trim();
       query = query.or(`name.ilike.%${term}%,barcode.ilike.%${term}%`);
     }
@@ -27,6 +27,13 @@ export const unregisteredPriceService = {
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
+  },
+
+  /**
+   * Alias untuk getUnregisteredPrices agar kompatibel
+   */
+  async getAll(params) {
+    return this.getUnregisteredPrices(params);
   },
 
   /**
