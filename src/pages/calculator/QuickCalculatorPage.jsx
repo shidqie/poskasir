@@ -5,8 +5,8 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { Toast } from '@/components/common/Toast';
-import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
+import { QRISDisplay } from '@/components/pos/QRISDisplay';
 import {
   Plus,
   Trash2,
@@ -466,6 +466,47 @@ function ItemCalculator() {
                       {idx === 0 && amt === total ? 'Uang Pas' : formatRupiah(amt)}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tampilan QRIS Dinamis & Statis */}
+            {paymentMethod === 'qris' && (
+              <div className="pt-1">
+                <QRISDisplay totalAmount={total} merchantName="WARUNG GARINUL, PACET" />
+              </div>
+            )}
+
+            {/* Tampilan Rekening Transfer Bank */}
+            {paymentMethod === 'transfer' && (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 text-xs">
+                  <span className="font-bold text-slate-700 uppercase tracking-wider">
+                    Rekening Transfer Toko
+                  </span>
+                  <span className="text-red-600 font-mono font-bold text-sm">
+                    {formatRupiah(total)}
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between shadow-2xs">
+                    <div>
+                      <p className="font-bold text-slate-900 text-sm">BCA: 123-456-7890</p>
+                      <p className="text-[11px] text-slate-500">a.n. Akhfa Shidqie Muttaqien</p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-extrabold text-xs border border-blue-200">
+                      BCA
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between shadow-2xs">
+                    <div>
+                      <p className="font-bold text-slate-900 text-sm">Mandiri: 900-00-1234567-8</p>
+                      <p className="text-[11px] text-slate-500">a.n. Warung Garinul</p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 font-extrabold text-xs border border-amber-200">
+                      Mandiri
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
