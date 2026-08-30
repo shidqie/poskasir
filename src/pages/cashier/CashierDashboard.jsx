@@ -4,14 +4,15 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { transactionService } from '@/services/transactionService';
 import { Card } from '@/components/common/Card';
-import { DollarSign, ShoppingCart, Package, UserCheck, Calendar, History, Calculator } from 'lucide-react';
-import { formatTanggal } from '@/utils/formatters';
-
-const formatRupiah = (v) => `Rp${Number(v || 0).toLocaleString('id-ID')}`;
+import { Badge } from '@/components/common/Badge';
+import { Button } from '@/components/common/Button';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { DollarSign, ShoppingCart, Package, UserCheck, Calendar, History, Calculator, ArrowRight } from 'lucide-react';
+import { formatTanggal, formatRupiah } from '@/utils/formatters';
 
 export function CashierDashboard() {
   const { profile, user } = useAuthStore();
-  const today = formatTanggal(new Date());
+  const today = formatTanggal(new Date(), 'DD MMMM YYYY');
 
   const { data: todaySummary = {}, isLoading } = useQuery({
     queryKey: ['today-summary', user?.id],
@@ -29,16 +30,16 @@ export function CashierDashboard() {
       iconBg: 'bg-red-50 text-red-600 border border-red-100',
     },
     {
-      title: 'Transaksi',
-      value: isLoading ? '...' : todaySummary.transactionCount || 0,
-      subtitle: 'Jumlah nota / struk',
+      title: 'Jumlah Transaksi',
+      value: isLoading ? '...' : (todaySummary.transactionCount || 0).toLocaleString('id-ID'),
+      subtitle: 'Jumlah nota / struk selesai',
       icon: ShoppingCart,
       iconBg: 'bg-rose-50 text-rose-600 border border-rose-100',
     },
     {
       title: 'Barang Terjual',
       value: isLoading ? '...' : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID'),
-      subtitle: 'Total barang terlayani',
+      subtitle: 'Total kuantitas barang terlayani',
       icon: Package,
       iconBg: 'bg-orange-50 text-orange-600 border border-orange-100',
     },
@@ -58,8 +59,8 @@ export function CashierDashboard() {
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
             Selamat datang, {profile?.full_name || 'Kasir'}
           </h1>
-          <p className="text-red-100 text-sm mt-1">
-            Siap melayani pelanggan dengan cepat, akurat, dan mudah.
+          <p className="text-red-100 text-sm mt-1 font-medium">
+            Siap melayani pelanggan sembako dengan cepat, akurat, dan mudah.
           </p>
         </div>
         <div className="bg-black/20 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/20 shrink-0 flex items-center gap-2.5 text-sm font-semibold">
@@ -73,21 +74,28 @@ export function CashierDashboard() {
         {summaryCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <div
+            <Card
               key={idx}
-              className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs hover:shadow-md transition-all hover:border-red-200 flex flex-col justify-between"
+              className="hover:border-red-300 transition-all hover:shadow-md"
+              bodyClassName="p-5 flex flex-col justify-between h-full"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{card.title}</p>
-                  <p className="text-2xl font-black text-slate-900 mt-2">{card.value}</p>
-                  <p className="text-xs text-slate-400 mt-1">{card.subtitle}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider leading-tight">
+                    {card.title}
+                  </p>
+                  <p className="text-2xl font-black text-slate-900 mt-2 font-mono">
+                    {card.value}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">
+                    {card.subtitle}
+                  </p>
                 </div>
                 <div className={`p-2.5 rounded-xl ${card.iconBg} shrink-0`}>
                   <Icon className="w-5 h-5" />
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
@@ -96,36 +104,36 @@ export function CashierDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
         <Link
           to="/pos"
-          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-600/25 active:scale-95"
+          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-600/25 active:scale-95 group"
         >
-          <div className="p-2.5 bg-white/20 rounded-xl">
+          <div className="p-2.5 bg-white/20 rounded-xl group-hover:scale-110 transition-transform">
             <ShoppingCart size={22} />
           </div>
           <span>Buka Kasir / POS</span>
         </Link>
         <Link
           to="/quick-calculator"
-          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50/40 text-slate-800 rounded-2xl font-bold text-sm transition-all shadow-xs active:scale-95"
+          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50/40 text-slate-800 rounded-2xl font-bold text-sm transition-all shadow-xs active:scale-95 group"
         >
-          <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
+          <div className="p-2.5 bg-red-50 text-red-600 rounded-xl group-hover:scale-110 transition-transform">
             <Calculator size={22} />
           </div>
           <span>Kalkulator Cepat</span>
         </Link>
         <Link
           to="/transactions"
-          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50/40 text-slate-800 rounded-2xl font-bold text-sm transition-all shadow-xs active:scale-95"
+          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50/40 text-slate-800 rounded-2xl font-bold text-sm transition-all shadow-xs active:scale-95 group"
         >
-          <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+          <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl group-hover:scale-110 transition-transform">
             <History size={22} />
           </div>
           <span>Riwayat Struk</span>
         </Link>
         <Link
           to="/closing"
-          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50/40 text-slate-800 rounded-2xl font-bold text-sm transition-all shadow-xs active:scale-95"
+          className="flex flex-col items-center gap-2.5 py-6 px-4 bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50/40 text-slate-800 rounded-2xl font-bold text-sm transition-all shadow-xs active:scale-95 group"
         >
-          <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
+          <div className="p-2.5 bg-red-50 text-red-600 rounded-xl group-hover:scale-110 transition-transform">
             <DollarSign size={22} />
           </div>
           <span>Tutup Kasir</span>
