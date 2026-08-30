@@ -310,6 +310,37 @@ export const productSubmissionService = {
     }
     return data;
   },
+
+  /**
+   * Menghapus pengajuan barang (dapat dilakukan oleh Pemilik)
+   */
+  async deleteSubmission(id) {
+    const { error } = await supabase
+      .from('product_submissions')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      console.error('[productSubmissionService] deleteSubmission error:', error);
+      throw error;
+    }
+    return true;
+  },
+
+  /**
+   * Menghapus banyak pengajuan barang sekaligus
+   */
+  async bulkDeleteSubmissions(ids) {
+    if (!ids || ids.length === 0) return true;
+    const { error } = await supabase
+      .from('product_submissions')
+      .delete()
+      .in('id', ids);
+    if (error) {
+      console.error('[productSubmissionService] bulkDeleteSubmissions error:', error);
+      throw error;
+    }
+    return true;
+  },
 };
 
 export default productSubmissionService;
