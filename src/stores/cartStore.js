@@ -53,17 +53,25 @@ export const useCartStore = create(
       },
 
       /**
-       * Menambahkan produk resmi atau barang belum terdaftar ke keranjang
+       * Menambahkan produk resmi (dengan/tanpa varian) atau barang belum terdaftar ke keranjang
        */
       addItem: (itemData, initialQty = 1) => {
         const { items } = get();
-        const isProduct = itemData.sourceType === 'product';
+        const isProduct = itemData.sourceType === 'product' || !itemData.sourceType;
+        const productId = isProduct ? (itemData.productId || itemData.id) : null;
+        const variantId = isProduct ? (itemData.variantId || itemData.variant_id || null) : null;
+
+        // Unik ID di keranjang membedakan varian
         const itemId = isProduct
-          ? `prod-${itemData.id}`
+          ? (variantId ? `prod-${productId}-var-${variantId}` : `prod-${productId}`)
           : `temp-${itemData.id}`;
 
         const existingIndex = items.findIndex((i) => i.id === itemId);
         const qtyToAdd = Number(initialQty) || 1;
+
+        const pName = itemData.productName || itemData.name;
+        const vName = itemData.variantName || itemData.variant_name || null;
+        const dName = itemData.displayName || (vName ? `${pName} - ${vName}` : pName);
 
         if (existingIndex > -1) {
           // Barang sudah ada di keranjang, tambah quantity
@@ -72,10 +80,10 @@ export const useCartStore = create(
             ? Math.round((existingItem.quantity + qtyToAdd) * 1000) / 1000
             : existingItem.quantity + Math.round(qtyToAdd);
 
-          // Validasi stok untuk barang resmi
+          // Validasi stok untuk barang resmi / varian
           if (isProduct && existingItem.stock !== null && newQty > existingItem.stock) {
             get().setWarning(
-              `Stok ${existingItem.name} tidak mencukupi. Sisa stok: ${existingItem.stock} ${existingItem.unit}`
+              `Stok ${existingItem.displayName || existingItem.name} tidak mencukupi. Sisa stok: ${existingItem.stock} ${existingItem.unit}`
             );
             return {
               success: false,
@@ -100,13 +108,13 @@ export const useCartStore = create(
           );
 
           if (isProduct && stockVal !== null && stockVal <= 0) {
-            get().setWarning(`Stok ${itemData.name} habis.`);
-            return { success: false, message: 'Stok produk habis.' };
+            get().setWarning(`Stok ${dName} habis.`);
+            return { success: false, message: 'Stok produk/varian habis.' };
           }
 
           if (isProduct && stockVal !== null && qtyToAdd > stockVal) {
             get().setWarning(
-              `Stok ${itemData.name} tidak mencukupi. Sisa stok: ${stockVal}`
+              `Stok ${dName} tidak mencukupi. Sisa stok: ${stockVal}`
             );
             return {
               success: false,
@@ -117,9 +125,13 @@ export const useCartStore = create(
           const newItem = {
             id: itemId,
             sourceType: isProduct ? 'product' : 'temporary',
-            productId: isProduct ? itemData.id : null,
+            productId: productId,
+            variantId: variantId,
             temporaryPriceId: !isProduct ? itemData.id : null,
-            name: itemData.name,
+            name: pName,
+            productName: pName,
+            variantName: vName,
+            displayName: dName,
             code: itemData.code || null,
             barcode: itemData.barcode || null,
             price: Number(itemData.selling_price || itemData.price) || 0,
@@ -128,7 +140,7 @@ export const useCartStore = create(
               itemData.unit?.name ||
               itemData.unit_name ||
               itemData.unitSymbol ||
-              'Item',
+              'Pcs',
             allowDecimal: allowDecimalVal,
             quantity: allowDecimalVal
               ? Math.round(qtyToAdd * 1000) / 1000
@@ -164,7 +176,7 @@ export const useCartStore = create(
           newQty > item.stock
         ) {
           get().setWarning(
-            `Stok ${item.name} maksimal ${item.stock} ${item.unit}`
+            `Stok ${item.displayName || item.name} maksimal ${item.stock} ${item.unit}`
           );
           return;
         }
@@ -225,7 +237,7 @@ export const useCartStore = create(
           val > item.stock
         ) {
           get().setWarning(
-            `Stok ${item.name} tidak mencukupi (Tersedia: ${item.stock} ${item.unit})`
+            `Stok ${item.displayName || item.name} tidak mencukupi (Tersedia: ${item.stock} ${item.unit})`
           );
           val = item.stock;
         }

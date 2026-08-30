@@ -11,6 +11,7 @@ export function ProductGrid({
   errorMessage = '',
   searchTerm = '',
   onAddToCart,
+  onOpenVariants,
   onRetry,
   onOpenUnregModal,
 }) {
@@ -84,6 +85,7 @@ export function ProductGrid({
           key={`${item.sourceType}-${item.id}`}
           item={item}
           onAddToCart={onAddToCart}
+          onOpenVariants={onOpenVariants}
         />
       ))}
     </div>

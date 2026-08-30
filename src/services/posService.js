@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 export const posService = {
   /**
-   * Mengambil seluruh produk aktif untuk antarmuka kasir
+   * Mengambil seluruh produk aktif untuk antarmuka kasir (termasuk varian)
    */
   async getPOSProducts({ search = '', categoryId = '' } = {}) {
     let query = supabase
@@ -16,6 +16,7 @@ export const posService = {
         stock,
         minimum_stock,
         status,
+        has_variants,
         category:categories (
           id,
           name
@@ -25,6 +26,23 @@ export const posService = {
           name,
           symbol,
           allow_decimal
+        ),
+        product_variants:product_variants (
+          id,
+          variant_name,
+          code,
+          barcode,
+          selling_price,
+          stock,
+          minimum_stock,
+          status,
+          unit_id,
+          unit:units (
+            id,
+            name,
+            symbol,
+            allow_decimal
+          )
         )
       `)
       .eq('status', true)
@@ -47,14 +65,72 @@ export const posService = {
       throw error;
     }
 
-    return (data || []).map((p) => ({
+    let results = data || [];
+
+    // Jika pencarian ada, cek juga apakah ada varian yang cocok
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const { data: matchedVariants } = await supabase
+        .from('product_variants')
+        .select('product_id')
+        .eq('status', true)
+        .or(`variant_name.ilike.%${cleanSearch}%,code.ilike.%${cleanSearch}%,barcode.ilike.%${cleanSearch}%`);
+
+      if (matchedVariants && matchedVariants.length > 0) {
+        const variantProductIds = matchedVariants.map((v) => v.product_id);
+        const missingIds = variantProductIds.filter((pid) => !results.some((r) => r.id === pid));
+
+        if (missingIds.length > 0) {
+          let extraQuery = supabase
+            .from('products')
+            .select(`
+              id,
+              code,
+              barcode,
+              name,
+              selling_price,
+              stock,
+              minimum_stock,
+              status,
+              has_variants,
+              category:categories (id, name),
+              unit:units (id, name, symbol, allow_decimal),
+              product_variants:product_variants (
+                id,
+                variant_name,
+                code,
+                barcode,
+                selling_price,
+                stock,
+                minimum_stock,
+                status,
+                unit_id,
+                unit:units (id, name, symbol, allow_decimal)
+              )
+            `)
+            .in('id', missingIds)
+            .eq('status', true);
+
+          if (categoryId) {
+            extraQuery = extraQuery.eq('category_id', categoryId);
+          }
+
+          const { data: extraProducts } = await extraQuery;
+          if (extraProducts) {
+            results = [...results, ...extraProducts];
+          }
+        }
+      }
+    }
+
+    return results.map((p) => ({
       ...p,
       sourceType: 'product',
     }));
   },
 
   /**
-   * Pencarian terpadu produk resmi + harga belum terdaftar untuk POS
+   * Pencarian terpadu produk resmi (dan varian) + harga belum terdaftar untuk POS
    */
   async searchPOSUnified(term = '') {
     if (!term || !term.trim()) {
@@ -64,22 +140,7 @@ export const posService = {
     const cleanTerm = term.trim();
 
     // 1. Query produk resmi
-    const productsPromise = supabase
-      .from('products')
-      .select(`
-        id,
-        code,
-        barcode,
-        name,
-        selling_price,
-        stock,
-        minimum_stock,
-        category:categories (id, name),
-        unit:units (id, name, symbol, allow_decimal)
-      `)
-      .eq('status', true)
-      .or(`name.ilike.%${cleanTerm}%,code.ilike.%${cleanTerm}%,barcode.ilike.%${cleanTerm}%`)
-      .order('name', { ascending: true });
+    const productsPromise = this.getPOSProducts({ search: cleanTerm });
 
     // 2. Query harga belum terdaftar
     const unregPromise = supabase
@@ -89,25 +150,9 @@ export const posService = {
       .or(`name.ilike.%${cleanTerm}%,barcode.ilike.%${cleanTerm}%`)
       .order('created_at', { ascending: false });
 
-    const [prodRes, unregRes] = await Promise.all([productsPromise, unregPromise]);
+    const [formattedProducts, unregRes] = await Promise.all([productsPromise, unregPromise]);
 
-    if (prodRes.error) throw prodRes.error;
     if (unregRes.error) throw unregRes.error;
-
-    const formattedProducts = (prodRes.data || []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      code: p.code,
-      barcode: p.barcode,
-      price: Number(p.selling_price) || 0,
-      stock: Number(p.stock) || 0,
-      minimumStock: Number(p.minimum_stock) || 0,
-      categoryName: p.category?.name || 'Umum',
-      unitSymbol: p.unit?.symbol || 'Item',
-      allowDecimal: Boolean(p.unit?.allow_decimal),
-      sourceType: 'product',
-      unit: p.unit,
-    }));
 
     const formattedUnreg = (unregRes.data || []).map((u) => ({
       id: u.id,
@@ -115,14 +160,18 @@ export const posService = {
       code: null,
       barcode: u.barcode,
       price: Number(u.selling_price) || 0,
+      selling_price: Number(u.selling_price) || 0,
       stock: null,
       minimumStock: 0,
+      minimum_stock: 0,
       categoryName: 'Belum Terdaftar',
+      category: { name: 'Belum Terdaftar' },
       unitSymbol: u.unit_name || 'Item',
       allowDecimal: false,
       sourceType: 'temporary',
       notes: u.notes,
       unit: { symbol: u.unit_name || 'Item', allow_decimal: false },
+      has_variants: false,
     }));
 
     return [...formattedProducts, ...formattedUnreg];

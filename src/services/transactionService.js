@@ -7,10 +7,13 @@ export const transactionService = {
    */
   async processSale({ items, paymentAmount, paymentMethod = 'cash', idempotencyKey }) {
     const payload = items.map((item) => ({
-      sourceType: item.sourceType,
+      sourceType: item.sourceType || 'product',
       productId: item.productId || null,
+      variantId: item.variantId || null,
       temporaryPriceId: item.temporaryPriceId || null,
-      name: item.name,
+      name: item.productName || item.name,
+      variantName: item.variantName || null,
+      displayName: item.displayName || (item.variantName ? `${item.name} - ${item.variantName}` : item.name),
       quantity: Number(item.quantity),
     }));
 
@@ -64,7 +67,6 @@ export const transactionService = {
       query = query.gte('transaction_date', dateFrom);
     }
     if (dateTo) {
-      // Tambah 1 hari agar mencakup akhir hari
       const toDate = new Date(dateTo);
       toDate.setDate(toDate.getDate() + 1);
       query = query.lt('transaction_date', toDate.toISOString());
@@ -106,6 +108,8 @@ export const transactionService = {
         transaction_items (
           id,
           item_name,
+          variant_name,
+          variant_id,
           unit_name,
           price,
           quantity,
@@ -119,6 +123,21 @@ export const transactionService = {
       .single();
 
     if (error) throw error;
+
+    // Normalisasi items agar kompatibel dengan view detail & struk
+    if (data && data.transaction_items) {
+      data.items = data.transaction_items.map((item) => ({
+        ...item,
+        product_name: item.variant_name
+          ? `${item.item_name} - ${item.variant_name}`
+          : item.item_name,
+        raw_product_name: item.item_name,
+        variant_name: item.variant_name,
+        unit_price: item.price,
+        unit_symbol: item.unit_name,
+      }));
+    }
+
     return data;
   },
 

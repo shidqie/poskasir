@@ -2,16 +2,42 @@ import React from 'react';
 import { formatRupiah } from '@/utils/formatters';
 import { StockBadge } from '@/components/common/StockBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { Plus, Barcode, AlertCircle } from 'lucide-react';
+import { Plus, Barcode, Layers, ChevronRight } from 'lucide-react';
 
-export function ProductCard({ item, onAddToCart }) {
-  const isProduct = item.sourceType === 'product';
-  const isOutOfStock = isProduct && Number(item.stock) <= 0;
+export function ProductCard({ item, onAddToCart, onOpenVariants }) {
+  const isProduct = item.sourceType === 'product' || !item.sourceType;
+  const hasVariants = Boolean(item.has_variants && item.product_variants?.length > 0);
+
+  // Perhitungan stok & harga untuk produk bervarian vs produk biasa
+  let isOutOfStock = false;
+  let displayPrice = item.selling_price || item.price;
+  let isPriceStarting = false;
+  let totalStock = Number(item.stock) || 0;
+  let minStock = item.minimum_stock ?? item.minimumStock ?? 0;
+
+  if (hasVariants) {
+    const variants = item.product_variants || [];
+    const prices = variants.map((v) => Number(v.selling_price) || 0);
+    const stocks = variants.map((v) => Number(v.stock) || 0);
+
+    totalStock = stocks.reduce((a, b) => a + b, 0);
+    displayPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    isPriceStarting = prices.length > 1;
+    isOutOfStock = totalStock <= 0;
+  } else if (isProduct) {
+    isOutOfStock = Number(item.stock) <= 0;
+  }
 
   const handleClick = () => {
     if (isOutOfStock) return;
-    onAddToCart(item);
+    if (hasVariants) {
+      if (onOpenVariants) onOpenVariants(item);
+    } else {
+      if (onAddToCart) onAddToCart(item);
+    }
   };
+
+  const unitSymbol = item.unit?.symbol || item.unitSymbol || item.unit_name || 'Pcs';
 
   return (
     <div
@@ -41,13 +67,18 @@ export function ProductCard({ item, onAddToCart }) {
             <StatusBadge status="unregistered" type="registration" />
           )}
 
-          {isProduct && (
+          {hasVariants ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200/80 shrink-0">
+              <Layers className="w-3 h-3 text-red-600" />
+              {item.product_variants.length} Varian
+            </span>
+          ) : isProduct ? (
             <StockBadge
               stock={item.stock}
-              minimumStock={item.minimum_stock ?? item.minimumStock}
-              unitSymbol={item.unit?.symbol || item.unitSymbol || ''}
+              minimumStock={minStock}
+              unitSymbol={unitSymbol}
             />
-          )}
+          ) : null}
         </div>
 
         {/* Product Name */}
@@ -62,23 +93,33 @@ export function ProductCard({ item, onAddToCart }) {
               {item.code}
             </span>
           )}
-          {item.barcode && (
+          {item.barcode && !hasVariants && (
             <span className="flex items-center gap-0.5 truncate max-w-[130px]">
               <Barcode className="w-3 h-3 text-slate-400 shrink-0" />
               {item.barcode}
             </span>
           )}
+          {hasVariants && (
+            <span className="text-slate-500 font-sans text-[11px]">
+              Total Stok: <strong className="text-slate-700">{totalStock} {unitSymbol}</strong>
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Price & Add Button Footer */}
+      {/* Price & Action Button Footer */}
       <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
         <div>
-          <span className="text-base sm:text-lg font-black text-slate-900">
-            {formatRupiah(item.selling_price || item.price)}
+          {hasVariants && isPriceStarting && (
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">
+              Mulai
+            </span>
+          )}
+          <span className="text-base sm:text-lg font-black text-slate-900 font-mono">
+            {formatRupiah(displayPrice)}
           </span>
           <span className="text-xs text-slate-500 font-medium ml-1">
-            /{item.unit?.symbol || item.unitSymbol || item.unit_name || 'Pcs'}
+            /{unitSymbol}
           </span>
         </div>
 
@@ -89,7 +130,7 @@ export function ProductCard({ item, onAddToCart }) {
               : 'bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white shadow-xs'
           }`}
         >
-          <Plus className="w-4 h-4" />
+          {hasVariants ? <ChevronRight className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
         </div>
       </div>
     </div>

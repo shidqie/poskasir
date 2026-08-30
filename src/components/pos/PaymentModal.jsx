@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, CreditCard, Banknote, QrCode, CheckCircle2, AlertCircle } from 'lucide-react';
+import { QRISDisplay } from '@/components/pos/QRISDisplay';
 
 const formatRupiah = (value) => {
   if (value === null || value === undefined || value === '') return '';
@@ -189,6 +190,11 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
                 </div>
               )}
             </div>
+          )}
+
+          {/* QRIS Display (Statis & Dinamis) */}
+          {paymentMethod === 'qris' && (
+            <QRISDisplay totalAmount={total} />
           )}
 
           {/* Kembalian / Ringkasan */}

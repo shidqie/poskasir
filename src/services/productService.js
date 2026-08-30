@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 export const productService = {
   /**
-   * Mengambil daftar barang dengan filter & pencarian
+   * Mengambil daftar barang dengan filter & pencarian (termasuk varian)
    */
   async getProducts({
     search = '',
@@ -15,7 +15,18 @@ export const productService = {
       .select(`
         *,
         category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal)
+        unit:units(id, name, symbol, allow_decimal),
+        product_variants:product_variants(
+          id,
+          variant_name,
+          code,
+          barcode,
+          selling_price,
+          stock,
+          minimum_stock,
+          status,
+          unit:units(id, name, symbol, allow_decimal)
+        )
       `)
       .order('created_at', { ascending: false });
 
@@ -29,7 +40,7 @@ export const productService = {
       query = query.eq('status', status === 'true' || status === true);
     }
 
-    // Pencarian nama / kode / barcode
+    // Pencarian nama / kode / barcode produk
     if (search.trim()) {
       const term = search.trim();
       query = query.or(
@@ -42,25 +53,87 @@ export const productService = {
 
     let results = data || [];
 
-    // Filter Stok pada client-side
+    // Jika search tidak cocok pada nama produk, cek apakah cocok pada nama/barcode varian
+    if (search.trim()) {
+      const termLower = search.trim().toLowerCase();
+      // Pastikan produk yang punya varian cocok juga diikutsertakan
+      const { data: matchedVariants } = await supabase
+        .from('product_variants')
+        .select('product_id')
+        .or(`variant_name.ilike.%${search.trim()}%,code.ilike.%${search.trim()}%,barcode.ilike.%${search.trim()}%`);
+
+      if (matchedVariants && matchedVariants.length > 0) {
+        const extraProductIds = matchedVariants.map((v) => v.product_id);
+        const missingIds = extraProductIds.filter((pid) => !results.some((r) => r.id === pid));
+
+        if (missingIds.length > 0) {
+          const { data: extraProducts } = await supabase
+            .from('products')
+            .select(`
+              *,
+              category:categories(id, name),
+              unit:units(id, name, symbol, allow_decimal),
+              product_variants:product_variants(
+                id,
+                variant_name,
+                code,
+                barcode,
+                selling_price,
+                stock,
+                minimum_stock,
+                status,
+                unit:units(id, name, symbol, allow_decimal)
+              )
+            `)
+            .in('id', missingIds);
+
+          if (extraProducts) {
+            results = [...results, ...extraProducts];
+          }
+        }
+      }
+    }
+
+    // Filter Stok pada client-side dengan memperhitungkan stok varian
     if (stockFilter === 'available') {
-      results = results.filter((p) => Number(p.stock) > Number(p.minimum_stock || 0));
+      results = results.filter((p) => {
+        if (p.has_variants && p.product_variants?.length > 0) {
+          const totalStock = p.product_variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
+          return totalStock > 0;
+        }
+        return Number(p.stock) > Number(p.minimum_stock || 0);
+      });
     } else if (stockFilter === 'low') {
-      results = results.filter(
-        (p) =>
+      results = results.filter((p) => {
+        if (p.has_variants && p.product_variants?.length > 0) {
+          return p.product_variants.some(
+            (v) =>
+              Number(v.stock) > 0 &&
+              Number(v.minimum_stock) > 0 &&
+              Number(v.stock) <= Number(v.minimum_stock)
+          );
+        }
+        return (
           Number(p.stock) > 0 &&
           Number(p.minimum_stock) > 0 &&
           Number(p.stock) <= Number(p.minimum_stock)
-      );
+        );
+      });
     } else if (stockFilter === 'out_of_stock') {
-      results = results.filter((p) => Number(p.stock) <= 0);
+      results = results.filter((p) => {
+        if (p.has_variants && p.product_variants?.length > 0) {
+          const totalStock = p.product_variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
+          return totalStock <= 0;
+        }
+        return Number(p.stock) <= 0;
+      });
     }
 
     return results;
   },
 
   /**
-   * Mengambil satu produk berdasarkan ID
+   * Mengambil satu produk berdasarkan ID beserta seluruh variannya
    */
   async getProductById(id) {
     const { data, error } = await supabase
@@ -68,7 +141,19 @@ export const productService = {
       .select(`
         *,
         category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal)
+        unit:units(id, name, symbol, allow_decimal),
+        product_variants:product_variants(
+          id,
+          variant_name,
+          code,
+          barcode,
+          selling_price,
+          stock,
+          minimum_stock,
+          status,
+          unit_id,
+          unit:units(id, name, symbol, allow_decimal)
+        )
       `)
       .eq('id', id)
       .single();
@@ -88,7 +173,6 @@ export const productService = {
       console.warn('[ProductService] Fallback generate code:', e);
     }
 
-    // Fallback jika RPC belum ada di database
     const { count } = await supabase
       .from('products')
       .select('*', { count: 'exact', head: true });
@@ -103,6 +187,7 @@ export const productService = {
   async checkBarcodeExists(barcode, excludeProductId = null) {
     if (!barcode || !barcode.trim()) return false;
 
+    // Cek di products
     let query = supabase
       .from('products')
       .select('id, name')
@@ -113,11 +198,27 @@ export const productService = {
     }
 
     const { data } = await query.maybeSingle();
-    return data;
+    if (data) return data;
+
+    // Cek di product_variants
+    const { data: variantData } = await supabase
+      .from('product_variants')
+      .select('id, variant_name, product:products(name)')
+      .eq('barcode', barcode.trim())
+      .maybeSingle();
+
+    if (variantData) {
+      return {
+        id: variantData.id,
+        name: `${variantData.product?.name || 'Produk'} (${variantData.variant_name})`,
+      };
+    }
+
+    return false;
   },
 
   /**
-   * Menambah barang baru
+   * Menambah barang baru (dengan atau tanpa varian)
    */
   async createProduct({
     name,
@@ -125,18 +226,27 @@ export const productService = {
     barcode,
     category_id,
     unit_id,
-    selling_price,
+    selling_price = 0,
     stock = 0,
     minimum_stock = 0,
     status = true,
+    has_variants = false,
+    variants = [],
   }) {
     const trimmedName = name?.trim();
     if (!trimmedName) throw new Error('Nama barang wajib diisi.');
     if (!category_id) throw new Error('Kategori wajib dipilih.');
     if (!unit_id) throw new Error('Satuan wajib dipilih.');
-    if (Number(selling_price) < 0) throw new Error('Harga jual tidak boleh bernilai negatif.');
-    if (Number(stock) < 0) throw new Error('Jumlah stok tidak boleh bernilai negatif.');
-    if (Number(minimum_stock) < 0) throw new Error('Stok minimum tidak boleh bernilai negatif.');
+
+    if (has_variants) {
+      if (!variants || variants.length === 0) {
+        throw new Error('Produk dengan varian harus memiliki minimal 1 varian.');
+      }
+    } else {
+      if (Number(selling_price) < 0) throw new Error('Harga jual tidak boleh bernilai negatif.');
+      if (Number(stock) < 0) throw new Error('Jumlah stok tidak boleh bernilai negatif.');
+      if (Number(minimum_stock) < 0) throw new Error('Stok minimum tidak boleh bernilai negatif.');
+    }
 
     const trimmedBarcode = barcode?.trim() || null;
 
@@ -145,15 +255,13 @@ export const productService = {
       const existingProduct = await this.checkBarcodeExists(trimmedBarcode);
       if (existingProduct) {
         throw new Error(
-          `Barcode "${trimmedBarcode}" sudah digunakan oleh barang "${existingProduct.name}".`
+          `Barcode "${trimmedBarcode}" sudah digunakan oleh "${existingProduct.name}".`
         );
       }
     }
 
-    // Generate kode jika tidak disediakan
     const productCode = code?.trim() || (await this.getNextProductCode());
 
-    // Ambil user ID aktif
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -164,15 +272,16 @@ export const productService = {
       barcode: trimmedBarcode,
       category_id,
       unit_id,
-      selling_price: Number(selling_price) || 0,
-      stock: Number(stock) || 0,
-      minimum_stock: Number(minimum_stock) || 0,
+      selling_price: has_variants ? 0 : Number(selling_price) || 0,
+      stock: has_variants ? 0 : Number(stock) || 0,
+      minimum_stock: has_variants ? 0 : Number(minimum_stock) || 0,
       status: Boolean(status),
+      has_variants: Boolean(has_variants),
       created_by: user?.id || null,
       updated_by: user?.id || null,
     };
 
-    const { data, error } = await supabase
+    const { data: createdProduct, error } = await supabase
       .from('products')
       .insert([insertData])
       .select(`
@@ -192,11 +301,32 @@ export const productService = {
       throw error;
     }
 
-    return data;
+    // Jika memiliki varian, simpan seluruh varian
+    if (has_variants && variants.length > 0) {
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        const vCode = v.code || `${productCode}-V${i + 1}`;
+        await supabase.from('product_variants').insert({
+          product_id: createdProduct.id,
+          variant_name: v.variant_name.trim(),
+          code: vCode,
+          barcode: v.barcode?.trim() || null,
+          selling_price: Number(v.selling_price) || 0,
+          stock: Number(v.stock) || 0,
+          minimum_stock: Number(v.minimum_stock) || 0,
+          unit_id: v.unit_id || unit_id,
+          status: v.status !== undefined ? v.status : true,
+          created_by: user?.id || null,
+          updated_by: user?.id || null,
+        });
+      }
+    }
+
+    return createdProduct;
   },
 
   /**
-   * Mengubah data barang
+   * Mengubah data produk utama
    */
   async updateProduct(
     id,
@@ -209,6 +339,7 @@ export const productService = {
       stock,
       minimum_stock,
       status,
+      has_variants,
     }
   ) {
     const updateData = {};
@@ -225,7 +356,7 @@ export const productService = {
         const existing = await this.checkBarcodeExists(trimmedBarcode, id);
         if (existing) {
           throw new Error(
-            `Barcode "${trimmedBarcode}" sudah digunakan oleh barang "${existing.name}".`
+            `Barcode "${trimmedBarcode}" sudah digunakan oleh "${existing.name}".`
           );
         }
       }
@@ -234,19 +365,11 @@ export const productService = {
 
     if (category_id !== undefined) updateData.category_id = category_id;
     if (unit_id !== undefined) updateData.unit_id = unit_id;
-    if (selling_price !== undefined) {
-      if (Number(selling_price) < 0) throw new Error('Harga jual tidak boleh negatif.');
-      updateData.selling_price = Number(selling_price);
-    }
-    if (stock !== undefined) {
-      if (Number(stock) < 0) throw new Error('Stok tidak boleh negatif.');
-      updateData.stock = Number(stock);
-    }
-    if (minimum_stock !== undefined) {
-      if (Number(minimum_stock) < 0) throw new Error('Stok minimum tidak boleh negatif.');
-      updateData.minimum_stock = Number(minimum_stock);
-    }
+    if (selling_price !== undefined) updateData.selling_price = Number(selling_price);
+    if (stock !== undefined) updateData.stock = Number(stock);
+    if (minimum_stock !== undefined) updateData.minimum_stock = Number(minimum_stock);
     if (status !== undefined) updateData.status = Boolean(status);
+    if (has_variants !== undefined) updateData.has_variants = Boolean(has_variants);
 
     const {
       data: { user },
@@ -260,7 +383,18 @@ export const productService = {
       .select(`
         *,
         category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal)
+        unit:units(id, name, symbol, allow_decimal),
+        product_variants:product_variants(
+          id,
+          variant_name,
+          code,
+          barcode,
+          selling_price,
+          stock,
+          minimum_stock,
+          status,
+          unit:units(id, name, symbol, allow_decimal)
+        )
       `)
       .single();
 

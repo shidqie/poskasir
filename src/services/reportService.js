@@ -73,21 +73,23 @@ export const reportService = {
   },
 
   /**
-   * Barang terlaris
+   * Barang & varian terlaris
    */
   async getTopProducts(limit = 10) {
     const { data, error } = await supabase
       .from('transaction_items')
-      .select('item_name, quantity, subtotal, source_type')
+      .select('item_name, variant_name, quantity, subtotal, source_type')
       .limit(500);
 
     if (error) throw error;
 
     const grouped = (data || []).reduce((acc, item) => {
-      const name = item.item_name;
-      if (!acc[name]) acc[name] = { name, totalQty: 0, totalRevenue: 0 };
-      acc[name].totalQty += Number(item.quantity);
-      acc[name].totalRevenue += Number(item.subtotal);
+      const displayName = item.variant_name
+        ? `${item.item_name} - ${item.variant_name}`
+        : item.item_name;
+      if (!acc[displayName]) acc[displayName] = { name: displayName, totalQty: 0, totalRevenue: 0 };
+      acc[displayName].totalQty += Number(item.quantity);
+      acc[displayName].totalRevenue += Number(item.subtotal);
       return acc;
     }, {});
 

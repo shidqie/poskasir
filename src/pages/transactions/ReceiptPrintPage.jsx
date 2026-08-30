@@ -89,7 +89,9 @@ export default function ReceiptPrintPage() {
         {/* Daftar Item */}
         {items.map((item, idx) => (
           <div key={item.id || idx} style={{ marginBottom: '4px' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11px' }}>{item.item_name}</div>
+            <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
+              {item.variant_name ? `${item.item_name} - ${item.variant_name}` : item.item_name}
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#444' }}>
               <span>{Number(item.quantity)} {item.unit_name} × Rp{Number(item.price).toLocaleString('id-ID')}</span>
               <span style={{ fontWeight: 'bold', color: '#111' }}>Rp{Number(item.subtotal).toLocaleString('id-ID')}</span>
@@ -134,12 +136,13 @@ export default function ReceiptPrintPage() {
           onClick={() => window.close()}
           style={{
             padding: '8px 24px',
-            background: '#3b82f6',
+            background: '#dc2626',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '13px',
+            fontWeight: 'bold',
           }}
         >
           Tutup Tab

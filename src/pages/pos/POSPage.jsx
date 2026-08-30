@@ -16,6 +16,7 @@ import { ProductGrid } from '@/components/pos/ProductGrid';
 import { CartPanel } from '@/components/pos/CartPanel';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
 import { BarcodeNotFoundModal } from '@/components/pos/BarcodeNotFoundModal';
+import { VariantSelectorModal } from '@/components/pos/VariantSelectorModal';
 import PaymentModal from '@/components/pos/PaymentModal';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
 import { UnregisteredPriceModal } from '@/components/prices/UnregisteredPriceModal';
@@ -37,6 +38,8 @@ export function POSPage() {
   const [unregInitialData, setUnregInitialData] = useState(null);
   const [notFoundBarcode, setNotFoundBarcode] = useState('');
   const [isNotFoundModalOpen, setIsNotFoundModalOpen] = useState(false);
+  const [variantModalProduct, setVariantModalProduct] = useState(null);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Cart Zustand Store
@@ -110,9 +113,12 @@ export function POSPage() {
       transactionService.processSale({
         items: items.map((item) => ({
           sourceType: item.sourceType || 'product',
-          productId: item.sourceType !== 'temporary' ? item.id : null,
-          temporaryPriceId: item.sourceType === 'temporary' ? item.id : null,
-          name: item.name,
+          productId: item.productId || (item.sourceType !== 'temporary' ? item.id : null),
+          variantId: item.variantId || null,
+          temporaryPriceId: item.temporaryPriceId || (item.sourceType === 'temporary' ? item.id : null),
+          name: item.productName || item.name,
+          variantName: item.variantName || null,
+          displayName: item.displayName || item.name,
           quantity: Number(item.quantity),
         })),
         paymentAmount,
@@ -168,6 +174,43 @@ export function POSPage() {
     }
   };
 
+  const handleOpenVariants = (product) => {
+    setVariantModalProduct(product);
+    setIsVariantModalOpen(true);
+  };
+
+  const handleSelectVariant = (product, variant) => {
+    const res = addItem({
+      sourceType: 'product',
+      productId: product.id,
+      variantId: variant.id,
+      name: product.name,
+      productName: product.name,
+      variantName: variant.variant_name,
+      displayName: `${product.name} - ${variant.variant_name}`,
+      selling_price: variant.selling_price,
+      stock: variant.stock,
+      minimum_stock: variant.minimum_stock,
+      code: variant.code,
+      barcode: variant.barcode,
+      unit: variant.unit || product.unit,
+      allowDecimal: Boolean(
+        variant.unit?.allow_decimal || product.unit?.allow_decimal
+      ),
+    });
+
+    if (res?.success) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(30);
+      }
+      setToast({
+        isOpen: true,
+        message: `${product.name} (${variant.variant_name}) dimasukkan ke keranjang.`,
+        type: 'success',
+      });
+    }
+  };
+
   const handleScanSuccess = async (barcodeText) => {
     try {
       const result = await barcodeService.lookupBarcode(barcodeText);
@@ -176,7 +219,7 @@ export function POSPage() {
         addItem(result.data, 1);
         setToast({
           isOpen: true,
-          message: `${result.data.name} dimasukkan ke keranjang.`,
+          message: `${result.data.displayName || result.data.name} dimasukkan ke keranjang.`,
           type: 'success',
         });
       } else {
@@ -223,6 +266,7 @@ export function POSPage() {
               errorMessage={error?.message}
               searchTerm={searchTerm}
               onAddToCart={handleAddToCart}
+              onOpenVariants={handleOpenVariants}
               onRetry={() => refetch()}
               onOpenUnregModal={() => handleOpenAddUnreg({ name: searchTerm })}
             />
@@ -295,6 +339,17 @@ export function POSPage() {
         initialData={unregInitialData}
         onSubmit={(data) => addUnregMutation.mutateAsync(data)}
         isLoading={addUnregMutation.isPending}
+      />
+
+      {/* Modal Pilih Varian Produk */}
+      <VariantSelectorModal
+        isOpen={isVariantModalOpen}
+        onClose={() => {
+          setIsVariantModalOpen(false);
+          setVariantModalProduct(null);
+        }}
+        product={variantModalProduct}
+        onSelectVariant={handleSelectVariant}
       />
 
       {/* Modal Pembayaran Aktif */}

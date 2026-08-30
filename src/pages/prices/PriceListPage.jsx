@@ -165,7 +165,7 @@ export function PriceListPage({ isOwnerView = false }) {
 
               return (
                 <div
-                  key={`${item.sourceType}-${item.id}`}
+                  key={`${item.sourceType}-${item.id}-${item.variantId || 'main'}`}
                   className={`p-5 rounded-2xl border transition-all hover:shadow-md bg-white flex flex-col justify-between ${
                     isRegistered
                       ? 'border-slate-200/90 shadow-xs'
