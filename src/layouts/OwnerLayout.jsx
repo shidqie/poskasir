@@ -37,7 +37,7 @@ export function OwnerLayout() {
     },
     {
       label: 'Terminal Kasir / POS',
-      to: '/pos',
+      to: '/owner/pos',
       icon: Store,
     },
     {
