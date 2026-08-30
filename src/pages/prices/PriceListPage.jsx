@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
 import { UnregisteredPriceModal } from '@/components/prices/UnregisteredPriceModal';
+import { ConvertToProductModal } from '@/pages/owner/unregistered/ConvertToProductModal';
 import { formatRupiah } from '@/utils/formatters';
 import {
   Tags,
@@ -18,12 +19,14 @@ import {
   Layers,
   AlertCircle,
   HelpCircle,
+  Sparkles,
 } from 'lucide-react';
 
 export function PriceListPage({ isOwnerView = false }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [convertModal, setConvertModal] = useState({ isOpen: false, item: null });
   const [toast, setToast] = useState({ isOpen: false, message: '', type: 'success' });
 
   // Query Pencarian Harga Terpadu
@@ -46,6 +49,22 @@ export function PriceListPage({ isOwnerView = false }) {
       setToast({
         isOpen: true,
         message: 'Harga barang berhasil dicatat ke Daftar Harga!',
+        type: 'success',
+      });
+    },
+  });
+
+  // Mutation Konversi ke Data Barang Resmi
+  const convertMutation = useMutation({
+    mutationFn: ({ id, productData }) =>
+      unregisteredPriceService.convertToProduct(id, productData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prices'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['unregistered-prices'] });
+      setToast({
+        isOpen: true,
+        message: 'Barang berhasil didaftarkan ke Data Master Barang!',
         type: 'success',
       });
     },
@@ -207,6 +226,32 @@ export function PriceListPage({ isOwnerView = false }) {
                       </span>
                     )}
                   </div>
+
+                  {/* Tombol Jadikan Data Barang Resmi (Khusus Pemilik) */}
+                  {isOwnerView && !isRegistered && (
+                    <div className="mt-3 pt-3 border-t border-amber-200/60">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        icon={Sparkles}
+                        onClick={() =>
+                          setConvertModal({
+                            isOpen: true,
+                            item: {
+                              id: item.id,
+                              name: item.name,
+                              selling_price: item.price,
+                              barcode: item.barcode,
+                              unit_name: item.unitSymbol,
+                            },
+                          })
+                        }
+                        className="w-full text-xs py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm"
+                      >
+                        Jadikan Data Barang Resmi
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -221,6 +266,17 @@ export function PriceListPage({ isOwnerView = false }) {
         onSubmit={(data) => addMutation.mutateAsync(data)}
         initialData={search ? { name: search } : null}
         isLoading={addMutation.isPending}
+      />
+
+      {/* Modal Konversi ke Data Barang Resmi (Khusus Pemilik) */}
+      <ConvertToProductModal
+        isOpen={convertModal.isOpen}
+        onClose={() => setConvertModal({ isOpen: false, item: null })}
+        unregisteredItem={convertModal.item}
+        onSubmit={(id, productData) =>
+          convertMutation.mutateAsync({ id, productData })
+        }
+        isLoading={convertMutation.isPending}
       />
 
       {/* Toast Feedback */}
