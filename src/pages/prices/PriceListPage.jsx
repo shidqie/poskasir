@@ -13,6 +13,7 @@ import { UnregisteredPriceModal } from '@/components/prices/UnregisteredPriceMod
 import { ConvertToProductModal } from '@/pages/owner/unregistered/ConvertToProductModal';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
 import { formatRupiah } from '@/utils/formatters';
+import { getProductCategoryTheme, getProductDummyImage } from '@/utils/dummyImages';
 import {
   Tags,
   Search,
@@ -23,7 +24,121 @@ import {
   Sparkles,
   Camera,
   X,
+  Package,
 } from 'lucide-react';
+
+function PriceItemCard({ item, isOwnerView, onConvert }) {
+  const [imgError, setImgError] = useState(false);
+  const isRegistered = item.sourceType === 'registered';
+  const categoryName = item.categoryName || 'Sembako';
+  const theme = getProductCategoryTheme(item.name, categoryName);
+  const IconComponent = theme.Icon;
+  const imageUrl = item.image_url || getProductDummyImage(item.name, categoryName);
+
+  return (
+    <div
+      className={`p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-md bg-white flex flex-col justify-between ${
+        isRegistered
+          ? 'border-slate-200/90 shadow-xs hover:border-red-300'
+          : 'border-amber-200/90 bg-amber-50/20 shadow-xs hover:border-amber-400'
+      }`}
+    >
+      <div>
+        {/* Product Thumbnail & Overlay Badges */}
+        <div
+          className={`relative w-full h-24 sm:h-28 rounded-xl overflow-hidden mb-2 bg-gradient-to-br ${theme.bgGradient} flex items-center justify-center`}
+        >
+          {!imgError ? (
+            <img
+              src={imageUrl}
+              alt={item.name}
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-white drop-shadow-xs">
+              <div className="p-2 rounded-xl bg-white/20 backdrop-blur-xs mb-1">
+                <IconComponent className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-[10px] font-black tracking-wider uppercase opacity-90">
+                {theme.tag}
+              </span>
+            </div>
+          )}
+
+          {/* Top-Left Category Pill */}
+          <div className="absolute top-1.5 left-1.5 max-w-[85px]">
+            <span className="inline-block truncate px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-black/60 text-white backdrop-blur-xs shadow-xs">
+              {categoryName}
+            </span>
+          </div>
+
+          {/* Top-Right Status Badge */}
+          <div className="absolute top-1.5 right-1.5">
+            <StatusBadge
+              status={isRegistered ? 'registered' : 'unregistered'}
+              type="registration"
+            />
+          </div>
+        </div>
+
+        {/* Nama Barang */}
+        <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2">
+          {item.name}
+        </h3>
+
+        {/* Barcode & Kode */}
+        <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px] font-mono text-slate-500">
+          {item.code && (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[9px] border border-slate-200/80">
+              {item.code}
+            </span>
+          )}
+          {item.barcode && (
+            <span className="flex items-center gap-0.5 text-slate-500 text-[9px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 truncate max-w-[110px]">
+              <Barcode className="w-2.5 h-2.5 text-slate-400" />
+              {item.barcode}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Harga & Satuan Footer */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-baseline justify-between">
+        <div>
+          <span className="text-sm sm:text-base font-black text-slate-900 font-mono">
+            {formatRupiah(item.price)}
+          </span>
+          <span className="text-[10px] text-slate-500 font-medium ml-1">
+            /{item.unitSymbol || 'Pcs'}
+          </span>
+        </div>
+
+        {item.notes && (
+          <span className="text-[9px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-medium italic line-clamp-1 max-w-[90px]">
+            {item.notes}
+          </span>
+        )}
+      </div>
+
+      {/* Tombol Jadikan Data Barang Resmi (Khusus Pemilik) */}
+      {isOwnerView && !isRegistered && (
+        <div className="mt-2.5 pt-2 border-t border-amber-200/60">
+          <Button
+            size="sm"
+            variant="primary"
+            icon={Sparkles}
+            onClick={() => onConvert(item)}
+            className="w-full text-[11px] py-1.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 shadow-xs font-bold text-white rounded-xl"
+          >
+            Jadikan Data Barang Resmi
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PriceListPage({ isOwnerView = false }) {
   const queryClient = useQueryClient();
@@ -186,111 +301,26 @@ export function PriceListPage({ isOwnerView = false }) {
             onAction={() => setIsAddModalOpen(true)}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {items.map((item) => {
-              const isRegistered = item.sourceType === 'registered';
-              const imageUrl = getProductDummyImage(item.name, item.categoryName, item.image_url);
-
-              return (
-                <div
-                  key={`${item.sourceType}-${item.id}-${item.variantId || 'main'}`}
-                  className={`p-3 sm:p-4 rounded-2xl border transition-all duration-200 hover:shadow-md bg-white flex flex-col justify-between ${
-                    isRegistered
-                      ? 'border-slate-200/90 shadow-xs hover:border-red-300'
-                      : 'border-amber-200/90 bg-amber-50/20 shadow-xs hover:border-amber-400'
-                  }`}
-                >
-                  <div>
-                    {/* Product Thumbnail & Overlay Badges */}
-                    <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden bg-slate-100 mb-2.5 border border-slate-100">
-                      <img
-                        src={imageUrl}
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      {/* Top-Left Category Pill */}
-                      <div className="absolute top-2 left-2 max-w-[120px]">
-                        <span className="inline-block truncate px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/65 text-white backdrop-blur-xs shadow-xs">
-                          {item.categoryName}
-                        </span>
-                      </div>
-                      {/* Top-Right Status Badge */}
-                      <div className="absolute top-2 right-2">
-                        <StatusBadge
-                          status={isRegistered ? 'registered' : 'unregistered'}
-                          type="registration"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Nama Barang */}
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug line-clamp-2">
-                      {item.name}
-                    </h3>
-
-                    {/* Barcode & Kode */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-slate-500 pt-1">
-                      {item.code && (
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200/80 text-[10px]">
-                          {item.code}
-                        </span>
-                      )}
-                      {item.barcode && (
-                        <span className="flex items-center gap-1 text-slate-500 text-[10px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60">
-                          <Barcode className="w-3 h-3 text-slate-400" />
-                          {item.barcode}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Harga & Satuan Footer */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-baseline justify-between">
-                    <div>
-                      <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
-                        {formatRupiah(item.price)}
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium ml-1">
-                        /{item.unitSymbol}
-                      </span>
-                    </div>
-
-                    {item.notes && (
-                      <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-medium italic line-clamp-1 max-w-[110px]">
-                        {item.notes}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Tombol Jadikan Data Barang Resmi (Khusus Pemilik) */}
-                  {isOwnerView && !isRegistered && (
-                    <div className="mt-3 pt-3 border-t border-amber-200/60">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        icon={Sparkles}
-                        onClick={() =>
-                          setConvertModal({
-                            isOpen: true,
-                            item: {
-                              id: item.id,
-                              name: item.name,
-                              selling_price: item.price,
-                              barcode: item.barcode,
-                              unit_name: item.unitSymbol,
-                            },
-                          })
-                        }
-                        className="w-full text-xs py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 shadow-sm shadow-red-500/25 font-bold text-white rounded-xl"
-                      >
-                        Jadikan Data Barang Resmi
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            {items.map((item) => (
+              <PriceItemCard
+                key={`${item.sourceType}-${item.id}-${item.variantId || 'main'}`}
+                item={item}
+                isOwnerView={isOwnerView}
+                onConvert={(it) =>
+                  setConvertModal({
+                    isOpen: true,
+                    item: {
+                      id: it.id,
+                      name: it.name,
+                      selling_price: it.price,
+                      barcode: it.barcode,
+                      unit_name: it.unitSymbol,
+                    },
+                  })
+                }
+              />
+            ))}
           </div>
         )}
       </div>
