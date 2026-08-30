@@ -48,6 +48,12 @@ export function POSPage() {
   const [isNotFoundModalOpen, setIsNotFoundModalOpen] = useState(false);
   const [variantModalProduct, setVariantModalProduct] = useState(null);
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [saleUnitModalState, setSaleUnitModalState] = useState({
+    isOpen: false,
+    product: null,
+    variant: null,
+    saleUnits: [],
+  });
   const [isOpenCashierOpen, setIsOpenCashierOpen] = useState(false);
   const [cashMovementModalState, setCashMovementModalState] = useState({
     isOpen: false,
