@@ -1,6 +1,14 @@
 import { supabase } from '@/lib/supabase';
 import { productService } from './productService';
 
+const cleanSubmissionId = (id) => {
+  if (!id) return id;
+  if (typeof id === 'string' && id.startsWith('sub-')) {
+    return id.replace('sub-', '');
+  }
+  return id;
+};
+
 export const productSubmissionService = {
   /**
    * Mengambil daftar pengajuan barang
@@ -75,6 +83,7 @@ export const productSubmissionService = {
    * Mengambil detail satu pengajuan berdasarkan ID
    */
   async getSubmissionById(id) {
+    const cleanId = cleanSubmissionId(id);
     const { data, error } = await supabase
       .from('product_submissions')
       .select(`
@@ -86,10 +95,19 @@ export const productSubmissionService = {
         unit:units!unit_id(id, name, symbol),
         category:categories!category_id(id, name)
       `)
-      .eq('id', id)
+      .eq('id', cleanId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Fallback simple query
+      const { data: fallback, error: fallbackErr } = await supabase
+        .from('product_submissions')
+        .select('*')
+        .eq('id', cleanId)
+        .single();
+      if (fallbackErr) throw fallbackErr;
+      return fallback;
+    }
     return data;
   },
 
@@ -390,6 +408,7 @@ export const productSubmissionService = {
     unit_id,
     notes,
   }) {
+    const cleanId = cleanSubmissionId(id);
     const updatePayload = {};
     if (name !== undefined) updatePayload.name = name.trim();
     if (variant_name !== undefined) updatePayload.variant_name = variant_name?.trim() || null;
@@ -403,7 +422,7 @@ export const productSubmissionService = {
     const { data, error } = await supabase
       .from('product_submissions')
       .update(updatePayload)
-      .eq('id', id)
+      .eq('id', cleanId)
       .select(`
         *,
         submitter:profiles!submitted_by(id, full_name, role),
@@ -426,10 +445,11 @@ export const productSubmissionService = {
    * Menghapus pengajuan barang (dapat dilakukan oleh Pemilik)
    */
   async deleteSubmission(id) {
+    const cleanId = cleanSubmissionId(id);
     const { error } = await supabase
       .from('product_submissions')
       .delete()
-      .eq('id', id);
+      .eq('id', cleanId);
     if (error) {
       console.error('[productSubmissionService] deleteSubmission error:', error);
       throw error;
@@ -442,10 +462,11 @@ export const productSubmissionService = {
    */
   async bulkDeleteSubmissions(ids) {
     if (!ids || ids.length === 0) return true;
+    const cleanIds = ids.map(cleanSubmissionId);
     const { error } = await supabase
       .from('product_submissions')
       .delete()
-      .in('id', ids);
+      .in('id', cleanIds);
     if (error) {
       console.error('[productSubmissionService] bulkDeleteSubmissions error:', error);
       throw error;

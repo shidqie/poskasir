@@ -192,6 +192,7 @@ export const priceService = {
     // Format Pengajuan Pending
     const formattedSubmissions = (submissionsRes.data || []).map((sub) => ({
       id: `sub-${sub.id}`,
+      submissionId: sub.id,
       productId: null,
       variantId: null,
       sourceType: 'unregistered',
@@ -212,6 +213,7 @@ export const priceService = {
       hasVariants: false,
       sale_units: [],
       raw: sub,
+      rawSubmission: sub,
     }));
 
     return [...formattedProducts, ...formattedSubmissions];

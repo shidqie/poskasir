@@ -168,7 +168,7 @@ function PriceItemCard({ item, isOwnerView, onConvert, onDetail, onEdit }) {
               <Button
                 type="button"
                 variant="primary"
-                onClick={() => onConvert(item.rawSubmission)}
+                onClick={() => onConvert(item.rawSubmission || item.raw || item)}
                 className="py-1 px-2.5 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-xs cursor-pointer"
               >
                 Setujui

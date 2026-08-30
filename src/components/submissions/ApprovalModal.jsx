@@ -97,13 +97,24 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
 
   const approveMutation = useMutation({
     mutationFn: async () => {
+      const targetSubId =
+        submission?.rawSubmission?.id ||
+        submission?.raw?.id ||
+        (typeof submission?.id === 'string' && submission?.id.startsWith('sub-')
+          ? submission.id.replace('sub-', '')
+          : submission?.id);
+
+      if (!targetSubId) {
+        throw new Error('ID pengajuan barang tidak valid.');
+      }
+
       // 1. Update nama / varian / harga jika diubah oleh owner
       if (
         name !== submission.name ||
         variantName !== submission.variant_name ||
         parseRaw(sellingPrice) !== submission.selling_price
       ) {
-        await productSubmissionService.updateSubmission(submission.id, {
+        await productSubmissionService.updateSubmission(targetSubId, {
           name,
           variant_name: isVariant ? variantName : null,
           selling_price: parseRaw(sellingPrice),
@@ -115,7 +126,7 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
 
       // 2. Setujui secara resmi
       return productSubmissionService.approveSubmission({
-        submission_id: submission.id,
+        submission_id: targetSubId,
         category_id: categoryId || null,
         unit_id: unitId || null,
         cost_price: parseRaw(costPrice),
@@ -131,6 +142,8 @@ export function ApprovalModal({ isOpen, onClose, submission, onSuccess }) {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['product-variants'] });
       queryClient.invalidateQueries({ queryKey: ['price-list'] });
+      queryClient.invalidateQueries({ queryKey: ['my-product-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['pos-products'] });
       if (onSuccess) onSuccess(data);
       onClose();
     },
