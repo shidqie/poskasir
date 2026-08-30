@@ -44,3 +44,41 @@
     background: #ef4444;
   }
 }
+
+/* ========================================================================= */
+/* BARCODE CAMERA SCANNER VIEWPORT RESPONSIVE FIXES                          */
+/* ========================================================================= */
+#reader-viewport {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border-radius: 1rem !important;
+}
+
+#reader-viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 1rem !important;
+  display: block !important;
+}
+
+#reader-viewport #reader-viewport__scan_region {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+#reader-viewport #reader-viewport__dashboard_section_csr,
+#reader-viewport #reader-viewport__dashboard_section_swaplink,
+#reader-viewport #reader-viewport__header_message {
+  display: none !important;
+}
+
+#reader-viewport img {
+  display: none !important;
+}
