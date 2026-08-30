@@ -13,7 +13,6 @@ import {
   AlertCircle,
   ShieldCheck,
   UserCheck,
-  Sparkles,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -82,44 +81,6 @@ export function LoginPage() {
       } else {
         setFormError(result.error || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.');
       }
-    }
-  };
-
-  // Quick 1-click register & login for Demo accounts
-  const handleQuickRegister = async (demoRole) => {
-    setFormError('');
-    setSuccessMessage('');
-    const demoEmail = demoRole === 'owner' ? 'pemilik@toko.com' : 'kasir@toko.com';
-    const demoPass = 'password123';
-    const demoName = demoRole === 'owner' ? 'Haji Sulaeman (Pemilik)' : 'Siti Rahma (Kasir 1)';
-
-    setEmail(demoEmail);
-    setPassword(demoPass);
-
-    // Coba login dulu
-    let result = await login(demoEmail, demoPass);
-    if (result.success) {
-      if (result.role === 'owner') navigate('/owner/dashboard', { replace: true });
-      else navigate('/cashier/dashboard', { replace: true });
-      return;
-    }
-
-    // Jika belum ada, buat langsung via SignUp
-    result = await signUp({
-      email: demoEmail,
-      password: demoPass,
-      fullName: demoName,
-      role: demoRole,
-    });
-
-    if (result.success) {
-      setSuccessMessage(`Akun ${demoRole === 'owner' ? 'Pemilik' : 'Kasir'} berhasil dibuat! Mengalihkan...`);
-      setTimeout(() => {
-        if (demoRole === 'owner') navigate('/owner/dashboard', { replace: true });
-        else navigate('/cashier/dashboard', { replace: true });
-      }, 800);
-    } else {
-      setFormError(result.error);
     }
   };
 
@@ -321,45 +282,6 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
-
-          {/* 1-Click Quick Demo Accounts */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2.5 flex items-center justify-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-red-500" />
-              1-Klik Masuk / Setup Akun Demo
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickRegister('owner')}
-                disabled={isLoading}
-                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50/50 text-left transition-all group disabled:opacity-50"
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-red-600">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Akun Pemilik</span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-0.5 truncate font-mono">
-                  pemilik@toko.com
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickRegister('cashier')}
-                disabled={isLoading}
-                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50/50 text-left transition-all group disabled:opacity-50"
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-red-600">
-                  <UserCheck className="w-3.5 h-3.5 text-red-600" />
-                  <span>Akun Kasir</span>
-                </div>
-                <p className="text-[10px] text-slate-500 mt-0.5 truncate font-mono">
-                  kasir@toko.com
-                </p>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer Info */}
