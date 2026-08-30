@@ -685,9 +685,19 @@ function ChangeCalculator() {
   const received = parseRaw(receivedInput);
   const change = received >= total ? received - total : 0;
   const shortage = total > 0 && received > 0 && received < total ? total - received : 0;
-  const quickAmounts = total
-    ? [total, ...QUICK_AMOUNTS.map((v) => Math.ceil(total / v) * v).filter((v) => v > total)].slice(0, 6)
-    : [];
+  const standardDenominations = [10000, 20000, 50000, 100000, 200000];
+  const quickAmounts =
+    total > 0
+      ? [
+          total,
+          ...standardDenominations.filter((v) => v >= total),
+          Math.ceil(total / 10000) * 10000,
+          Math.ceil(total / 50000) * 50000,
+        ]
+          .filter((v, idx, arr) => v > 0 && arr.indexOf(v) === idx)
+          .sort((a, b) => a - b)
+          .slice(0, 6)
+      : [10000, 20000, 50000, 100000, 200000];
 
   const handleReset = () => {
     setTotalInput('');
@@ -780,7 +790,7 @@ function ChangeCalculator() {
                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-red-50 hover:text-red-700'
                 }`}
               >
-                {i === 0 ? 'Uang Pas' : `Rp${(v / 1000).toFixed(0)}rb`}
+                {v === total ? 'Uang Pas' : v >= 1000 ? `Rp${(v / 1000).toFixed(0)}rb` : `Rp${v}`}
               </button>
             ))}
           </div>
