@@ -27,3 +27,34 @@ export function formatTanggal(dateString) {
     year: 'numeric',
   }).format(date);
 }
+
+/**
+ * Format ISO date string to Indonesian time format (HH:MM)
+ * @param {string|Date} dateString
+ * @returns {string}
+ */
+export function formatWaktu(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+/**
+ * Format ISO date string to full Indonesian date & time
+ * @param {string|Date} dateString
+ * @returns {string}
+ */
+export function formatTanggalWaktu(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}

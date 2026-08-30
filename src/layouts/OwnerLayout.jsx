@@ -67,9 +67,9 @@ export function OwnerLayout() {
       icon: BarChart3,
     },
     {
-      label: 'Closing Kasir',
+      label: 'Buka / Tutup Kasir',
       to: '/owner/closings',
-      icon: Calculator,
+      icon: DoorClosed,
     },
     {
       label: 'Penyesuaian Stok',

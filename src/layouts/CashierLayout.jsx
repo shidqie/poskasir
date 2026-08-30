@@ -65,7 +65,7 @@ export function CashierLayout() {
       icon: History,
     },
     {
-      label: 'Tutup Kasir',
+      label: 'Buka & Tutup Kasir',
       to: '/closing',
       icon: DoorClosed,
     },
