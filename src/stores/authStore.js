@@ -78,7 +78,20 @@ export const useAuthStore = create((set, get) => ({
 
       if (session?.user) {
         set({ session, user: session.user });
-        await get().fetchProfile(session.user.id);
+        const profile = await get().fetchProfile(session.user.id);
+        if (!profile) {
+          const meta = session.user.user_metadata || {};
+          const isEmailKasir = session.user.email?.toLowerCase().includes('kasir');
+          const fallbackRole = meta.role || (isEmailKasir ? 'cashier' : 'owner');
+          const fallbackProfile = {
+            id: session.user.id,
+            full_name: meta.full_name || session.user.email?.split('@')[0] || 'Pengguna',
+            role: fallbackRole,
+            status: true,
+          };
+          set({ profile: fallbackProfile, role: fallbackRole });
+          supabase.from('profiles').upsert(fallbackProfile).catch(() => {});
+        }
       } else {
         set({ session: null, user: null, profile: null, role: null });
       }
@@ -102,7 +115,20 @@ export const useAuthStore = create((set, get) => ({
             session: newSession,
             user: newSession.user,
           });
-          await get().fetchProfile(newSession.user.id);
+          const profile = await get().fetchProfile(newSession.user.id);
+          if (!profile && newSession.user) {
+            const meta = newSession.user.user_metadata || {};
+            const isEmailKasir = newSession.user.email?.toLowerCase().includes('kasir');
+            const fallbackRole = meta.role || (isEmailKasir ? 'cashier' : 'owner');
+            const fallbackProfile = {
+              id: newSession.user.id,
+              full_name: meta.full_name || newSession.user.email?.split('@')[0] || 'Pengguna',
+              role: fallbackRole,
+              status: true,
+            };
+            set({ profile: fallbackProfile, role: fallbackRole });
+            supabase.from('profiles').upsert(fallbackProfile).catch(() => {});
+          }
           set({ isLoading: false });
         }
       });
@@ -143,13 +169,16 @@ export const useAuthStore = create((set, get) => ({
         status: true,
       };
 
-      await supabase.from('profiles').upsert(profileData);
-      const profile = await get().fetchProfile(data.user.id);
+      try {
+        await supabase.from('profiles').upsert(profileData);
+      } catch (e) {
+        console.warn('[AuthStore] Profile upsert skipped:', e);
+      }
 
       set({
         session: data.session,
         user: data.user,
-        profile: profile || profileData,
+        profile: profileData,
         role: role || 'owner',
         isLoading: false,
         error: null,
@@ -204,15 +233,18 @@ export const useAuthStore = create((set, get) => ({
           metadata.full_name ||
           (data.user.email ? data.user.email.split('@')[0] : 'Pengguna');
 
-        const newProfile = {
+        profile = {
           id: data.user.id,
           full_name: fallbackName,
           role: fallbackRole,
           status: true,
         };
 
-        await supabase.from('profiles').upsert(newProfile);
-        profile = await get().fetchProfile(data.user.id);
+        try {
+          await supabase.from('profiles').upsert(profile);
+        } catch (e) {
+          console.warn('[AuthStore] Upsert profile skipped:', e);
+        }
       }
 
       if (profile && profile.status === false) {
@@ -220,7 +252,7 @@ export const useAuthStore = create((set, get) => ({
         throw new Error('Akun Anda sedang dinonaktifkan. Hubungi pemilik toko.');
       }
 
-      const effectiveRole = profile?.role || 'owner';
+      const effectiveRole = profile?.role || data.user.user_metadata?.role || (data.user.email?.toLowerCase().includes('kasir') ? 'cashier' : 'owner');
 
       set({
         session: data.session,

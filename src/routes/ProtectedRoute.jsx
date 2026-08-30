@@ -21,18 +21,23 @@ export function ProtectedRoute({ allowedRoles = [] }) {
   }
 
   // Jika belum login, redirect ke halaman login
-  if (!user || !profile) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const effectiveRole =
+    role ||
+    profile?.role ||
+    user.user_metadata?.role ||
+    (user.email?.toLowerCase().includes('kasir') ? 'cashier' : 'owner');
+
   // Jika ada pembatasan role tertentu
-  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // Redirect pengguna ke dashboard yang sesuai dengan rolenya
-    if (role === 'owner') {
+  if (allowedRoles.length > 0 && !allowedRoles.includes(effectiveRole)) {
+    if (effectiveRole === 'owner') {
       return <Navigate to="/owner/dashboard" replace />;
     }
-    if (role === 'cashier') {
-      return <Navigate to="/cashier/dashboard" replace />;
+    if (effectiveRole === 'cashier') {
+      return <Navigate to="/pos" replace />;
     }
     return <Navigate to="/login" replace />;
   }

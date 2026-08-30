@@ -43,11 +43,17 @@ function IndexRedirect() {
     return null;
   }
 
-  if (user && profile) {
-    if (role === 'owner') {
+  if (user) {
+    const effectiveRole =
+      role ||
+      profile?.role ||
+      user.user_metadata?.role ||
+      (user.email?.toLowerCase().includes('kasir') ? 'cashier' : 'owner');
+
+    if (effectiveRole === 'owner') {
       return <Navigate to="/owner/dashboard" replace />;
     }
-    if (role === 'cashier') {
+    if (effectiveRole === 'cashier') {
       return <Navigate to="/pos" replace />;
     }
   }
