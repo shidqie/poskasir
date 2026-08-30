@@ -13,6 +13,11 @@ import {
   Check,
   Edit3,
   SlidersHorizontal,
+  Maximize2,
+  Minimize2,
+  X,
+  Store,
+  ShieldCheck,
 } from 'lucide-react';
 
 export function QRISDisplay({
@@ -23,6 +28,8 @@ export function QRISDisplay({
   const [qrisMode, setQrisMode] = useState('dynamic'); // 'dynamic' | 'static'
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes timer
   const [isCopied, setIsCopied] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [customStaticQRIS, setCustomStaticQRIS] = useState(() => {
     return localStorage.getItem('store_custom_static_qris') || '';
   });
@@ -32,14 +39,12 @@ export function QRISDisplay({
   // Generate payload
   const currentQRISPayload = useMemo(() => {
     if (customStaticQRIS.trim()) {
-      // Jika toko punya static QRIS asli dari bank/e-wallet, convert ke dynamic jika mode dynamic
       if (qrisMode === 'dynamic') {
         return convertStaticToDynamic(customStaticQRIS, totalAmount);
       }
       return customStaticQRIS.trim();
     }
 
-    // Default: generate standard valid EMVCo QRIS
     return generateEMVCoQRIS({
       nmid,
       merchantName,
@@ -56,6 +61,18 @@ export function QRISDisplay({
     }, 1000);
     return () => clearInterval(interval);
   }, [qrisMode]);
+
+  // Keyboard shortcut to close fullscreen customer modal on Escape
+  useEffect(() => {
+    if (!isCustomerModalOpen) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        setIsCustomerModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isCustomerModalOpen]);
 
   const handleCopyPayload = () => {
     if (navigator.clipboard) {
@@ -75,6 +92,16 @@ export function QRISDisplay({
       localStorage.removeItem('store_custom_static_qris');
     }
     setShowConfig(false);
+  };
+
+  const toggleBrowserFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+      setIsFullscreen(false);
+    }
   };
 
   const formatTimer = (sec) => {
@@ -144,7 +171,7 @@ export function QRISDisplay({
             <button
               type="button"
               onClick={() => setShowConfig(!showConfig)}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               title="Pengaturan QRIS Toko"
             >
               <SlidersHorizontal size={14} />
@@ -202,14 +229,37 @@ export function QRISDisplay({
           </form>
         )}
 
-        {/* QR Code Container with Valid EMVCo Standards */}
-        <div className="relative p-3.5 bg-white rounded-2xl border-2 border-slate-900 shadow-md flex items-center justify-center">
+        {/* QR Code Container with Click-to-Fullscreen feature */}
+        <div
+          onClick={() => setIsCustomerModalOpen(true)}
+          className="relative group p-3.5 bg-white rounded-2xl border-2 border-slate-900 shadow-md flex items-center justify-center cursor-pointer hover:border-red-600 transition-all hover:shadow-xl"
+          title="Klik untuk tampilkan layar penuh ke konsumen"
+        >
           <QRCodeSVG
             value={currentQRISPayload}
             size={190}
             level="M"
             includeMargin={false}
           />
+
+          {/* Hover overlay hint */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1.5 p-3">
+            <Maximize2 size={24} className="text-white animate-bounce" />
+            <span className="text-xs font-black text-center">
+              Perbesar Layar Penuh
+            </span>
+            <span className="text-[10px] text-red-200 font-medium">
+              Untuk Konsumen Scan
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-white opacity-80 group-hover:opacity-100 transition-opacity"
+            title="Perbesar Layar Penuh"
+          >
+            <Maximize2 size={13} />
+          </button>
         </div>
 
         {/* Dynamic vs Static Helper Info */}
@@ -249,30 +299,153 @@ export function QRISDisplay({
           </div>
         )}
 
-        {/* Copy QRIS String Button for Testing / Verification */}
-        <div className="w-full pt-1 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-          <span className="font-mono truncate max-w-[200px]" title={currentQRISPayload}>
-            CRC16: {currentQRISPayload.slice(-4)}
-          </span>
+        {/* Copy QRIS String & Fullscreen Action Button */}
+        <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            onClick={() => setIsCustomerModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 font-bold border border-red-200 transition-colors cursor-pointer"
+          >
+            <Maximize2 size={13} />
+            <span>Buka Layar Konsumen</span>
+          </button>
+
           <button
             type="button"
             onClick={handleCopyPayload}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-slate-600 hover:bg-slate-100 font-bold transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-slate-600 hover:bg-slate-100 font-bold transition-colors cursor-pointer"
           >
             {isCopied ? (
               <>
-                <Check size={11} className="text-emerald-600" />
+                <Check size={12} className="text-emerald-600" />
                 <span className="text-emerald-600">Tersalin!</span>
               </>
             ) : (
               <>
-                <Copy size={11} />
-                <span>Salin String QRIS</span>
+                <Copy size={12} />
+                <span>Salin String</span>
               </>
             )}
           </button>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* FULLSCREEN CUSTOMER-FACING DISPLAY MODAL                                   */}
+      {/* ========================================================================= */}
+      {isCustomerModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in zoom-in-95 duration-200">
+          {/* Top Bar with Merchant Title & Close */}
+          <div className="w-full max-w-lg flex items-center justify-between text-white pb-3 mb-2 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-600/30">
+                <Store className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+                  {merchantName}
+                </h3>
+                <p className="text-xs text-red-300 font-mono">
+                  NMID: {nmid} &bull; A01
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleBrowserFullscreen}
+                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Layar Penuh Browser"
+              >
+                {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCustomerModalOpen(false)}
+                className="p-2.5 rounded-xl bg-red-600/80 hover:bg-red-600 text-white transition-colors cursor-pointer"
+                title="Tutup (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Center Main QR Card for Customer */}
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center space-y-4">
+            {/* Header Official Red QRIS Brand */}
+            <div className="flex items-center justify-between w-full border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="px-3 py-1 rounded-lg bg-red-600 text-white font-black text-sm tracking-widest uppercase shadow-xs">
+                  QRIS
+                </div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  QR Standar Pembayaran Nasional
+                </span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                {qrisMode === 'dynamic' ? 'Nominal Otomatis' : 'Nominal Manual'}
+              </span>
+            </div>
+
+            {/* Huge QR Code Box */}
+            <div className="p-4 sm:p-5 bg-white rounded-3xl border-4 border-slate-900 shadow-xl flex items-center justify-center">
+              <QRCodeSVG
+                value={currentQRISPayload}
+                size={window.innerWidth < 640 ? 240 : 290}
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+
+            {/* Total Pembayaran Banner */}
+            <div className="w-full p-4 bg-slate-900 text-white rounded-2xl shadow-md space-y-1">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-red-400">
+                TOTAL PEMBAYARAN KONSUMEN
+              </span>
+              <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">
+                {formatRupiah(totalAmount)}
+              </p>
+              {qrisMode === 'dynamic' ? (
+                <p className="text-xs text-emerald-400 font-medium">
+                  ✓ Nominal sudah otomatis terisi di aplikasi pelanggan
+                </p>
+              ) : (
+                <p className="text-xs text-amber-300 font-medium">
+                  *Masukkan nominal {formatRupiah(totalAmount)} secara manual di aplikasi m-banking
+                </p>
+              )}
+            </div>
+
+            {/* Apps Accepted list & Timer */}
+            <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 pt-1">
+              <span className="flex items-center justify-center gap-1.5 font-medium">
+                <Smartphone className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>BCA Mobile, GoPay, OVO, ShopeePay, DANA, Livin, dll.</span>
+              </span>
+
+              {qrisMode === 'dynamic' && (
+                <span className="font-mono font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200 self-center">
+                  Berlaku: {formatTimer(timeLeft)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Close Button */}
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCustomerModalOpen(false)}
+              className="px-6 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs transition-colors cursor-pointer border border-white/20 backdrop-blur-xs flex items-center gap-2"
+            >
+              <X size={14} />
+              <span>Tutup Layar Konsumen (Esc)</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
