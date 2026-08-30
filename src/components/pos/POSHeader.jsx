@@ -135,11 +135,11 @@ export function POSHeader({
               {/* Tombol Tutup Kasir Langsung */}
               <Link
                 to={closingUrl}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
                 title="Tutup Kasir & Rekapitulasi Shift"
               >
                 <DoorClosed className="w-3.5 h-3.5 text-slate-600" />
-                <span>Tutup Kasir</span>
+                <span className="hidden sm:inline">Tutup Kasir</span>
               </Link>
             </>
           )}
@@ -148,7 +148,7 @@ export function POSHeader({
             <button
               type="button"
               onClick={onOpenCashier}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
             >
               <DoorOpen className="w-3.5 h-3.5" />
               <span>Buka Kasir</span>
@@ -158,10 +158,11 @@ export function POSHeader({
           <button
             type="button"
             onClick={onOpenScanner}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-semibold transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
+            title="Scan Barcode / QR Kamera"
           >
             <Camera size={14} />
-            <span>Scan Barcode</span>
+            <span>Scan</span>
           </button>
         </div>
       </div>

@@ -456,6 +456,7 @@ export function POSPage() {
               onChange={(val) => setSearchTerm(val)}
               onClear={() => setSearchTerm('')}
               onSubmit={(val) => handleScanSuccess(val)}
+              onOpenScanner={() => setIsScannerOpen(true)}
             />
             <CategoryFilter
               categories={categories}
@@ -485,6 +486,16 @@ export function POSPage() {
           <CartPanel onCheckout={handleOpenCheckout} />
         </div>
       </div>
+
+      {/* Mobile Floating Camera Scan Button */}
+      <button
+        type="button"
+        onClick={() => setIsScannerOpen(true)}
+        className="lg:hidden fixed bottom-20 right-4 z-40 p-3.5 rounded-full bg-slate-900 text-white shadow-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center cursor-pointer border-2 border-white/20"
+        title="Buka Kamera Scan Barcode / QR"
+      >
+        <Camera className="w-5 h-5" />
+      </button>
 
       {/* Mobile Floating Cart Bar */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 z-20 shadow-2xl flex items-center justify-between gap-3">

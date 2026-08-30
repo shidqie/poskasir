@@ -1,11 +1,12 @@
 import React, { useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Camera } from 'lucide-react';
 
 export function ProductSearch({
   value,
   onChange,
   onClear,
   onSubmit,
+  onOpenScanner,
   autoFocus = true,
   placeholder = 'Cari nama barang, kode (BRG-...), atau barcode...',
 }) {
@@ -39,19 +40,32 @@ export function ProductSearch({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-slate-50/90 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400 font-medium"
+        className="w-full pl-9 pr-16 py-2 text-xs sm:text-sm bg-slate-50/90 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-slate-400 transition-all placeholder:text-slate-400 font-medium"
       />
 
-      {value && (
-        <button
-          type="button"
-          onClick={onClear}
-          className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
-          title="Hapus pencarian"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
+      <div className="absolute inset-y-0 right-0 pr-1.5 flex items-center gap-1">
+        {value && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="p-1 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+            title="Hapus pencarian"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {onOpenScanner && (
+          <button
+            type="button"
+            onClick={onOpenScanner}
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-black text-white transition-colors flex items-center justify-center cursor-pointer shadow-xs"
+            title="Buka Kamera Scan Barcode / QR"
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
