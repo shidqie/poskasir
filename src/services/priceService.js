@@ -10,7 +10,7 @@ export const priceService = {
   async searchAllPrices(search = '') {
     const term = search.trim();
 
-    // 1. Query produk resmi aktif (termasuk varian)
+    // 1. Query produk resmi aktif
     let productsQuery = supabase
       .from('products')
       .select(`
@@ -24,18 +24,7 @@ export const priceService = {
         status,
         has_variants,
         category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal),
-        product_variants:product_variants(
-          id,
-          variant_name,
-          code,
-          barcode,
-          selling_price,
-          stock,
-          minimum_stock,
-          status,
-          unit:units(id, name, symbol, allow_decimal)
-        )
+        unit:units(id, name, symbol, allow_decimal)
       `)
       .eq('status', true)
       .order('name', { ascending: true });
@@ -46,21 +35,7 @@ export const priceService = {
       );
     }
 
-    // 2. Query varian secara terpisah jika search cocok pada nama varian
-    let matchedVariantProductIds = [];
-    if (term) {
-      const { data: matchedVariants } = await supabase
-        .from('product_variants')
-        .select('product_id')
-        .eq('status', true)
-        .or(`variant_name.ilike.%${term}%,code.ilike.%${term}%,barcode.ilike.%${term}%`);
-
-      if (matchedVariants && matchedVariants.length > 0) {
-        matchedVariantProductIds = matchedVariants.map((v) => v.product_id);
-      }
-    }
-
-    // 3. Query barang belum terdaftar aktif (pending)
+    // 2. Query barang belum terdaftar aktif (pending)
     let unregisteredQuery = supabase
       .from('unregistered_prices')
       .select(`
@@ -92,46 +67,40 @@ export const priceService = {
 
     let allProducts = productsRes.data || [];
 
-    // Jika ada produk yang cocok dari varian tapi belum ada di `allProducts`, ambil
-    if (matchedVariantProductIds.length > 0) {
-      const missingIds = matchedVariantProductIds.filter(
-        (id) => !allProducts.some((p) => p.id === id)
-      );
-
-      if (missingIds.length > 0) {
-        const { data: extraProducts } = await supabase
-          .from('products')
+    // Ambil data varian secara terpisah
+    if (allProducts.length > 0) {
+      const productIds = allProducts.map((p) => p.id);
+      try {
+        const { data: variantsData } = await supabase
+          .from('product_variants')
           .select(`
             id,
+            product_id,
+            variant_name,
             code,
             barcode,
-            name,
             selling_price,
             stock,
             minimum_stock,
             status,
-            has_variants,
-            category:categories(id, name),
-            unit:units(id, name, symbol, allow_decimal),
-            product_variants:product_variants(
-              id,
-              variant_name,
-              code,
-              barcode,
-              selling_price,
-              stock,
-              minimum_stock,
-              status,
-              unit:units(id, name, symbol, allow_decimal)
-            )
+            unit:units(id, name, symbol, allow_decimal)
           `)
-          .in('id', missingIds)
+          .in('product_id', productIds)
           .eq('status', true);
 
-        if (extraProducts) {
-          allProducts = [...allProducts, ...extraProducts];
+        if (variantsData) {
+          const varMap = {};
+          variantsData.forEach((v) => {
+            if (!varMap[v.product_id]) varMap[v.product_id] = [];
+            varMap[v.product_id].push(v);
+          });
+
+          allProducts = allProducts.map((p) => ({
+            ...p,
+            product_variants: varMap[p.id] || [],
+          }));
         }
-      }
+      } catch (e) {}
     }
 
     // Format item hasil: Pecah produk bervarian menjadi item varian individual
@@ -139,10 +108,8 @@ export const priceService = {
 
     allProducts.forEach((item) => {
       if (item.has_variants && item.product_variants?.length > 0) {
-        // Filter varian aktif yang cocok jika ada term
         const variants = item.product_variants.filter((v) => v.status);
         variants.forEach((v) => {
-          // Jika ada filter term, pastikan cocok nama produk atau nama varian atau barcode
           if (
             !term ||
             item.name.toLowerCase().includes(term.toLowerCase()) ||

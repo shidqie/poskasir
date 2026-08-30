@@ -475,3 +475,14 @@ EXCEPTION WHEN OTHERS THEN
     );
 END;
 $$;
+
+-- Izin eksekusi process_sale
+REVOKE ALL ON FUNCTION public.process_sale FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.process_sale TO authenticated;
+
+-- Izin sequence & helper function
+GRANT USAGE, SELECT ON SEQUENCE public.variant_code_seq TO authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_variant_code TO authenticated;
+
+-- 9. RELOAD SCHEMA CACHE SUPABASE POSTGREST
+NOTIFY pgrst, 'reload schema';

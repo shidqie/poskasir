@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 export const productService = {
   /**
-   * Mengambil daftar barang dengan filter & pencarian (termasuk varian)
+   * Mengambil daftar barang dengan filter & pencarian (resilient against schema cache)
    */
   async getProducts({
     search = '',
@@ -10,88 +10,138 @@ export const productService = {
     status = '',
     stockFilter = '', // 'all' | 'available' | 'low' | 'out_of_stock'
   } = {}) {
-    let query = supabase
-      .from('products')
-      .select(`
-        *,
-        category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal),
-        product_variants:product_variants(
-          id,
-          variant_name,
-          code,
-          barcode,
-          selling_price,
-          stock,
-          minimum_stock,
-          status,
+    let results = [];
+
+    try {
+      // 1. Ambil data produk utama
+      let query = supabase
+        .from('products')
+        .select(`
+          *,
+          category:categories(id, name),
           unit:units(id, name, symbol, allow_decimal)
-        )
-      `)
-      .order('created_at', { ascending: false });
+        `)
+        .order('created_at', { ascending: false });
 
-    // Filter Kategori
-    if (categoryId) {
-      query = query.eq('category_id', categoryId);
-    }
+      if (categoryId) {
+        query = query.eq('category_id', categoryId);
+      }
 
-    // Filter Status
-    if (status !== '' && status !== 'all') {
-      query = query.eq('status', status === 'true' || status === true);
-    }
+      if (status !== '' && status !== 'all') {
+        query = query.eq('status', status === 'true' || status === true);
+      }
 
-    // Pencarian nama / kode / barcode produk
-    if (search.trim()) {
-      const term = search.trim();
-      query = query.or(
-        `name.ilike.%${term}%,code.ilike.%${term}%,barcode.ilike.%${term}%`
-      );
-    }
+      if (search.trim()) {
+        const term = search.trim();
+        query = query.or(
+          `name.ilike.%${term}%,code.ilike.%${term}%,barcode.ilike.%${term}%`
+        );
+      }
 
-    const { data, error } = await query;
-    if (error) throw error;
+      const { data, error } = await query;
+      if (error) throw error;
+      results = data || [];
 
-    let results = data || [];
-
-    // Jika search tidak cocok pada nama produk, cek apakah cocok pada nama/barcode varian
-    if (search.trim()) {
-      const termLower = search.trim().toLowerCase();
-      // Pastikan produk yang punya varian cocok juga diikutsertakan
-      const { data: matchedVariants } = await supabase
-        .from('product_variants')
-        .select('product_id')
-        .or(`variant_name.ilike.%${search.trim()}%,code.ilike.%${search.trim()}%,barcode.ilike.%${search.trim()}%`);
-
-      if (matchedVariants && matchedVariants.length > 0) {
-        const extraProductIds = matchedVariants.map((v) => v.product_id);
-        const missingIds = extraProductIds.filter((pid) => !results.some((r) => r.id === pid));
-
-        if (missingIds.length > 0) {
-          const { data: extraProducts } = await supabase
-            .from('products')
+      // 2. Ambil seluruh varian produk yang terkait secara terpisah (aman dari schema cache embed join)
+      if (results.length > 0) {
+        const productIds = results.map((p) => p.id);
+        try {
+          const { data: variantsData, error: varError } = await supabase
+            .from('product_variants')
             .select(`
-              *,
-              category:categories(id, name),
-              unit:units(id, name, symbol, allow_decimal),
-              product_variants:product_variants(
-                id,
-                variant_name,
-                code,
-                barcode,
-                selling_price,
-                stock,
-                minimum_stock,
-                status,
-                unit:units(id, name, symbol, allow_decimal)
-              )
+              id,
+              product_id,
+              variant_name,
+              code,
+              barcode,
+              selling_price,
+              stock,
+              minimum_stock,
+              status,
+              unit:units(id, name, symbol, allow_decimal)
             `)
-            .in('id', missingIds);
+            .in('product_id', productIds);
 
-          if (extraProducts) {
-            results = [...results, ...extraProducts];
+          if (!varError && variantsData) {
+            const variantMap = {};
+            variantsData.forEach((v) => {
+              if (!variantMap[v.product_id]) variantMap[v.product_id] = [];
+              variantMap[v.product_id].push(v);
+            });
+
+            results = results.map((p) => ({
+              ...p,
+              product_variants: variantMap[p.id] || [],
+            }));
           }
+        } catch (vErr) {
+          console.warn('[ProductService] Varian fetch skipped (tabel belum siap):', vErr);
         }
       }
+
+      // 3. Jika pencarian tidak cocok nama produk, cari apakah cocok pada varian
+      if (search.trim()) {
+        const term = search.trim();
+        try {
+          const { data: matchedVariants } = await supabase
+            .from('product_variants')
+            .select('product_id')
+            .or(`variant_name.ilike.%${term}%,code.ilike.%${term}%,barcode.ilike.%${term}%`);
+
+          if (matchedVariants && matchedVariants.length > 0) {
+            const extraProductIds = matchedVariants.map((v) => v.product_id);
+            const missingIds = extraProductIds.filter((pid) => !results.some((r) => r.id === pid));
+
+            if (missingIds.length > 0) {
+              const { data: extraProducts } = await supabase
+                .from('products')
+                .select(`
+                  *,
+                  category:categories(id, name),
+                  unit:units(id, name, symbol, allow_decimal)
+                `)
+                .in('id', missingIds);
+
+              if (extraProducts && extraProducts.length > 0) {
+                // Ambil varian untuk extra products
+                const { data: extraVariants } = await supabase
+                  .from('product_variants')
+                  .select(`
+                    id,
+                    product_id,
+                    variant_name,
+                    code,
+                    barcode,
+                    selling_price,
+                    stock,
+                    minimum_stock,
+                    status,
+                    unit:units(id, name, symbol, allow_decimal)
+                  `)
+                  .in('product_id', missingIds);
+
+                const extraVarMap = {};
+                (extraVariants || []).forEach((v) => {
+                  if (!extraVarMap[v.product_id]) extraVarMap[v.product_id] = [];
+                  extraVarMap[v.product_id].push(v);
+                });
+
+                const formattedExtras = extraProducts.map((p) => ({
+                  ...p,
+                  product_variants: extraVarMap[p.id] || [],
+                }));
+
+                results = [...results, ...formattedExtras];
+              }
+            }
+          }
+        } catch (e) {
+          // ignore if table not yet migrated
+        }
+      }
+    } catch (err) {
+      console.error('[ProductService] Error getting products:', err);
+      throw err;
     }
 
     // Filter Stok pada client-side dengan memperhitungkan stok varian
@@ -136,13 +186,23 @@ export const productService = {
    * Mengambil satu produk berdasarkan ID beserta seluruh variannya
    */
   async getProductById(id) {
-    const { data, error } = await supabase
+    const { data: product, error } = await supabase
       .from('products')
       .select(`
         *,
         category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal),
-        product_variants:product_variants(
+        unit:units(id, name, symbol, allow_decimal)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    // Ambil data varian secara terpisah agar aman
+    try {
+      const { data: variants } = await supabase
+        .from('product_variants')
+        .select(`
           id,
           variant_name,
           code,
@@ -153,13 +213,16 @@ export const productService = {
           status,
           unit_id,
           unit:units(id, name, symbol, allow_decimal)
-        )
-      `)
-      .eq('id', id)
-      .single();
+        `)
+        .eq('product_id', id)
+        .order('created_at', { ascending: true });
 
-    if (error) throw error;
-    return data;
+      product.product_variants = variants || [];
+    } catch (e) {
+      product.product_variants = [];
+    }
+
+    return product;
   },
 
   /**
@@ -201,18 +264,20 @@ export const productService = {
     if (data) return data;
 
     // Cek di product_variants
-    const { data: variantData } = await supabase
-      .from('product_variants')
-      .select('id, variant_name, product:products(name)')
-      .eq('barcode', barcode.trim())
-      .maybeSingle();
+    try {
+      const { data: variantData } = await supabase
+        .from('product_variants')
+        .select('id, variant_name, product:products(name)')
+        .eq('barcode', barcode.trim())
+        .maybeSingle();
 
-    if (variantData) {
-      return {
-        id: variantData.id,
-        name: `${variantData.product?.name || 'Produk'} (${variantData.variant_name})`,
-      };
-    }
+      if (variantData) {
+        return {
+          id: variantData.id,
+          name: `${variantData.product?.name || 'Produk'} (${variantData.variant_name})`,
+        };
+      }
+    } catch (e) {}
 
     return false;
   },
@@ -250,7 +315,6 @@ export const productService = {
 
     const trimmedBarcode = barcode?.trim() || null;
 
-    // Validasi Barcode unik jika diisi
     if (trimmedBarcode) {
       const existingProduct = await this.checkBarcodeExists(trimmedBarcode);
       if (existingProduct) {
@@ -383,18 +447,7 @@ export const productService = {
       .select(`
         *,
         category:categories(id, name),
-        unit:units(id, name, symbol, allow_decimal),
-        product_variants:product_variants(
-          id,
-          variant_name,
-          code,
-          barcode,
-          selling_price,
-          stock,
-          minimum_stock,
-          status,
-          unit:units(id, name, symbol, allow_decimal)
-        )
+        unit:units(id, name, symbol, allow_decimal)
       `)
       .single();
 
