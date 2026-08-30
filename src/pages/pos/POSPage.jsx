@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { v4 as uuidv4 } from 'uuid';
 import { posService } from '@/services/posService';
 import { categoryService } from '@/services/categoryService';
 import { barcodeService } from '@/services/barcodeService';
 import { unregisteredPriceService } from '@/services/unregisteredPriceService';
+import { transactionService } from '@/services/transactionService';
 import { useCartStore } from '@/stores/cartStore';
 
 // POS Components
@@ -14,7 +16,8 @@ import { ProductGrid } from '@/components/pos/ProductGrid';
 import { CartPanel } from '@/components/pos/CartPanel';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
 import { BarcodeNotFoundModal } from '@/components/pos/BarcodeNotFoundModal';
-import { CheckoutPlaceholderModal } from '@/components/pos/CheckoutPlaceholderModal';
+import PaymentModal from '@/components/pos/PaymentModal';
+import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
 import { UnregisteredPriceModal } from '@/components/prices/UnregisteredPriceModal';
 import { Toast } from '@/components/common/Toast';
 import { formatRupiah } from '@/utils/formatters';
@@ -27,7 +30,9 @@ export function POSPage() {
 
   // Modals state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState(null);
   const [isUnregModalOpen, setIsUnregModalOpen] = useState(false);
   const [unregInitialData, setUnregInitialData] = useState(null);
   const [notFoundBarcode, setNotFoundBarcode] = useState('');
@@ -40,6 +45,7 @@ export function POSPage() {
     totalQuantity,
     totalAmount,
     addItem,
+    clearCart,
     isMobileCartOpen,
     toggleMobileCart,
   } = useCartStore();
@@ -50,7 +56,7 @@ export function POSPage() {
     queryFn: () => categoryService.getCategories({ onlyActive: true }),
   });
 
-  // Query Produk POS (Dioptimalkan dengan TanStack Query)
+  // Query Produk POS
   const {
     data: products = [],
     isLoading,
@@ -68,10 +74,10 @@ export function POSPage() {
         categoryId: selectedCategoryId,
       });
     },
-    staleTime: 1000 * 60 * 2, // cache 2 menit
+    staleTime: 1000 * 60 * 2,
   });
 
-  // Mutation Tambah Harga Sementara langsung dari POS
+  // Mutation Tambah Harga Sementara
   const addUnregMutation = useMutation({
     mutationFn: (data) => unregisteredPriceService.createUnregisteredPrice(data),
     onSuccess: (savedItem) => {
@@ -79,7 +85,6 @@ export function POSPage() {
       queryClient.invalidateQueries({ queryKey: ['prices'] });
       queryClient.invalidateQueries({ queryKey: ['unregistered-prices'] });
 
-      // Langsung masukkan ke keranjang
       addItem({
         id: savedItem.id,
         name: savedItem.name,
@@ -99,24 +104,75 @@ export function POSPage() {
     },
   });
 
-  // Handler Tambah ke Keranjang dari klik Card
+  // Mutation Checkout via RPC process_sale
+  const checkoutMutation = useMutation({
+    mutationFn: ({ paymentAmount, paymentMethod, idempotencyKey }) =>
+      transactionService.processSale({
+        items: items.map((item) => ({
+          sourceType: item.sourceType || 'product',
+          productId: item.sourceType !== 'temporary' ? item.id : null,
+          temporaryPriceId: item.sourceType === 'temporary' ? item.id : null,
+          name: item.name,
+          quantity: Number(item.quantity),
+        })),
+        paymentAmount,
+        paymentMethod,
+        idempotencyKey,
+      }),
+    onSuccess: (data) => {
+      // Clear cart & cache
+      clearCart();
+      queryClient.invalidateQueries({ queryKey: ['pos-products'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+
+      // Tutup payment, buka success
+      setIsPaymentOpen(false);
+      setLastTransaction(data);
+      setIsSuccessOpen(true);
+    },
+    onError: (err) => {
+      setToast({
+        isOpen: true,
+        message: err.message || 'Transaksi gagal. Coba lagi.',
+        type: 'error',
+      });
+    },
+  });
+
+  const handleOpenCheckout = useCallback(() => {
+    if (items.length === 0) return;
+    setIsPaymentOpen(true);
+  }, [items.length]);
+
+  const handleConfirmPayment = useCallback(
+    ({ paymentMethod, paymentAmount }) => {
+      const idempotencyKey = uuidv4();
+      checkoutMutation.mutate({ paymentAmount, paymentMethod, idempotencyKey });
+    },
+    [checkoutMutation]
+  );
+
+  const handleNewTransaction = useCallback(() => {
+    setIsSuccessOpen(false);
+    setLastTransaction(null);
+    toggleMobileCart(false);
+  }, [toggleMobileCart]);
+
   const handleAddToCart = (product) => {
     const res = addItem(product);
     if (res?.success) {
-      // Feedback getaran ringan jika di HP
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(30);
       }
     }
   };
 
-  // Handler Hasil Scan Barcode Kamera
   const handleScanSuccess = async (barcodeText) => {
     try {
       const result = await barcodeService.lookupBarcode(barcodeText);
 
       if (result.found) {
-        // Produk resmi atau harga sementara ditemukan
         addItem(result.data, 1);
         setToast({
           isOpen: true,
@@ -124,7 +180,6 @@ export function POSPage() {
           type: 'success',
         });
       } else {
-        // Barcode belum ada di database
         setNotFoundBarcode(barcodeText);
         setIsNotFoundModalOpen(true);
       }
@@ -133,7 +188,6 @@ export function POSPage() {
     }
   };
 
-  // Handler Buka Modal Catat Harga Sementara dengan data terisi
   const handleOpenAddUnreg = (prefilled = {}) => {
     setUnregInitialData(prefilled);
     setIsUnregModalOpen(true);
@@ -146,16 +200,14 @@ export function POSPage() {
 
       {/* Main Layout 2 Kolom (Desktop) / 1 Kolom (Mobile) */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Kolom Kiri: Katalog & Pencarian (65% di Desktop) */}
+        {/* Kolom Kiri: Katalog & Pencarian */}
         <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-5 overflow-y-auto space-y-3 sm:space-y-4">
-          {/* Baris Pencarian & Filter */}
           <div className="space-y-2.5">
             <ProductSearch
               value={searchTerm}
               onChange={(val) => setSearchTerm(val)}
               onClear={() => setSearchTerm('')}
             />
-
             <CategoryFilter
               categories={categories}
               selectedCategoryId={selectedCategoryId}
@@ -163,7 +215,6 @@ export function POSPage() {
             />
           </div>
 
-          {/* Grid Katalog Produk */}
           <div className="flex-1 pb-20 lg:pb-4">
             <ProductGrid
               items={products}
@@ -178,13 +229,13 @@ export function POSPage() {
           </div>
         </div>
 
-        {/* Kolom Kanan: Panel Keranjang Belanja Desktop (35% di Desktop) */}
+        {/* Kolom Kanan: Panel Keranjang Desktop */}
         <div className="hidden lg:flex w-96 xl:w-[420px] border-l border-slate-200/90 bg-white shrink-0 flex-col h-full shadow-lg z-10">
-          <CartPanel onCheckout={() => setIsCheckoutOpen(true)} />
+          <CartPanel onCheckout={handleOpenCheckout} />
         </div>
       </div>
 
-      {/* Mobile Floating Cart Bar (Muncul jika ada item di HP) */}
+      {/* Mobile Floating Cart Bar */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 z-20 shadow-2xl flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-slate-500 font-medium">Total Belanja:</p>
@@ -213,7 +264,7 @@ export function POSPage() {
               onCloseMobile={() => toggleMobileCart(false)}
               onCheckout={() => {
                 toggleMobileCart(false);
-                setIsCheckoutOpen(true);
+                handleOpenCheckout();
               }}
             />
           </div>
@@ -225,9 +276,7 @@ export function POSPage() {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScanSuccess={handleScanSuccess}
-        onManualSearch={() => {
-          setIsScannerOpen(false);
-        }}
+        onManualSearch={() => setIsScannerOpen(false)}
       />
 
       {/* Modal Barcode Tidak Ditemukan */}
@@ -235,12 +284,8 @@ export function POSPage() {
         isOpen={isNotFoundModalOpen}
         onClose={() => setIsNotFoundModalOpen(false)}
         scannedBarcode={notFoundBarcode}
-        onAddTemporaryPrice={(barcode) => {
-          handleOpenAddUnreg({ barcode });
-        }}
-        onSearchByName={() => {
-          setSearchTerm('');
-        }}
+        onAddTemporaryPrice={(barcode) => handleOpenAddUnreg({ barcode })}
+        onSearchByName={() => setSearchTerm('')}
       />
 
       {/* Modal Tambah Harga Sementara */}
@@ -252,13 +297,20 @@ export function POSPage() {
         isLoading={addUnregMutation.isPending}
       />
 
-      {/* Modal Placeholder Checkout (Tahap 3 Selesai) */}
-      <CheckoutPlaceholderModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        totalAmount={totalAmount}
-        totalQuantity={totalQuantity}
-        itemsCount={items.length}
+      {/* Modal Pembayaran Aktif */}
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => !checkoutMutation.isPending && setIsPaymentOpen(false)}
+        total={totalAmount}
+        onConfirm={handleConfirmPayment}
+        isProcessing={checkoutMutation.isPending}
+      />
+
+      {/* Modal Transaksi Berhasil */}
+      <TransactionSuccessModal
+        isOpen={isSuccessOpen}
+        transaction={lastTransaction}
+        onNewTransaction={handleNewTransaction}
       />
 
       {/* Toast Feedback */}

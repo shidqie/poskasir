@@ -1,47 +1,75 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { transactionService } from '@/services/transactionService';
+import { reportService } from '@/services/reportService';
 import { Card } from '@/components/common/Card';
 import {
-  DollarSign,
-  ShoppingCart,
-  Package,
-  TrendingUp,
-  Store,
-  ShieldCheck,
-  Calendar,
-  CheckCircle2,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
+import {
+  DollarSign, ShoppingCart, Package, TrendingUp, ShieldCheck,
+  Calendar, ArrowRight, Trophy, Users, BarChart3,
 } from 'lucide-react';
 import { formatTanggal } from '@/utils/formatters';
+
+const formatRupiah = (v) => `Rp${Number(v || 0).toLocaleString('id-ID')}`;
 
 export function OwnerDashboard() {
   const { profile } = useAuthStore();
   const today = formatTanggal(new Date());
 
+  const { data: todaySummary = {}, isLoading: summaryLoading } = useQuery({
+    queryKey: ['today-summary'],
+    queryFn: () => transactionService.getTodaySummary(),
+    refetchInterval: 1000 * 60,
+  });
+
+  const { data: dailySales = [], isLoading: chartLoading } = useQuery({
+    queryKey: ['daily-sales'],
+    queryFn: () => reportService.getDailySales(7),
+    refetchInterval: 1000 * 60 * 5,
+  });
+
+  const { data: topProducts = [] } = useQuery({
+    queryKey: ['top-products'],
+    queryFn: () => reportService.getTopProducts(5),
+    refetchInterval: 1000 * 60 * 10,
+  });
+
+  const { data: salesByCashier = [] } = useQuery({
+    queryKey: ['sales-by-cashier'],
+    queryFn: () => reportService.getSalesByCashier(),
+    refetchInterval: 1000 * 60 * 10,
+  });
+
   const summaryCards = [
     {
       title: 'Pendapatan Hari Ini',
-      value: 'Rp0',
+      value: summaryLoading ? '...' : formatRupiah(todaySummary.totalRevenue),
       subtitle: 'Total transaksi berhasil',
       icon: DollarSign,
       iconBg: 'bg-emerald-100 text-emerald-600',
+      trend: '+0%',
     },
     {
       title: 'Transaksi Hari Ini',
-      value: '0',
+      value: summaryLoading ? '...' : todaySummary.transactionCount || 0,
       subtitle: 'Jumlah nota / struk',
       icon: ShoppingCart,
       iconBg: 'bg-blue-100 text-blue-600',
     },
     {
       title: 'Barang Terjual',
-      value: '0',
+      value: summaryLoading ? '...' : (todaySummary.totalItemsSold || 0).toLocaleString('id-ID'),
       subtitle: 'Total kuantitas barang',
       icon: Package,
       iconBg: 'bg-violet-100 text-violet-600',
     },
     {
       title: 'Rata-Rata Transaksi',
-      value: 'Rp0',
+      value: summaryLoading ? '...' : formatRupiah(todaySummary.avgTransaction),
       subtitle: 'Nilai belanja per pelanggan',
       icon: TrendingUp,
       iconBg: 'bg-amber-100 text-amber-600',
@@ -50,7 +78,7 @@ export function OwnerDashboard() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
-      {/* Top Welcome Header */}
+      {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-600/15 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -63,7 +91,7 @@ export function OwnerDashboard() {
             Selamat datang, {profile?.full_name || 'Pemilik Toko'}
           </h1>
           <p className="text-blue-100 text-sm mt-1">
-            Pantau ringkasan aktivitas dan operasional penjualan toko sembako Anda.
+            Pantau ringkasan aktivitas penjualan toko sembako Anda secara real-time.
           </p>
         </div>
         <div className="bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-white/15 shrink-0 flex items-center gap-2.5 text-sm">
@@ -72,24 +100,20 @@ export function OwnerDashboard() {
         </div>
       </div>
 
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, idx) => {
           const Icon = card.icon;
           return (
             <Card key={idx} className="hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    {card.title}
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900 mt-2">
-                    {card.value}
-                  </p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider leading-tight">{card.title}</p>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-2">{card.value}</p>
                   <p className="text-xs text-slate-400 mt-1">{card.subtitle}</p>
                 </div>
-                <div className={`p-3 rounded-xl ${card.iconBg} shrink-0`}>
-                  <Icon className="w-6 h-6" />
+                <div className={`p-2.5 rounded-xl ${card.iconBg} shrink-0`}>
+                  <Icon className="w-5 h-5" />
                 </div>
               </div>
             </Card>
@@ -97,47 +121,94 @@ export function OwnerDashboard() {
         })}
       </div>
 
-      {/* Status Fondasi Sistem */}
-      <Card
-        title="Status Fondasi Aplikasi (Tahap 1)"
-        subtitle="Struktur autentikasi, role guard, dan layout berhasil diintegrasikan"
-      >
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3.5">
-            <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-900">
-              <p className="font-semibold">Tahap 1 Selesai: Sistem Otentikasi & Hak Akses</p>
-              <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
-                Akun Pemilik dan Kasir telah dipisahkan menggunakan Supabase Auth & RLS. Anda login sebagai <strong>Pemilik</strong> dengan hak penuh untuk manajemen toko.
-              </p>
+      {/* Chart + Top Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Bar Chart Penjualan 7 Hari */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={16} className="text-blue-600" />
+              <h3 className="font-bold text-gray-900 text-sm">Penjualan 7 Hari Terakhir</h3>
             </div>
+            <Link to="/owner/reports" className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
+              Laporan Lengkap <ArrowRight size={11} />
+            </Link>
           </div>
+          {chartLoading ? (
+            <div className="h-40 flex items-center justify-center text-gray-300 text-sm">Memuat grafik...</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={dailySales} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <Tooltip
+                  formatter={(v) => [`Rp${Number(v).toLocaleString('id-ID')}`, 'Pendapatan']}
+                  labelStyle={{ fontSize: 11 }}
+                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                />
+                <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50">
-              <h4 className="font-semibold text-sm text-slate-900 mb-1">
-                Fitur Tahap Berikutnya (Tahap 2):
-              </h4>
-              <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
-                <li>Manajemen Kategori & Satuan Barang</li>
-                <li>Data Master Barang Sembako (Nama, Harga Jual, Stok)</li>
-                <li>Daftar Harga & Pencarian Cepat</li>
-                <li>Pencatatan Barang Belum Terdaftar</li>
-              </ul>
+        {/* Barang Terlaris */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy size={16} className="text-amber-500" />
+            <h3 className="font-bold text-gray-900 text-sm">Barang Terlaris</h3>
+          </div>
+          {topProducts.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-xs">Belum ada data penjualan</div>
+          ) : (
+            <div className="space-y-3">
+              {topProducts.map((p, i) => (
+                <div key={p.name} className="flex items-center gap-3">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-100 text-gray-600' : 'bg-orange-50 text-orange-600'
+                  }`}>{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-gray-800 truncate">{p.name}</p>
+                    <p className="text-xs text-gray-400">{Number(p.totalQty).toLocaleString('id-ID')} terjual</p>
+                  </div>
+                  <p className="text-xs font-bold text-blue-700 shrink-0">{formatRupiah(p.totalRevenue)}</p>
+                </div>
+              ))}
             </div>
-            <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50">
-              <h4 className="font-semibold text-sm text-slate-900 mb-1">
-                Informasi Pengguna Aktif:
-              </h4>
-              <div className="text-xs text-slate-600 space-y-1">
-                <p><span className="font-medium text-slate-700">Nama Lengkap:</span> {profile?.full_name || '-'}</p>
-                <p><span className="font-medium text-slate-700">Role Sistem:</span> owner (Pemilik)</p>
-                <p><span className="font-medium text-slate-700">Status Akun:</span> Aktif</p>
-              </div>
-            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Penjualan Per Kasir */}
+      {salesByCashier.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Users size={16} className="text-blue-600" />
+            <h3 className="font-bold text-gray-900 text-sm">Penjualan Per Kasir</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                  <th className="pb-2 font-semibold">Kasir</th>
+                  <th className="pb-2 font-semibold text-right">Transaksi</th>
+                  <th className="pb-2 font-semibold text-right">Total Penjualan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {salesByCashier.map((c) => (
+                  <tr key={c.id}>
+                    <td className="py-2.5 font-medium text-gray-800">{c.name}</td>
+                    <td className="py-2.5 text-right text-gray-600">{c.count}</td>
+                    <td className="py-2.5 text-right font-bold text-blue-700">{formatRupiah(c.totalRevenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </Card>
+      )}
     </div>
   );
 }

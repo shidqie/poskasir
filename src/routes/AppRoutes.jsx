@@ -19,11 +19,22 @@ import { ProductDetailPage } from '@/pages/owner/products/ProductDetailPage';
 import { CategoryListPage } from '@/pages/owner/categories/CategoryListPage';
 import { UnitListPage } from '@/pages/owner/units/UnitListPage';
 import { UnregisteredPriceListPage } from '@/pages/owner/unregistered/UnregisteredPriceListPage';
+import ReportPage from '@/pages/owner/ReportPage';
+import ClosingListPage from '@/pages/owner/closing/ClosingListPage';
+import StockAdjustmentPage from '@/pages/owner/stock/StockAdjustmentPage';
+import UserListPage from '@/pages/owner/users/UserListPage';
 
 // Cashier & Shared Pages
 import { CashierDashboard } from '@/pages/cashier/CashierDashboard';
 import { PriceListPage } from '@/pages/prices/PriceListPage';
 import { POSPage } from '@/pages/pos/POSPage';
+
+// Tahap 5-8 — Shared (Cashier & Owner)
+import QuickCalculatorPage from '@/pages/calculator/QuickCalculatorPage';
+import TransactionListPage from '@/pages/transactions/TransactionListPage';
+import TransactionDetailPage from '@/pages/transactions/TransactionDetailPage';
+import ReceiptPrintPage from '@/pages/transactions/ReceiptPrintPage';
+import ClosingPage from '@/pages/closing/ClosingPage';
 
 function IndexRedirect() {
   const { user, profile, role, isInitialized, isLoading } = useAuthStore();
@@ -47,50 +58,68 @@ function IndexRedirect() {
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Route Root ('/') */}
+      {/* Root */}
       <Route path="/" element={<IndexRedirect />} />
 
-      {/* Public Routes (Login) */}
+      {/* Public */}
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<LoginPage />} />
       </Route>
 
-      {/* Protected Routes untuk Role OWNER (Pemilik) */}
+      {/* ===== OWNER ROUTES ===== */}
       <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
         <Route path="/owner" element={<OwnerLayout />}>
           <Route index element={<Navigate to="/owner/dashboard" replace />} />
           <Route path="dashboard" element={<OwnerDashboard />} />
 
-          {/* Master Barang */}
+          {/* Master Data */}
           <Route path="products" element={<ProductListPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:id" element={<ProductDetailPage />} />
           <Route path="products/:id/edit" element={<ProductFormPage />} />
-
-          {/* Kategori & Satuan */}
           <Route path="categories" element={<CategoryListPage />} />
           <Route path="units" element={<UnitListPage />} />
-
-          {/* POS Kasir untuk Pemilik */}
-          <Route path="pos" element={<POSPage />} />
-
-          {/* Daftar Harga & Barang Belum Terdaftar */}
           <Route path="prices" element={<PriceListPage isOwnerView={true} />} />
           <Route path="unregistered-products" element={<UnregisteredPriceListPage />} />
+
+          {/* Tahap 4-8 */}
+          <Route path="transactions" element={<TransactionListPage />} />
+          <Route path="reports" element={<ReportPage />} />
+          <Route path="closings" element={<ClosingListPage />} />
+          <Route path="stock-adjustment" element={<StockAdjustmentPage />} />
+          <Route path="pos" element={<POSPage />} />
+
+          {/* Tahap 10 */}
+          <Route path="users" element={<UserListPage />} />
         </Route>
       </Route>
 
-      {/* Protected Routes untuk Role CASHIER (Kasir) & OWNER untuk route /pos */}
+      {/* ===== CASHIER + SHARED ROUTES ===== */}
       <Route element={<ProtectedRoute allowedRoles={['cashier', 'owner']} />}>
-        {/* Khusus jika Cashier membuka root */}
         <Route path="/" element={<CashierLayout />}>
           <Route path="pos" element={<POSPage />} />
           <Route path="cashier/dashboard" element={<CashierDashboard />} />
           <Route path="price-list" element={<PriceListPage isOwnerView={false} />} />
+
+          {/* Tahap 5 */}
+          <Route path="quick-calculator" element={<QuickCalculatorPage />} />
+
+          {/* Tahap 6 */}
+          <Route path="transactions" element={<TransactionListPage />} />
+          <Route path="transactions/:id" element={<TransactionDetailPage />} />
+
+          {/* Tahap 8 */}
+          <Route path="closing" element={<ClosingPage />} />
         </Route>
       </Route>
 
-      {/* Fallback 404 */}
+      {/* ===== STANDALONE ROUTES (no layout — print, etc.) ===== */}
+      <Route element={<ProtectedRoute allowedRoles={['cashier', 'owner']} />}>
+        <Route path="/transactions/:id" element={<TransactionDetailPage />} />
+        <Route path="/transactions/:id/print" element={<ReceiptPrintPage />} />
+      </Route>
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

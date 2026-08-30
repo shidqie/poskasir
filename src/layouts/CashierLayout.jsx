@@ -43,24 +43,18 @@ export function CashierLayout() {
     },
     {
       label: 'Kalkulator Cepat',
-      to: '#',
+      to: '/quick-calculator',
       icon: Calculator,
-      badge: 'Tahap 5',
-      disabled: true,
     },
     {
       label: 'Riwayat Transaksi',
-      to: '#',
+      to: '/transactions',
       icon: History,
-      badge: 'Tahap 6',
-      disabled: true,
     },
     {
       label: 'Tutup Kasir',
-      to: '#',
+      to: '/closing',
       icon: DoorClosed,
-      badge: 'Tahap 7',
-      disabled: true,
     },
   ];
 

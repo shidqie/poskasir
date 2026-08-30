@@ -41,6 +41,26 @@ export function OwnerLayout() {
       icon: Store,
     },
     {
+      label: 'Riwayat Transaksi',
+      to: '/owner/transactions',
+      icon: Receipt,
+    },
+    {
+      label: 'Laporan Penjualan',
+      to: '/owner/reports',
+      icon: BarChart3,
+    },
+    {
+      label: 'Closing Kasir',
+      to: '/owner/closings',
+      icon: Calculator,
+    },
+    {
+      label: 'Penyesuaian Stok',
+      to: '/owner/stock-adjustment',
+      icon: Scale,
+    },
+    {
       label: 'Data Master Barang',
       to: '/owner/products',
       icon: Package,
@@ -49,11 +69,6 @@ export function OwnerLayout() {
       label: 'Kategori Barang',
       to: '/owner/categories',
       icon: Layers,
-    },
-    {
-      label: 'Satuan Barang',
-      to: '/owner/units',
-      icon: Scale,
     },
     {
       label: 'Cek Daftar Harga',
@@ -66,32 +81,9 @@ export function OwnerLayout() {
       icon: Tag,
     },
     {
-      label: 'Transaksi',
-      to: '#',
-      icon: Receipt,
-      badge: 'Tahap 3',
-      disabled: true,
-    },
-    {
-      label: 'Laporan Penjualan',
-      to: '#',
-      icon: BarChart3,
-      badge: 'Tahap 7',
-      disabled: true,
-    },
-    {
-      label: 'Closing Kasir',
-      to: '#',
-      icon: Calculator,
-      badge: 'Tahap 7',
-      disabled: true,
-    },
-    {
       label: 'Data Kasir',
-      to: '#',
+      to: '/owner/users',
       icon: Users,
-      badge: 'Mendatang',
-      disabled: true,
     },
   ];
 
