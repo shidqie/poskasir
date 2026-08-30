@@ -23,6 +23,7 @@ import ReportPage from '@/pages/owner/ReportPage';
 import ClosingListPage from '@/pages/owner/closing/ClosingListPage';
 import StockAdjustmentPage from '@/pages/owner/stock/StockAdjustmentPage';
 import UserListPage from '@/pages/owner/users/UserListPage';
+import { UIComponentShowcasePage } from '@/pages/owner/components/UIComponentShowcasePage';
 
 // Cashier & Shared Pages
 import { CashierDashboard } from '@/pages/cashier/CashierDashboard';
@@ -97,6 +98,9 @@ export function AppRoutes() {
 
           {/* Tahap 10 */}
           <Route path="users" element={<UserListPage />} />
+
+          {/* Design System & UI Components */}
+          <Route path="components" element={<UIComponentShowcasePage />} />
         </Route>
       </Route>
 

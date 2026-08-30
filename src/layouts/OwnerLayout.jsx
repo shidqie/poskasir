@@ -17,6 +17,7 @@ import {
   X,
   Store,
   ShieldCheck,
+  Palette,
 } from 'lucide-react';
 
 export function OwnerLayout() {
@@ -84,6 +85,11 @@ export function OwnerLayout() {
       label: 'Data Kasir',
       to: '/owner/users',
       icon: Users,
+    },
+    {
+      label: 'Komponen UI',
+      to: '/owner/components',
+      icon: Palette,
     },
   ];
 
