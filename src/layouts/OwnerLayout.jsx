@@ -19,7 +19,6 @@ import {
   X,
   Store,
   ShieldCheck,
-  Palette,
   ChevronLeft,
   ChevronRight,
   PanelLeftClose,
@@ -112,11 +111,6 @@ export function OwnerLayout() {
       label: 'Data Kasir',
       to: '/owner/users',
       icon: Users,
-    },
-    {
-      label: 'Komponen UI',
-      to: '/owner/components',
-      icon: Palette,
     },
   ];
 
