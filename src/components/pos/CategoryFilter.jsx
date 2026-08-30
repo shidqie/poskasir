@@ -12,8 +12,8 @@ export function CategoryFilter({
         onClick={() => onSelectCategory('')}
         className={`px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer ${
           selectedCategoryId === ''
-            ? 'bg-red-600 text-white shadow-xs font-bold'
-            : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
+            ? 'bg-slate-900 text-white font-bold shadow-xs'
+            : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/90 hover:text-slate-900'
         }`}
       >
         Semua Kategori
@@ -28,8 +28,8 @@ export function CategoryFilter({
             onClick={() => onSelectCategory(cat.id)}
             className={`px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer ${
               isSelected
-                ? 'bg-red-600 text-white shadow-xs font-bold'
-                : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
+                ? 'bg-slate-900 text-white font-bold shadow-xs'
+                : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/90 hover:text-slate-900'
             }`}
           >
             {cat.name}

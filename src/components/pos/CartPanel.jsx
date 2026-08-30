@@ -38,10 +38,10 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 border-l border-slate-200/80">
-      {/* Header Panel Keranjang (Medium Minimalist) */}
+      {/* Header Panel Keranjang (Minimalist) */}
       <div className="px-3.5 py-2.5 bg-white border-b border-slate-200/80 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100">
+          <div className="p-1.5 rounded-lg bg-slate-100 text-slate-700">
             <ShoppingCart className="w-4 h-4" />
           </div>
           <div>
@@ -113,7 +113,7 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
       </div>
 
       {/* Footer Summary & Checkout */}
-      <div className="p-3.5 bg-white border-t border-slate-200/80 shrink-0 space-y-2.5 shadow-lg">
+      <div className="p-3.5 bg-white border-t border-slate-200/80 shrink-0 space-y-2.5 shadow-xs">
         {/* Rincian Total */}
         <div className="space-y-1 text-xs text-slate-600">
           <div className="flex items-center justify-between">
@@ -124,25 +124,23 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-slate-100">
             <span className="font-bold text-slate-700 text-xs sm:text-sm">Total Belanja:</span>
-            <span className="font-black text-lg sm:text-xl text-red-600 font-mono">
+            <span className="font-bold text-lg sm:text-xl text-slate-900 font-mono">
               {formatRupiah(totalAmount)}
             </span>
           </div>
         </div>
 
         {/* Tombol Bayar */}
-        <Button
+        <button
           type="button"
-          variant="primary"
-          size="md"
           disabled={isEmpty}
           onClick={onCheckout}
-          icon={Receipt}
-          className="w-full py-2.5 text-xs sm:text-sm font-bold shadow-md shadow-red-500/25 flex items-center justify-center gap-1.5"
+          className="w-full py-2.5 px-4 bg-slate-900 hover:bg-black disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:cursor-not-allowed"
         >
+          <Receipt className="w-4 h-4" />
           <span>Bayar {formatRupiah(totalAmount)}</span>
           <ArrowRight className="w-3.5 h-3.5 ml-1" />
-        </Button>
+        </button>
       </div>
 
       {/* Dialog Konfirmasi Kosongkan Keranjang */}

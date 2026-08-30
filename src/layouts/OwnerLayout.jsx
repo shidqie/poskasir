@@ -248,13 +248,13 @@ export function OwnerLayout() {
                         isCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-3 py-2'
                       } rounded-xl text-xs font-semibold transition-all group relative cursor-pointer ${
                         isActive
-                          ? 'bg-red-600 text-white font-bold shadow-md shadow-red-600/25'
-                          : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100'
+                          ? 'bg-slate-800 text-white font-bold shadow-xs'
+                          : 'text-slate-400 hover:bg-slate-900/80 hover:text-slate-200'
                       }`
                     }
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 transition-colors`} />
+                      <Icon className="w-4 h-4 shrink-0 transition-colors" />
                       {!isCollapsed && (
                         <span className="truncate">{item.label}</span>
                       )}
@@ -262,7 +262,7 @@ export function OwnerLayout() {
 
                     {!isCollapsed && item.badge !== null && item.badge !== undefined && (
                       <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded-md font-black shrink-0 ${
+                        className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold shrink-0 ${
                           item.badgeColor || 'bg-slate-800 text-slate-300'
                         }`}
                       >
@@ -272,7 +272,7 @@ export function OwnerLayout() {
 
                     {/* Dot Indicator for Collapsed Mode */}
                     {isCollapsed && item.badge !== null && item.badge !== undefined && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
+                      <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-slate-200 ring-2 ring-slate-950" />
                     )}
                   </NavLink>
                 );

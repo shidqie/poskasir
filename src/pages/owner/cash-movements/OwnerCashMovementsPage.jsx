@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cashMovementService } from '@/services/cashMovementService';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import { StatCard } from '@/components/common/StatCard';
 import { CashMovementBadge } from '@/components/cashier/CashMovementBadge';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/common/Button';
@@ -56,7 +57,7 @@ export function OwnerCashMovementsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Riwayat Kas Keluar & Kas Masuk
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -65,41 +66,20 @@ export function OwnerCashMovementsPage() {
         </div>
       </div>
 
-      {/* 2 Stat Cards */}
+      {/* 2 Minimalist Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-rose-700 uppercase tracking-wider block">
-              Total Kas Keluar (Ambil Uang)
-            </span>
-            <p className="text-2xl font-black text-rose-600 font-mono">
-              − {formatRupiah(totalCashOut)}
-            </p>
-            <span className="text-xs text-slate-400 font-medium">
-              {movements.filter((m) => m.movement_type === 'cash_out').length} Kali Pengambilan
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shrink-0">
-            <ArrowUpRight size={24} />
-          </div>
-        </div>
-
-        <div className="p-5 bg-white rounded-3xl border border-slate-200/90 shadow-xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">
-              Total Kas Masuk
-            </span>
-            <p className="text-2xl font-black text-emerald-700 font-mono">
-              + {formatRupiah(totalCashIn)}
-            </p>
-            <span className="text-xs text-slate-400 font-medium">
-              {movements.filter((m) => m.movement_type === 'cash_in').length} Kali Kas Masuk
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
-            <ArrowDownLeft size={24} />
-          </div>
-        </div>
+        <StatCard
+          title="Total Kas Keluar (Ambil Uang)"
+          value={`− ${formatRupiah(totalCashOut)}`}
+          subtitle={`${movements.filter((m) => m.movement_type === 'cash_out').length} Kali Pengambilan`}
+          icon={ArrowUpRight}
+        />
+        <StatCard
+          title="Total Kas Masuk"
+          value={`+ ${formatRupiah(totalCashIn)}`}
+          subtitle={`${movements.filter((m) => m.movement_type === 'cash_in').length} Kali Kas Masuk`}
+          icon={ArrowDownLeft}
+        />
       </div>
 
       {/* Filter Bar */}

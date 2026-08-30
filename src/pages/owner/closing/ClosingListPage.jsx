@@ -42,28 +42,23 @@ export default function ClosingListPage() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100 shrink-0">
-            <DoorClosed className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Sesi Kasir & Riwayat Closing
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Rekapitulasi sesi kerja, saldo awal tunai, penjualan Tunai vs QRIS, dan selisih kas seluruh kasir &bull; {sessions.length} sesi tercatat
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Sesi Kasir & Riwayat Closing
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Rekapitulasi sesi kerja, saldo awal tunai, penjualan Tunai vs QRIS, dan selisih kas &bull; {sessions.length} sesi tercatat
+          </p>
         </div>
 
         {/* View Mode Toggle */}
-        <div className="bg-slate-200/80 p-1 rounded-xl flex gap-1 text-xs font-bold self-start sm:self-auto">
+        <div className="bg-slate-100 p-1 rounded-xl flex gap-1 text-xs font-semibold self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setViewMode('table')}
             className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
               viewMode === 'table'
-                ? 'bg-white text-red-600 shadow-xs font-bold'
+                ? 'bg-slate-900 text-white shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -75,7 +70,7 @@ export default function ClosingListPage() {
             onClick={() => setViewMode('cards')}
             className={`py-1.5 px-3 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
               viewMode === 'cards'
-                ? 'bg-white text-red-600 shadow-xs font-bold'
+                ? 'bg-slate-900 text-white shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >

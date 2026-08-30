@@ -5,6 +5,7 @@ import { debtService } from '@/services/debtService';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { StatCard } from '@/components/common/StatCard';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { DebtStatusBadge } from '@/components/debts/DebtStatusBadge';
@@ -51,10 +52,15 @@ export default function DebtListPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('debt_desc');
-  const [selectedPayCustomer, setSelectedPayCustomer] = useState(null);
-  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
 
-  // 1. Query Ringkasan Global Piutang
+  // Modals
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [paymentModalState, setPaymentModalState] = useState({
+    isOpen: false,
+    customer: null,
+  });
+
+  // 1. Query Ringkasan Global Hutang
   const { data: globalSummary = {}, isLoading: summaryLoading } = useQuery({
     queryKey: ['debt-global-summary'],
     queryFn: () => debtService.getDebtGlobalSummary(),
@@ -79,18 +85,13 @@ export default function DebtListPage() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200/80">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Hutang Pelanggan
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Kelola pencatatan bon belanja pelanggan, saldo piutang, dan riwayat cicilan
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Hutang Pelanggan
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Kelola pencatatan bon belanja pelanggan, saldo piutang, dan riwayat cicilan
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -99,93 +100,49 @@ export default function DebtListPage() {
             variant="primary"
             icon={Plus}
             onClick={() => setIsAddCustomerModalOpen(true)}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-500/25"
+            className="bg-slate-900 hover:bg-black text-white font-semibold text-xs shadow-xs"
           >
-            + Tambah Pelanggan
+            Tambah Pelanggan
           </Button>
         </div>
       </div>
 
-      {/* 3 Stat Cards Ringkasan */}
+      {/* 3 Minimalist Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Card 1: Total Piutang Toko */}
-        <Card
-          className="border-amber-200/90 bg-gradient-to-br from-white to-amber-50/40"
-          bodyClassName="p-5 flex items-center justify-between"
-        >
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-              Total Piutang Belum Lunas
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
-              {summaryLoading ? '...' : formatRupiah(globalSummary.totalOutstandingDebt || 0)}
-            </p>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Sisa seluruh bon aktif
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-500/20">
-            <Coins className="w-6 h-6" />
-          </div>
-        </Card>
-
-        {/* Card 2: Pelanggan Berhutang */}
-        <Card
-          className="border-rose-200/90 bg-gradient-to-br from-white to-rose-50/40"
-          bodyClassName="p-5 flex items-center justify-between"
-        >
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">
-              Pelanggan Berhutang
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
-              {summaryLoading ? '...' : (globalSummary.totalCustomersWithDebt || 0).toLocaleString('id-ID')}
-            </p>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Orang memiliki sisa hutang
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-700 flex items-center justify-center shrink-0 border border-rose-500/20">
-            <Users className="w-6 h-6" />
-          </div>
-        </Card>
-
-        {/* Card 3: Pembayaran Masuk Hari Ini */}
-        <Card
-          className="border-emerald-200/90 bg-gradient-to-br from-white to-emerald-50/40"
-          bodyClassName="p-5 flex items-center justify-between"
-        >
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-              Pembayaran Hutang Hari Ini
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-emerald-700 font-mono">
-              {summaryLoading ? '...' : formatRupiah(globalSummary.todayDebtPayments || 0)}
-            </p>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Uang masuk dari pelunasan
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-500/20">
-            <Wallet className="w-6 h-6" />
-          </div>
-        </Card>
+        <StatCard
+          title="Total Piutang Belum Lunas"
+          value={summaryLoading ? '...' : formatRupiah(globalSummary.totalOutstandingDebt || 0)}
+          subtitle="Sisa seluruh bon aktif"
+          icon={Coins}
+        />
+        <StatCard
+          title="Pelanggan Berhutang"
+          value={summaryLoading ? '...' : `${(globalSummary.totalCustomersWithDebt || 0).toLocaleString('id-ID')} Orang`}
+          subtitle="Memiliki sisa hutang"
+          icon={Users}
+        />
+        <StatCard
+          title="Pembayaran Hutang Hari Ini"
+          value={summaryLoading ? '...' : formatRupiah(globalSummary.todayDebtPayments || 0)}
+          subtitle="Uang masuk dari pelunasan"
+          icon={Wallet}
+        />
       </div>
 
       {/* Filter, Search & Sort Bar */}
       <Card bodyClassName="p-4 space-y-3">
         {/* Status Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs font-bold">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs font-semibold">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   statusFilter === tab.id
-                    ? 'bg-amber-600 text-white shadow-xs font-black'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white shadow-xs font-bold'
+                    : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {tab.label}

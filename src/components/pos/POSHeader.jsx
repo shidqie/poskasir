@@ -130,7 +130,7 @@ export function POSHeader({
           <button
             type="button"
             onClick={onOpenScanner}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
           >
             <Camera size={14} />
             <span>Scan Barcode</span>

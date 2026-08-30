@@ -92,21 +92,22 @@ export function CartItem({
           <button
             type="button"
             onClick={() => onIncrease(item.id, isDecimal ? 0.25 : 1)}
-            className="w-9 h-9 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-center justify-center hover:bg-red-100 active:scale-90 transition-all cursor-pointer font-bold select-none touch-manipulation"
+            className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-100/80 text-slate-800 flex items-center justify-center hover:bg-slate-200 active:scale-90 transition-all cursor-pointer font-bold select-none touch-manipulation"
             title="Tambah kuantitas"
             aria-label="Tambah satu"
           >
             <Plus className="w-4 h-4" />
           </button>
-
-          <span className="text-[11px] text-slate-400 font-medium ml-1 truncate max-w-[50px]">
-            {unitLabel}
-          </span>
         </div>
 
         {/* Subtotal */}
-        <div className="text-right font-black text-sm sm:text-base text-red-600 font-mono tracking-tight shrink-0">
-          {formatRupiah(item.subtotal)}
+        <div className="text-right">
+          <span className="text-[10px] text-slate-400 font-medium block">
+            Subtotal
+          </span>
+          <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono">
+            {formatRupiah(Number(item.price || item.selling_price) * Number(item.quantity))}
+          </span>
         </div>
       </div>
     </div>
