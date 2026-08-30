@@ -175,6 +175,90 @@ export const transactionService = {
       avgTransaction,
     };
   },
+
+  /**
+   * Memproses transaksi langsung dari Kalkulator Cepat & mencatat ke database/laporan
+   */
+  async processQuickCalculatorSale({ entries, paymentAmount, paymentMethod = 'cash' }) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('Anda harus login sebagai kasir/pemilik untuk mencatat transaksi.');
+    }
+
+    const totalAmount = entries.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const totalQuantity = entries.length;
+    const paid = Number(paymentAmount);
+    const change = Math.max(0, paid - totalAmount);
+    const idempotencyKey = crypto.randomUUID();
+
+    // Generate transaction number
+    let transactionNumber = `TRX-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(
+      Math.floor(1000 + Math.random() * 9000)
+    )}`;
+
+    try {
+      const { data: numData } = await supabase.rpc('generate_transaction_number');
+      if (numData) transactionNumber = numData;
+    } catch (e) {
+      console.warn('[transactionService] Use fallback trx number:', e);
+    }
+
+    // Insert ke transactions
+    const { data: trx, error: trxError } = await supabase
+      .from('transactions')
+      .insert({
+        transaction_number: transactionNumber,
+        cashier_id: user.id,
+        total_quantity: totalQuantity,
+        subtotal: totalAmount,
+        total_amount: totalAmount,
+        payment_amount: paid,
+        change_amount: change,
+        payment_method: paymentMethod,
+        status: 'completed',
+        idempotency_key: idempotencyKey,
+        notes: 'Transaksi Kalkulator Cepat',
+      })
+      .select()
+      .single();
+
+    if (trxError) {
+      console.error('[transactionService] Quick sale transaction error:', trxError);
+      throw new Error(trxError.message || 'Gagal menyimpan transaksi ke laporan.');
+    }
+
+    // Insert items
+    const itemsPayload = entries.map((e, idx) => ({
+      transaction_id: trx.id,
+      item_name: e.label || `Item ${idx + 1}`,
+      unit_name: 'Pcs',
+      price: Number(e.amount),
+      quantity: 1,
+      subtotal: Number(e.amount),
+      source_type: 'temporary',
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('transaction_items')
+      .insert(itemsPayload);
+
+    if (itemsError) {
+      console.warn('[transactionService] Quick sale items warning:', itemsError);
+    }
+
+    return {
+      success: true,
+      transaction_id: trx.id,
+      transaction_number: trx.transaction_number,
+      total_amount: totalAmount,
+      payment_amount: paid,
+      change_amount: change,
+      total_quantity: totalQuantity,
+    };
+  },
 };
 
 export default transactionService;
