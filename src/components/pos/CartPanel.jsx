@@ -40,7 +40,7 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
       {/* Header Panel Keranjang */}
       <div className="p-4 bg-white border-b border-slate-200/80 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+          <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
             <ShoppingCart className="w-5 h-5" />
           </div>
           <div>
@@ -126,7 +126,7 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-sm">
             <span className="font-bold text-slate-700">Total Belanja:</span>
-            <span className="font-black text-xl text-blue-600 font-mono">
+            <span className="font-black text-xl text-red-600 font-mono">
               {formatRupiah(totalAmount)}
             </span>
           </div>
@@ -140,7 +140,7 @@ export function CartPanel({ onCheckout, isMobile = false, onCloseMobile }) {
           disabled={isEmpty}
           onClick={onCheckout}
           icon={Receipt}
-          className="w-full py-3.5 text-sm sm:text-base font-bold shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
+          className="w-full py-3.5 text-sm sm:text-base font-bold shadow-md shadow-red-500/25 flex items-center justify-center gap-2"
         >
           <span>Bayar {formatRupiah(totalAmount)}</span>
           <ArrowRight className="w-4 h-4 ml-1" />

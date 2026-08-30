@@ -32,13 +32,13 @@ export function StatusBadge({ status, type = 'active_inactive', className = '' }
       <span
         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
           isRegistered
-            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+            ? 'bg-red-50 text-red-700 border border-red-200'
             : 'bg-amber-50 text-amber-700 border border-amber-200'
         } ${className}`}
       >
         <span
           className={`w-1.5 h-1.5 rounded-full ${
-            isRegistered ? 'bg-blue-500' : 'bg-amber-500'
+            isRegistered ? 'bg-red-500' : 'bg-amber-500'
           }`}
         />
         {isRegistered ? 'Terdaftar' : 'Belum Terdaftar'}

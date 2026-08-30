@@ -27,7 +27,7 @@ export function ProductCard({ item, onAddToCart }) {
       className={`group relative flex flex-col justify-between p-3.5 sm:p-4 rounded-xl border text-left transition-all ${
         isOutOfStock
           ? 'bg-slate-50/70 border-slate-200 opacity-60 cursor-not-allowed select-none'
-          : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-md active:scale-[0.98] cursor-pointer'
+          : 'bg-white border-slate-200 hover:border-red-400 hover:shadow-md active:scale-[0.98] cursor-pointer'
       }`}
     >
       <div>
@@ -51,7 +51,7 @@ export function ProductCard({ item, onAddToCart }) {
         </div>
 
         {/* Product Name */}
-        <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+        <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">
           {item.name}
         </h3>
 
@@ -86,7 +86,7 @@ export function ProductCard({ item, onAddToCart }) {
           className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
             isOutOfStock
               ? 'bg-slate-100 text-slate-300'
-              : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+              : 'bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white shadow-xs'
           }`}
         >
           <Plus className="w-4 h-4" />

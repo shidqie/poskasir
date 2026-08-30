@@ -234,10 +234,10 @@ export function ProductFormPage() {
                   type="button"
                   onClick={() => setIsScannerOpen(true)}
                   disabled={saveMutation.isPending}
-                  className="px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                  className="px-2.5 py-1 text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 rounded-md border border-red-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
                   title="Scan Barcode via Kamera HP / Webcam"
                 >
-                  <Camera className="w-3.5 h-3.5 text-blue-600" />
+                  <Camera className="w-3.5 h-3.5 text-red-600" />
                   <span>Scan Kamera</span>
                 </button>
               }
@@ -248,7 +248,7 @@ export function ProductFormPage() {
             <div>
               <label
                 htmlFor="product-category"
-                className="block text-sm font-medium text-slate-700 mb-1.5"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
               >
                 Kategori <span className="text-red-500">*</span>
               </label>
@@ -261,7 +261,7 @@ export function ProductFormPage() {
                 }}
                 required
                 disabled={saveMutation.isPending}
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
               >
                 <option value="">-- Pilih Kategori --</option>
                 {categories.map((cat) => (
@@ -276,7 +276,7 @@ export function ProductFormPage() {
             <div>
               <label
                 htmlFor="product-unit"
-                className="block text-sm font-medium text-slate-700 mb-1.5"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
               >
                 Satuan <span className="text-red-500">*</span>
               </label>
@@ -289,7 +289,7 @@ export function ProductFormPage() {
                 }}
                 required
                 disabled={saveMutation.isPending}
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors font-medium"
               >
                 <option value="">-- Pilih Satuan --</option>
                 {units.map((u) => (
@@ -324,7 +324,7 @@ export function ProductFormPage() {
             <div>
               <label
                 htmlFor="product-stock"
-                className="block text-sm font-medium text-slate-700 mb-1.5"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
               >
                 Jumlah Stok {selectedUnit ? `(${selectedUnit.symbol})` : ''}{' '}
                 <span className="text-red-500">*</span>
@@ -338,7 +338,7 @@ export function ProductFormPage() {
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
                 disabled={saveMutation.isPending}
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold"
               />
               <p className="text-xs text-slate-500 mt-1">
                 {allowDecimal
@@ -351,7 +351,7 @@ export function ProductFormPage() {
             <div>
               <label
                 htmlFor="product-min-stock"
-                className="block text-sm font-medium text-slate-700 mb-1.5"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
               >
                 Peringatan Stok Minimum
               </label>
@@ -363,7 +363,7 @@ export function ProductFormPage() {
                 value={minimumStock}
                 onChange={(e) => setMinimumStock(e.target.value)}
                 disabled={saveMutation.isPending}
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold"
               />
               <p className="text-xs text-slate-500 mt-1">
                 Status akan menjadi "Menipis" jika stok mencapai angka ini
@@ -374,7 +374,7 @@ export function ProductFormPage() {
           {/* Status Switch */}
           <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Status Produk</p>
+              <p className="text-sm font-bold text-slate-900">Status Produk</p>
               <p className="text-xs text-slate-500">
                 Produk aktif dapat dicari dan dijual di terminal kasir
               </p>
@@ -387,7 +387,7 @@ export function ProductFormPage() {
                 disabled={saveMutation.isPending}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
             </label>
           </div>
         </Card>

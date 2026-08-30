@@ -76,7 +76,7 @@ export function PriceListPage({ isOwnerView = false }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
+            <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
               <Tags className="w-5 h-5" />
             </div>
             <div>
@@ -101,7 +101,7 @@ export function PriceListPage({ isOwnerView = false }) {
       </div>
 
       {/* Prominent Search Bar */}
-      <div className="relative shadow-sm rounded-2xl">
+      <div className="relative shadow-xs rounded-2xl">
         <div className="absolute inset-y-0 left-0 pl-4.5 flex items-center pointer-events-none text-slate-400">
           <Search className="w-6 h-6" />
         </div>
@@ -111,7 +111,7 @@ export function PriceListPage({ isOwnerView = false }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           autoFocus
-          className="w-full pl-13 pr-4 py-4 text-base sm:text-lg font-medium bg-white border border-slate-300 rounded-2xl shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all placeholder:text-slate-400 placeholder:text-sm sm:placeholder:text-base"
+          className="w-full pl-13 pr-4 py-4 text-base sm:text-lg font-medium bg-white border border-slate-300 rounded-2xl shadow-xs focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all placeholder:text-slate-400 placeholder:text-sm sm:placeholder:text-base"
         />
       </div>
 
@@ -246,7 +246,7 @@ export function PriceListPage({ isOwnerView = false }) {
                             },
                           })
                         }
-                        className="w-full text-xs py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm"
+                        className="w-full text-xs py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 shadow-sm shadow-red-500/25 font-bold text-white"
                       >
                         Jadikan Data Barang Resmi
                       </Button>

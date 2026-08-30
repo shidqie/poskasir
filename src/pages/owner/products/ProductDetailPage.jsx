@@ -105,19 +105,19 @@ export function ProductDetailPage() {
       {/* Main Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Harga Jual */}
-        <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-blue-100">
+        <Card className="bg-gradient-to-br from-red-50/70 to-rose-50/40 border-red-100">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
+            <div className="p-3 rounded-xl bg-red-600 text-white shadow-md shadow-red-500/25">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Harga Jual Satuan
               </p>
-              <p className="text-2xl font-black text-blue-950 mt-0.5">
+              <p className="text-2xl font-black text-red-950 mt-0.5">
                 {formatRupiah(product.selling_price)}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 font-medium">
                 per {product.unit?.name} ({product.unit?.symbol})
               </p>
             </div>

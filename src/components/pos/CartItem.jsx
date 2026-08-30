@@ -70,7 +70,7 @@ export function CartItem({
             min={isDecimal ? '0.001' : '1'}
             value={item.quantity}
             onChange={handleInputChange}
-            className="w-14 text-center py-1 text-xs sm:text-sm font-bold bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            className="w-14 text-center py-1 text-xs sm:text-sm font-bold bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
           />
 
           <button

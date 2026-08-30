@@ -99,7 +99,7 @@ export function UnitListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
+            <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
               <Scale className="w-5 h-5" />
             </div>
             <div>
@@ -135,7 +135,7 @@ export function UnitListPage() {
               placeholder="Cari nama atau simbol..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             />
           </div>
 
@@ -194,14 +194,14 @@ export function UnitListPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       {u.allow_decimal ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                          <Check className="w-3.5 h-3.5 text-blue-600" />
-                          Ya (0.5, 1.25)
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                          <Check className="w-3.5 h-3.5 text-red-600" />
+                          Ya (Pecahan/Timbangan)
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
                           <X className="w-3.5 h-3.5 text-slate-400" />
-                          Bulat (1, 2, 3)
+                          Tidak (Bilangan Bulat)
                         </span>
                       )}
                     </td>
@@ -212,7 +212,7 @@ export function UnitListPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(u)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
                           title="Ubah Satuan"
                         >
                           <Edit2 className="w-4 h-4" />

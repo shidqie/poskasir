@@ -43,9 +43,9 @@ export function POSHeader({ onOpenScanner }) {
             <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
               <span className="flex items-center gap-1 font-medium">
                 {role === 'owner' ? (
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-red-600" />
                 ) : (
-                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <UserCheck className="w-3.5 h-3.5 text-red-600" />
                 )}
                 {profile?.full_name || 'Kasir'}
               </span>
@@ -65,7 +65,7 @@ export function POSHeader({ onOpenScanner }) {
             variant="primary"
             icon={Camera}
             onClick={onOpenScanner}
-            className="w-full sm:w-auto shadow-sm shadow-blue-500/20 text-xs sm:text-sm py-2.5 font-bold"
+            className="w-full sm:w-auto shadow-sm shadow-red-500/25 text-xs sm:text-sm py-2.5 font-bold"
           >
             Scan Barcode (Kamera)
           </Button>

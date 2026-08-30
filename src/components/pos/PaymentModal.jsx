@@ -90,12 +90,12 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
       {/* Modal */}
       <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-red-600 to-rose-700 px-5 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-white font-semibold text-lg leading-tight">Pembayaran</h2>
-            <p className="text-blue-100 text-sm">
+            <h2 className="text-white font-bold text-lg leading-tight">Pembayaran</h2>
+            <p className="text-red-100 text-sm font-medium">
               Total:{' '}
-              <span className="font-bold text-white">
+              <span className="font-extrabold text-white">
                 Rp{total.toLocaleString('id-ID')}
               </span>
             </p>
@@ -113,7 +113,7 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
         <div className="p-5 space-y-5">
           {/* Payment Method */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
               Metode Bayar
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -122,10 +122,10 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
                   key={id}
                   onClick={() => setPaymentMethod(id)}
                   disabled={isProcessing}
-                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all text-sm font-medium ${
+                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all text-sm font-semibold ${
                     paymentMethod === id
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300'
+                      ? 'border-red-600 bg-red-50 text-red-700 shadow-xs'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
                   }`}
                 >
                   <Icon size={18} />
@@ -138,11 +138,11 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
           {/* Cash Input */}
           {paymentMethod === 'cash' && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
                 Uang Diterima
               </p>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-sm">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">
                   Rp
                 </span>
                 <input
@@ -153,27 +153,27 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
                   onChange={handleReceivedChange}
                   disabled={isProcessing}
                   placeholder="0"
-                  className={`w-full pl-9 pr-4 py-3 border-2 rounded-xl text-right text-lg font-semibold outline-none transition-colors ${
+                  className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl text-right text-lg font-bold outline-none transition-colors ${
                     isShortage
                       ? 'border-red-400 bg-red-50 text-red-700'
                       : received >= total && received > 0
-                      ? 'border-green-400 bg-green-50 text-green-700'
-                      : 'border-gray-200 focus:border-blue-400'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                      : 'border-slate-200 focus:border-red-500'
                   }`}
                 />
               </div>
 
               {/* Quick amounts */}
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {quickAmounts.map((amount) => (
                   <button
                     key={amount}
                     onClick={() => handleQuickAmount(amount)}
                     disabled={isProcessing}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
                       received === amount
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                        ? 'bg-red-600 text-white border-red-600 shadow-xs shadow-red-500/25'
+                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
                     }`}
                   >
                     {amount === total ? 'Uang Pas' : `Rp${(amount / 1000).toFixed(0)}rb`}
@@ -183,7 +183,7 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
 
               {/* Shortage / Change indicator */}
               {isShortage && received > 0 && (
-                <div className="mt-2 flex items-center gap-1.5 text-red-600 text-sm font-medium">
+                <div className="mt-2 flex items-center gap-1.5 text-rose-600 text-sm font-semibold">
                   <AlertCircle size={14} />
                   Kurang Rp{(total - received).toLocaleString('id-ID')}
                 </div>
@@ -192,27 +192,27 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
           )}
 
           {/* Kembalian / Ringkasan */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Total Belanja</span>
-              <span className="font-semibold text-gray-800">
+              <span className="text-slate-500 font-medium">Total Belanja</span>
+              <span className="font-bold text-slate-800">
                 Rp{total.toLocaleString('id-ID')}
               </span>
             </div>
             {paymentMethod === 'cash' && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Uang Diterima</span>
-                  <span className="font-semibold text-gray-800">
+                  <span className="text-slate-500 font-medium">Uang Diterima</span>
+                  <span className="font-bold text-slate-800">
                     {received > 0 ? `Rp${received.toLocaleString('id-ID')}` : '—'}
                   </span>
                 </div>
-                <div className="h-px bg-gray-200" />
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-700">Kembalian</span>
+                <div className="h-px bg-slate-200" />
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-slate-700">Kembalian</span>
                   <span
-                    className={`text-lg font-bold ${
-                      change > 0 ? 'text-green-600' : 'text-gray-400'
+                    className={`text-xl font-black ${
+                      change > 0 ? 'text-emerald-600' : 'text-slate-400'
                     }`}
                   >
                     Rp{change.toLocaleString('id-ID')}
@@ -222,8 +222,8 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
             )}
             {paymentMethod !== 'cash' && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Metode</span>
-                <span className="font-semibold text-blue-600 uppercase">{paymentMethod}</span>
+                <span className="text-slate-500">Metode</span>
+                <span className="font-bold text-red-600 uppercase">{paymentMethod}</span>
               </div>
             )}
           </div>
@@ -232,10 +232,10 @@ export default function PaymentModal({ isOpen, onClose, total, onConfirm, isProc
           <button
             onClick={handleConfirm}
             disabled={!canPay || isProcessing}
-            className={`w-full py-3.5 rounded-xl font-semibold text-base transition-all flex items-center justify-center gap-2 ${
+            className={`w-full py-3.5 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 ${
               canPay && !isProcessing
-                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 active:scale-95'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25 active:scale-95 cursor-pointer'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
           >
             {isProcessing ? (

@@ -83,7 +83,7 @@ export default function TransactionSuccessModal({ isOpen, transaction, onNewTran
             </button>
             <button
               onClick={handleDetail}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-blue-200 text-blue-700 font-medium text-sm hover:bg-blue-50 transition-colors"
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-red-200 text-red-700 font-semibold text-sm hover:bg-red-50 transition-colors"
             >
               <Eye size={16} />
               Lihat Detail
@@ -91,7 +91,7 @@ export default function TransactionSuccessModal({ isOpen, transaction, onNewTran
           </div>
           <button
             onClick={onNewTransaction}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-all shadow-md shadow-red-500/25 active:scale-95 cursor-pointer"
           >
             <ShoppingCart size={16} />
             Transaksi Baru

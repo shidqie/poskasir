@@ -117,8 +117,8 @@ export function ConvertToProductModal({
           </div>
         )}
 
-        <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center gap-2.5 text-xs text-blue-900">
-          <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+        <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2.5 text-xs text-red-900">
+          <Sparkles className="w-4 h-4 text-red-600 shrink-0" />
           <span>
             Nama, harga, dan barcode otomatis terisi dari catatan harga sementara.
           </span>
@@ -165,10 +165,10 @@ export function ConvertToProductModal({
                 type="button"
                 onClick={() => setIsScannerOpen(true)}
                 disabled={isLoading}
-                className="px-2 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
+                className="px-2 py-1 text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 rounded-md border border-red-200 transition-colors flex items-center gap-1 shrink-0 cursor-pointer shadow-xs active:scale-95"
                 title="Scan Barcode via Kamera HP / Webcam"
               >
-                <Camera className="w-3.5 h-3.5 text-blue-600" />
+                <Camera className="w-3.5 h-3.5 text-red-600" />
                 <span>Scan</span>
               </button>
             }
@@ -177,7 +177,7 @@ export function ConvertToProductModal({
           <div>
             <label
               htmlFor="conv-category"
-              className="block text-sm font-medium text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
               Kategori <span className="text-red-500">*</span>
             </label>
@@ -190,7 +190,7 @@ export function ConvertToProductModal({
               }}
               required
               disabled={isLoading}
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
             >
               <option value="">-- Pilih Kategori --</option>
               {categories.map((c) => (
@@ -204,7 +204,7 @@ export function ConvertToProductModal({
           <div>
             <label
               htmlFor="conv-unit"
-              className="block text-sm font-medium text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
               Satuan <span className="text-red-500">*</span>
             </label>
@@ -217,7 +217,7 @@ export function ConvertToProductModal({
               }}
               required
               disabled={isLoading}
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
             >
               <option value="">-- Pilih Satuan --</option>
               {units.map((u) => (
@@ -244,7 +244,7 @@ export function ConvertToProductModal({
           <div>
             <label
               htmlFor="conv-stock"
-              className="block text-sm font-medium text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
               Stok Awal <span className="text-red-500">*</span>
             </label>
@@ -257,16 +257,16 @@ export function ConvertToProductModal({
               value={stock}
               onChange={(e) => setStock(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold"
             />
           </div>
 
           <div>
             <label
               htmlFor="conv-min-stock"
-              className="block text-sm font-medium text-slate-700 mb-1.5"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
-              Stok Minimum
+              Peringatan Stok Minimum
             </label>
             <input
               id="conv-min-stock"
@@ -276,7 +276,7 @@ export function ConvertToProductModal({
               value={minimumStock}
               onChange={(e) => setMinimumStock(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-bold"
             />
           </div>
         </div>

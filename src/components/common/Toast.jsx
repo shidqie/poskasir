@@ -28,7 +28,7 @@ export function Toast({
       icon: <AlertCircle className="w-5 h-5 text-white shrink-0" />,
     },
     info: {
-      bg: 'bg-blue-600',
+      bg: 'bg-red-700',
       icon: <Info className="w-5 h-5 text-white shrink-0" />,
     },
   };

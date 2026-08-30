@@ -101,7 +101,7 @@ export function UnitFormModal({
               checked={allowDecimal}
               onChange={(e) => setAllowDecimal(e.target.checked)}
               disabled={isLoading}
-              className="w-4 h-4 mt-0.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+              className="w-4 h-4 mt-0.5 text-red-600 rounded border-slate-300 focus:ring-red-500"
             />
             <div>
               <p className="text-sm font-semibold text-slate-900">

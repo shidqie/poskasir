@@ -130,19 +130,19 @@ export function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white shadow-xl shadow-blue-500/25 mb-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-600 text-white shadow-xl shadow-red-600/30 mb-3">
             <Store className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Kasir Sembako
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
             Sistem Kasir & Manajemen Toko Sembako
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-200/80 p-1 rounded-xl mb-4 text-xs font-semibold">
+        <div className="flex bg-slate-200/80 p-1 rounded-xl mb-4 text-xs font-bold">
           <button
             type="button"
             onClick={() => {
@@ -276,7 +276,7 @@ export function LoginPage() {
             {/* Pilihan Role (Khusus Mode Register) */}
             {mode === 'register' && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                   Peran Akun (Role)
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -285,7 +285,7 @@ export function LoginPage() {
                     onClick={() => setRole('owner')}
                     className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all ${
                       role === 'owner'
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        ? 'border-red-600 bg-red-50 text-red-700 shadow-xs'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
@@ -297,7 +297,7 @@ export function LoginPage() {
                     onClick={() => setRole('cashier')}
                     className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all ${
                       role === 'cashier'
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        ? 'border-red-600 bg-red-50 text-red-700 shadow-xs'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
@@ -314,7 +314,7 @@ export function LoginPage() {
                 type="submit"
                 variant="primary"
                 size="lg"
-                className="w-full text-sm font-semibold py-3"
+                className="w-full text-sm font-bold py-3 bg-red-600 hover:bg-red-700 text-white"
                 isLoading={isLoading}
               >
                 {mode === 'register' ? 'Daftarkan Akun & Masuk' : 'Masuk ke Aplikasi'}
@@ -324,8 +324,8 @@ export function LoginPage() {
 
           {/* 1-Click Quick Demo Accounts */}
           <div className="mt-6 pt-5 border-t border-slate-100">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5 flex items-center justify-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2.5 flex items-center justify-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-red-500" />
               1-Klik Masuk / Setup Akun Demo
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -333,9 +333,9 @@ export function LoginPage() {
                 type="button"
                 onClick={() => handleQuickRegister('owner')}
                 disabled={isLoading}
-                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition-all group disabled:opacity-50"
+                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50/50 text-left transition-all group disabled:opacity-50"
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-blue-600">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-red-600">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Akun Pemilik</span>
                 </div>
@@ -348,10 +348,10 @@ export function LoginPage() {
                 type="button"
                 onClick={() => handleQuickRegister('cashier')}
                 disabled={isLoading}
-                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition-all group disabled:opacity-50"
+                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50/50 text-left transition-all group disabled:opacity-50"
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-blue-600">
-                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 group-hover:text-red-600">
+                  <UserCheck className="w-3.5 h-3.5 text-red-600" />
                   <span>Akun Kasir</span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-0.5 truncate font-mono">

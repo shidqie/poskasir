@@ -16,15 +16,14 @@ export function ConfirmDialog({
 }) {
   const typeIcons = {
     warning: <AlertTriangle className="w-6 h-6 text-amber-500" />,
-    danger: <AlertTriangle className="w-6 h-6 text-red-500" />,
-    info: <Info className="w-6 h-6 text-blue-500" />,
+    info: <Info className="w-6 h-6 text-red-600" />,
     success: <CheckCircle2 className="w-6 h-6 text-emerald-500" />,
   };
 
   const typeStyles = {
     warning: 'bg-amber-50 border-amber-100',
-    danger: 'bg-red-50 border-red-100',
-    info: 'bg-blue-50 border-blue-100',
+    danger: 'bg-rose-50 border-rose-100',
+    info: 'bg-red-50 border-red-100',
     success: 'bg-emerald-50 border-emerald-100',
   };
 

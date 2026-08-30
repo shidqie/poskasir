@@ -13,19 +13,19 @@ export function Button({
   ...props
 }) {
   const baseClasses =
-    'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none';
+    'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
 
   const variants = {
     primary:
-      'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus:ring-blue-500 shadow-sm hover:shadow',
+      'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus:ring-red-500 shadow-sm hover:shadow-md shadow-red-500/20 active:scale-[0.98]',
     secondary:
-      'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 focus:ring-slate-400',
+      'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 focus:ring-slate-400 active:scale-[0.98]',
     outline:
-      'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 focus:ring-blue-500 shadow-sm',
+      'border border-slate-300 bg-white text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200 active:bg-red-100 focus:ring-red-500 shadow-xs active:scale-[0.98]',
     danger:
-      'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus:ring-red-500 shadow-sm',
+      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus:ring-rose-500 shadow-sm shadow-rose-500/20 active:scale-[0.98]',
     ghost:
-      'text-slate-600 hover:bg-slate-100 active:bg-slate-200 focus:ring-slate-400',
+      'text-slate-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 focus:ring-red-400',
   };
 
   const sizes = {

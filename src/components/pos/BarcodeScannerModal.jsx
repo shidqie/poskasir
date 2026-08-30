@@ -195,9 +195,9 @@ export function BarcodeScannerModal({
 
             {/* Overlay Viewfinder Guide */}
             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-              <div className="w-3/4 h-1/2 border-2 border-blue-400 rounded-xl relative shadow-lg bg-blue-500/5 flex items-center justify-center">
-                <div className="w-full h-0.5 bg-red-500/80 animate-pulse" />
-                <span className="absolute -bottom-7 text-[11px] font-bold text-white bg-black/60 px-2.5 py-0.5 rounded-full backdrop-blur-xs">
+              <div className="w-3/4 h-1/2 border-2 border-red-500 rounded-xl relative shadow-lg bg-red-500/10 flex items-center justify-center">
+                <div className="w-full h-0.5 bg-red-500 animate-pulse shadow-sm shadow-red-500" />
+                <span className="absolute -bottom-7 text-[11px] font-bold text-white bg-black/70 px-2.5 py-0.5 rounded-full backdrop-blur-xs">
                   Posisikan Barcode di Sini
                 </span>
               </div>

@@ -94,7 +94,7 @@ export function ProductListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
+          <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
             <Package className="w-5 h-5" />
           </div>
           <div>
@@ -130,7 +130,7 @@ export function ProductListPage() {
               placeholder="Cari nama / kode / barcode..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             />
           </div>
 
@@ -139,7 +139,7 @@ export function ProductListPage() {
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             >
               <option value="">Semua Kategori</option>
               {categories.map((c) => (
@@ -155,7 +155,7 @@ export function ProductListPage() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             >
               <option value="all">Semua Status</option>
               <option value="true">Aktif</option>
@@ -168,7 +168,7 @@ export function ProductListPage() {
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             >
               <option value="all">Semua Status Stok</option>
               <option value="available">Stok Tersedia</option>
@@ -232,7 +232,7 @@ export function ProductListPage() {
                       <div>
                         <Link
                           to={`/owner/products/${p.id}`}
-                          className="font-bold text-slate-900 hover:text-blue-600 transition-colors line-clamp-1"
+                          className="font-bold text-slate-900 hover:text-red-600 transition-colors line-clamp-1"
                         >
                           {p.name}
                         </Link>
@@ -285,14 +285,14 @@ export function ProductListPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <Link
                           to={`/owner/products/${p.id}`}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
                           title="Lihat Detail & Riwayat Harga"
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
                         <Link
                           to={`/owner/products/${p.id}/edit`}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
                           title="Ubah Data Barang"
                         >
                           <Edit2 className="w-4 h-4" />

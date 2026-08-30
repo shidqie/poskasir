@@ -56,8 +56,8 @@ export default function ClosingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -66,28 +66,28 @@ export default function ClosingPage() {
   if (existingClosing || closingMutation.isSuccess) {
     const closing = closingMutation.data || existingClosing;
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 text-center">
-          <CheckCircle2 size={48} className="text-green-500 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Kasir Sudah Ditutup</h2>
-          <p className="text-sm text-gray-500 mb-5">Anda sudah melakukan closing hari ini.</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-6 text-center shadow-lg">
+          <CheckCircle2 size={48} className="text-emerald-500 mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-slate-900 mb-1">Kasir Sudah Ditutup</h2>
+          <p className="text-sm text-slate-500 mb-5">Anda sudah melakukan closing hari ini.</p>
 
-          <div className="space-y-2 text-sm text-left bg-gray-50 rounded-xl p-4">
+          <div className="space-y-2 text-sm text-left bg-slate-50 border border-slate-100 rounded-xl p-4">
             <div className="flex justify-between">
-              <span className="text-gray-500">Transaksi</span>
-              <span className="font-semibold">{closing?.transaction_count || 0}</span>
+              <span className="text-slate-500">Transaksi</span>
+              <span className="font-bold text-slate-800">{closing?.transaction_count || 0}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Total Penjualan</span>
-              <span className="font-semibold">{formatRupiah(closing?.total_sales)}</span>
+              <span className="text-slate-500">Total Penjualan</span>
+              <span className="font-bold text-slate-800">{formatRupiah(closing?.total_sales)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Uang Aktual</span>
-              <span className="font-semibold">{formatRupiah(closing?.actual_cash)}</span>
+              <span className="text-slate-500">Uang Aktual</span>
+              <span className="font-bold text-slate-800">{formatRupiah(closing?.actual_cash)}</span>
             </div>
-            <div className="flex justify-between border-t pt-2">
-              <span className="font-semibold text-gray-700">Selisih</span>
-              <span className={`font-bold ${Number(closing?.difference) === 0 ? 'text-green-600' : Number(closing?.difference) > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+            <div className="flex justify-between border-t border-slate-200 pt-2">
+              <span className="font-bold text-slate-700">Selisih</span>
+              <span className={`font-black ${Number(closing?.difference) === 0 ? 'text-emerald-600' : Number(closing?.difference) > 0 ? 'text-red-600' : 'text-rose-600'}`}>
                 {formatRupiah(Math.abs(closing?.difference || 0))}
                 {Number(closing?.difference) > 0 ? ' (Lebih)' : Number(closing?.difference) < 0 ? ' (Kurang)' : ' (Pas)'}
               </span>
@@ -99,58 +99,56 @@ export default function ClosingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-lg mx-auto w-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
-            <DoorClosed size={18} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-gray-900">Tutup Kasir</h1>
-            <p className="text-xs text-gray-500">Closing harian — {profile?.full_name}</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100 shrink-0">
+          <DoorClosed className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Tutup Kasir (Closing)</h1>
+          <p className="text-xs sm:text-sm text-slate-500">Closing harian — {profile?.full_name}</p>
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 sm:px-6 py-5 space-y-4">
+      <div className="space-y-4">
         {/* Ringkasan Sistem */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-5 text-white">
-          <p className="text-blue-100 text-xs mb-1">Total Penjualan Hari Ini (Sistem)</p>
+        <div className="bg-gradient-to-r from-red-600 via-red-700 to-rose-800 rounded-2xl p-5 text-white shadow-lg shadow-red-600/15 border border-red-500/30">
+          <p className="text-red-100 text-xs font-medium mb-1">Total Penjualan Hari Ini (Sistem)</p>
           <p className="text-3xl font-black">{formatRupiah(systemCash)}</p>
-          <p className="text-blue-200 text-xs mt-1">{todaySummary.transactionCount || 0} transaksi selesai</p>
+          <p className="text-red-200 text-xs mt-1">{todaySummary.transactionCount || 0} transaksi selesai</p>
         </div>
 
         {/* Form Closing */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 space-y-4 shadow-xs">
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1 block">Uang Fisik yang Dihitung (Rp)</label>
+            <label className="text-xs text-slate-600 font-semibold mb-1 block">Uang Fisik yang Dihitung (Rp)</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">Rp</span>
               <input
                 type="text"
                 inputMode="numeric"
                 value={actualInput ? Number(actualInput.replace(/\D/g, '')).toLocaleString('id-ID') : ''}
                 onChange={(e) => setActualInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="0"
-                className="w-full pl-9 pr-4 py-3 border-2 border-gray-200 rounded-xl text-right text-lg font-semibold outline-none focus:border-blue-400 transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-right text-lg font-black outline-none focus:border-red-500 transition-colors"
               />
             </div>
           </div>
 
           {/* Selisih */}
           {actualCash > 0 && (
-            <div className={`rounded-xl p-3 flex items-center gap-2 ${
-              difference === 0 ? 'bg-green-50 border border-green-200'
-              : difference > 0 ? 'bg-blue-50 border border-blue-200'
-              : 'bg-red-50 border border-red-200'
+            <div className={`rounded-xl p-3.5 flex items-center gap-2.5 ${
+              difference === 0 ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : difference > 0 ? 'bg-amber-50 border border-amber-200 text-amber-800'
+              : 'bg-rose-50 border border-rose-200 text-rose-800'
             }`}>
-              <AlertCircle size={16} className={difference === 0 ? 'text-green-600' : difference > 0 ? 'text-blue-600' : 'text-red-600'} />
+              <AlertCircle size={18} className={difference === 0 ? 'text-emerald-600' : difference > 0 ? 'text-amber-600' : 'text-rose-600'} />
               <div className="text-sm">
-                <span className={`font-semibold ${difference === 0 ? 'text-green-700' : difference > 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                <span className="font-black">
                   Selisih: {formatRupiah(Math.abs(difference))}
                 </span>
-                <span className="text-xs ml-1 opacity-70">
+                <span className="text-xs ml-1 font-semibold opacity-80">
                   {difference === 0 ? '(Uang pas)' : difference > 0 ? '(Lebih)' : '(Kurang)'}
                 </span>
               </div>
@@ -158,20 +156,20 @@ export default function ClosingPage() {
           )}
 
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1 block">Catatan (opsional)</label>
+            <label className="text-xs text-slate-600 font-semibold mb-1 block">Catatan (opsional)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Mis. ada kembalian salah Rp500, dll..."
               rows={3}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-500 font-medium resize-none"
             />
           </div>
 
           <button
             onClick={() => closingMutation.mutate()}
             disabled={!actualCash || closingMutation.isPending}
-            className="w-full py-3 rounded-xl bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-base transition-all shadow-md shadow-red-500/25 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             {closingMutation.isPending ? (
               <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Menyimpan...</>
@@ -181,7 +179,7 @@ export default function ClosingPage() {
           </button>
 
           {closingMutation.isError && (
-            <p className="text-xs text-red-600 text-center">
+            <p className="text-xs text-rose-600 font-semibold text-center">
               {closingMutation.error?.message || 'Gagal menyimpan closing.'}
             </p>
           )}

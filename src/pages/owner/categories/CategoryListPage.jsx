@@ -97,7 +97,7 @@ export function CategoryListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
+            <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
               <Layers className="w-5 h-5" />
             </div>
             <div>
@@ -133,7 +133,7 @@ export function CategoryListPage() {
               placeholder="Cari kategori..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             />
           </div>
 
@@ -190,7 +190,7 @@ export function CategoryListPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(cat)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
                           title="Ubah Nama Kategori"
                         >
                           <Edit2 className="w-4 h-4" />

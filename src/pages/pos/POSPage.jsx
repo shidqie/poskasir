@@ -239,7 +239,7 @@ export function POSPage() {
       <div className="lg:hidden fixed bottom-0 inset-x-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 z-20 shadow-2xl flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-slate-500 font-medium">Total Belanja:</p>
-          <p className="text-lg font-black text-blue-600 font-mono leading-none mt-0.5">
+          <p className="text-lg font-black text-red-600 font-mono leading-none mt-0.5">
             {formatRupiah(totalAmount)}
           </p>
         </div>
@@ -247,7 +247,7 @@ export function POSPage() {
         <button
           type="button"
           onClick={() => toggleMobileCart(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white font-bold text-sm shadow-md shadow-red-500/25 active:scale-95 transition-all cursor-pointer"
         >
           <ShoppingCart className="w-4 h-4" />
           <span>Keranjang ({totalQuantity})</span>

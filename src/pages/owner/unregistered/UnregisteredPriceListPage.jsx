@@ -145,7 +145,7 @@ export function UnregisteredPriceListPage() {
               placeholder="Cari nama atau barcode..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
             />
           </div>
 
@@ -153,7 +153,7 @@ export function UnregisteredPriceListPage() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              className="w-full sm:w-auto px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
             >
               <option value="all">Semua Status</option>
               <option value="pending">Belum Terdaftar (Pending)</option>
