@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal } from '@/components/common/Modal';
 import { StockBadge } from '@/components/common/StockBadge';
 import { formatRupiah } from '@/utils/formatters';
-import { Layers, Plus, Check, Barcode, AlertCircle, X } from 'lucide-react';
+import { Layers, Plus, Check, Barcode, AlertCircle, Scale, ChevronRight } from 'lucide-react';
 
 export function VariantSelectorModal({
   isOpen,
@@ -17,7 +17,7 @@ export function VariantSelectorModal({
 
   const handleSelect = (variant) => {
     if (Number(variant.stock) <= 0) return;
-    onSelectVariant(product, variant);
+    onSelectVariant(product, variant, variant.sale_units || []);
     onClose();
   };
 
@@ -43,6 +43,16 @@ export function VariantSelectorModal({
             const isOutOfStock = Number(variant.stock) <= 0;
             const unitSymbol =
               variant.unit?.symbol || product.unit?.symbol || 'Pcs';
+            const saleUnits = variant.sale_units || [];
+            const hasMultiSaleUnits = saleUnits.length > 1;
+
+            let displayPrice = Number(variant.selling_price || 0);
+            if (hasMultiSaleUnits) {
+              const prices = saleUnits.map((s) => Number(s.selling_price) || 0);
+              displayPrice = prices.length > 0 ? Math.min(...prices) : displayPrice;
+            } else if (saleUnits.length === 1) {
+              displayPrice = Number(saleUnits[0].selling_price) || displayPrice;
+            }
 
             return (
               <div
@@ -72,6 +82,12 @@ export function VariantSelectorModal({
                       minimumStock={variant.minimum_stock}
                       unitSymbol={unitSymbol}
                     />
+                    {hasMultiSaleUnits && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <Scale className="w-2.5 h-2.5" />
+                        {saleUnits.length} Satuan
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
@@ -89,8 +105,13 @@ export function VariantSelectorModal({
 
                 <div className="text-right shrink-0 flex items-center gap-3">
                   <div>
-                    <p className="font-black text-base sm:text-lg text-slate-900 font-mono">
-                      {formatRupiah(variant.selling_price)}
+                    {hasMultiSaleUnits && (
+                      <span className="text-[9px] text-slate-400 font-semibold block uppercase leading-none mb-0.5">
+                        Mulai
+                      </span>
+                    )}
+                    <p className="font-black text-base sm:text-lg text-slate-900 font-mono leading-none">
+                      {formatRupiah(displayPrice)}
                     </p>
                     <p className="text-[11px] text-slate-400 font-medium">
                       /{unitSymbol}
@@ -101,10 +122,16 @@ export function VariantSelectorModal({
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
                       isOutOfStock
                         ? 'bg-slate-100 text-slate-300'
+                        : hasMultiSaleUnits
+                        ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white shadow-xs'
                         : 'bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white shadow-xs'
                     }`}
                   >
-                    <Plus className="w-4 h-4" />
+                    {hasMultiSaleUnits ? (
+                      <ChevronRight className="w-4 h-4" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
                   </div>
                 </div>
               </div>

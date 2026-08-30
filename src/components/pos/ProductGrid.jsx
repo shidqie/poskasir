@@ -12,6 +12,7 @@ export function ProductGrid({
   searchTerm = '',
   onAddToCart,
   onOpenVariants,
+  onOpenSaleUnits,
   onRetry,
   onOpenUnregModal,
 }) {
@@ -87,6 +88,7 @@ export function ProductGrid({
           item={item}
           onAddToCart={onAddToCart}
           onOpenVariants={onOpenVariants}
+          onOpenSaleUnits={onOpenSaleUnits}
         />
       ))}
     </div>

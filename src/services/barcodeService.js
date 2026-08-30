@@ -4,11 +4,12 @@ export const barcodeService = {
   /**
    * Mencari produk berdasarkan barcode / kode barang
    * Urutan Prioritas:
-   * 1. Tabel product_variants (barcode atau code) -> varian spesifik langsung ke cart!
-   * 2. Tabel products (barcode atau code) -> produk utama
-   * 3. Tabel product_submissions (status = 'approved' atau 'pending')
-   * 4. Tabel unregistered_prices (status = 'pending')
-   * 5. Jika tidak ditemukan -> type: 'not_found'
+   * 1. Tabel product_sale_units (barcode satuan penjualan, misal barcode Dus / Renceng / 1/2 Dus) -> langsung kenali satuan!
+   * 2. Tabel product_variants (barcode varian atau kode varian) -> varian spesifik langsung ke cart!
+   * 3. Tabel products (barcode atau kode produk utama) -> produk utama
+   * 4. Tabel product_submissions (pengajuan barang baru)
+   * 5. Tabel unregistered_prices (harga belum terdaftar)
+   * 6. Jika tidak ditemukan -> type: 'not_found'
    */
   async lookupBarcode(rawBarcode) {
     if (!rawBarcode) {
@@ -20,7 +21,93 @@ export const barcodeService = {
       return { found: false, type: 'not_found', barcode: '' };
     }
 
-    // 1. Prioritas Utama: Cek di tabel product_variants (by barcode atau code)
+    // 1. PRIORITAS UTAMA: Cek di tabel product_sale_units (Spesifik Satuan Penjualan)
+    try {
+      const { data: saleUnits, error: saleUnitErr } = await supabase
+        .from('product_sale_units')
+        .select(`
+          id,
+          name,
+          conversion_qty,
+          selling_price,
+          barcode,
+          is_default,
+          status,
+          product_id,
+          variant_id,
+          product:products!inner(
+            id,
+            name,
+            code,
+            barcode,
+            stock,
+            minimum_stock,
+            status,
+            unit:units(id, name, symbol, allow_decimal)
+          ),
+          variant:product_variants(
+            id,
+            variant_name,
+            code,
+            barcode,
+            stock,
+            minimum_stock,
+            status,
+            unit:units(id, name, symbol, allow_decimal)
+          )
+        `)
+        .eq('barcode', barcode)
+        .eq('status', true)
+        .eq('product.status', true)
+        .limit(1);
+
+      if (!saleUnitErr && saleUnits && saleUnits.length > 0) {
+        const su = saleUnits[0];
+        const p = su.product;
+        const v = su.variant;
+        const isVariant = Boolean(v && v.status !== false);
+
+        const baseStock = isVariant ? Number(v.stock || 0) : Number(p.stock || 0);
+        const baseUnit = (isVariant && v.unit) ? v.unit : (p.unit || { symbol: 'Pcs', allow_decimal: false });
+        const pName = p.name;
+        const vName = isVariant ? v.variant_name : null;
+        const suName = su.name;
+
+        let displayName = pName;
+        if (vName) displayName += ` - ${vName}`;
+        if (suName) displayName += ` (${suName})`;
+
+        return {
+          found: true,
+          type: 'product',
+          data: {
+            sourceType: 'product',
+            id: p.id,
+            productId: p.id,
+            variantId: isVariant ? v.id : null,
+            saleUnitId: su.id,
+            saleUnitName: suName,
+            conversionQty: Number(su.conversion_qty) || 1,
+            name: pName,
+            productName: pName,
+            variantName: vName,
+            displayName,
+            selling_price: Number(su.selling_price) || 0,
+            price: Number(su.selling_price) || 0,
+            stock: baseStock,
+            minimum_stock: isVariant ? Number(v.minimum_stock || 0) : Number(p.minimum_stock || 0),
+            code: isVariant ? (v.code || p.code) : p.code,
+            barcode: su.barcode || (isVariant ? v.barcode : p.barcode),
+            unit: baseUnit,
+            allowDecimal: Boolean(baseUnit.allow_decimal),
+          },
+        };
+      }
+    } catch (e) {
+      console.warn('[barcodeService] Sale unit lookup error/skip:', e);
+    }
+
+    // 2. Cek di tabel product_variants (by barcode atau code)
     try {
       const { data: variants, error: varError } = await supabase
         .from('product_variants')
@@ -50,6 +137,30 @@ export const barcodeService = {
 
       if (!varError && variants && variants.length > 0) {
         const variant = variants[0];
+
+        // Ambil sale units untuk varian ini jika ada
+        let matchedSaleUnit = null;
+        try {
+          const { data: suList } = await supabase
+            .from('product_sale_units')
+            .select('*')
+            .eq('product_id', variant.product.id)
+            .eq('variant_id', variant.id)
+            .eq('status', true)
+            .order('is_default', { ascending: false });
+
+          if (suList && suList.length === 1) {
+            matchedSaleUnit = suList[0];
+          } else if (suList && suList.length > 1) {
+            matchedSaleUnit = suList.find((s) => s.is_default) || suList[0];
+          }
+        } catch (suErr) {}
+
+        const finalPrice = matchedSaleUnit ? Number(matchedSaleUnit.selling_price) : Number(variant.selling_price || 0);
+        const suName = matchedSaleUnit ? matchedSaleUnit.name : null;
+        let displayName = `${variant.product.name} - ${variant.variant_name}`;
+        if (suName) displayName += ` (${suName})`;
+
         return {
           found: true,
           type: 'product',
@@ -58,11 +169,15 @@ export const barcodeService = {
             id: variant.product.id,
             productId: variant.product.id,
             variantId: variant.id,
+            saleUnitId: matchedSaleUnit ? matchedSaleUnit.id : null,
+            saleUnitName: suName,
+            conversionQty: matchedSaleUnit ? Number(matchedSaleUnit.conversion_qty) : 1,
             name: variant.product.name,
             productName: variant.product.name,
             variantName: variant.variant_name,
-            displayName: `${variant.product.name} - ${variant.variant_name}`,
-            selling_price: Number(variant.selling_price) || 0,
+            displayName,
+            selling_price: finalPrice,
+            price: finalPrice,
             stock: Number(variant.stock) || 0,
             minimum_stock: Number(variant.minimum_stock) || 0,
             code: variant.code,
@@ -78,7 +193,7 @@ export const barcodeService = {
       console.warn('[barcodeService] Variant lookup error/skip:', e);
     }
 
-    // 2. Cek di tabel products resmi (by barcode atau code)
+    // 3. Cek di tabel products resmi (by barcode atau code)
     try {
       const { data: products, error: prodError } = await supabase
         .from('products')
@@ -116,6 +231,34 @@ export const barcodeService = {
 
       if (products && products.length > 0) {
         const product = products[0];
+
+        // Ambil sale units untuk produk non-varian ini
+        let matchedSaleUnit = null;
+        let allSaleUnits = [];
+        try {
+          const { data: suList } = await supabase
+            .from('product_sale_units')
+            .select('*')
+            .eq('product_id', product.id)
+            .is('variant_id', null)
+            .eq('status', true)
+            .order('is_default', { ascending: false });
+
+          if (suList && suList.length > 0) {
+            allSaleUnits = suList;
+            if (suList.length === 1) {
+              matchedSaleUnit = suList[0];
+            } else {
+              matchedSaleUnit = suList.find((s) => s.is_default);
+            }
+          }
+        } catch (suErr) {}
+
+        const finalPrice = matchedSaleUnit ? Number(matchedSaleUnit.selling_price) : Number(product.selling_price || 0);
+        const suName = matchedSaleUnit ? matchedSaleUnit.name : null;
+        let displayName = product.name;
+        if (suName) displayName += ` (${suName})`;
+
         return {
           found: true,
           type: 'product',
@@ -123,6 +266,13 @@ export const barcodeService = {
             ...product,
             productId: product.id,
             sourceType: 'product',
+            saleUnitId: matchedSaleUnit ? matchedSaleUnit.id : null,
+            saleUnitName: suName,
+            conversionQty: matchedSaleUnit ? Number(matchedSaleUnit.conversion_qty) : 1,
+            sale_units: allSaleUnits,
+            price: finalPrice,
+            selling_price: finalPrice,
+            displayName,
           },
         };
       }
@@ -130,7 +280,7 @@ export const barcodeService = {
       console.error('[barcodeService] Product lookup error:', e);
     }
 
-    // 3. Cek di tabel product_submissions (pengajuan barang baru)
+    // 4. Cek di tabel product_submissions (pengajuan barang baru)
     try {
       const { data: submissions, error: subError } = await supabase
         .from('product_submissions')
@@ -173,7 +323,7 @@ export const barcodeService = {
       console.warn('[barcodeService] Submissions lookup error:', e);
     }
 
-    // 4. Cek di tabel unregistered_prices
+    // 5. Cek di tabel unregistered_prices
     try {
       const { data: unregItem, error: unregError } = await supabase
         .from('unregistered_prices')
@@ -200,7 +350,7 @@ export const barcodeService = {
       console.error('[barcodeService] Unreg lookup error:', e);
     }
 
-    // 5. Tidak ditemukan sama sekali
+    // 6. Tidak ditemukan sama sekali
     return {
       found: false,
       type: 'not_found',

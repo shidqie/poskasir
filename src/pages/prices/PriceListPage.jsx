@@ -129,14 +129,35 @@ function PriceItemCard({ item, isOwnerView, onConvert, onDetail }) {
           </div>
         )}
 
+        {/* Pilihan Satuan Penjualan Khusus */}
+        {item.sale_units && item.sale_units.length > 0 && (
+          <div className="space-y-1 pt-1 border-t border-slate-100">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+              Pilihan Satuan ({item.sale_units.length}):
+            </span>
+            <div className="space-y-1 max-h-24 overflow-y-auto pr-0.5">
+              {item.sale_units.map((su) => (
+                <div key={su.id} className="flex items-center justify-between text-[11px] bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                  <span className="font-semibold text-slate-700 truncate max-w-[80px]">{su.name}</span>
+                  <span className="font-mono font-bold text-red-600">{formatRupiah(su.selling_price)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Price Tag & Action */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
           <div>
             <span className="text-[10px] font-medium text-slate-400 block uppercase tracking-wider">
-              Harga Jual
+              {item.sale_units && item.sale_units.length > 0 ? 'Harga Mulai' : 'Harga Jual'}
             </span>
             <span className="text-xs sm:text-sm font-black text-red-600 font-mono tracking-tight">
-              {formatRupiah(item.selling_price)}
+              {formatRupiah(
+                item.sale_units && item.sale_units.length > 0
+                  ? Math.min(...item.sale_units.map((s) => Number(s.selling_price) || item.selling_price))
+                  : item.selling_price
+              )}
             </span>
           </div>
 

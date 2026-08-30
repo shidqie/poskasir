@@ -100,17 +100,24 @@ export default function ReceiptPrintPage() {
         <div className="dashed" />
 
         {/* Daftar Item */}
-        {items.map((item, idx) => (
-          <div key={item.id || idx} style={{ marginBottom: '4px' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
-              {item.variant_name ? `${item.item_name} - ${item.variant_name}` : item.item_name}
+        {items.map((item, idx) => {
+          const unitLabel = item.sale_unit_name || item.unit_name || 'Pcs';
+          const itemName = item.variant_name
+            ? `${item.item_name} - ${item.variant_name}`
+            : item.item_name;
+
+          return (
+            <div key={item.id || idx} style={{ marginBottom: '4px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
+                {itemName} {item.sale_unit_name ? `(${item.sale_unit_name})` : ''}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#444' }}>
+                <span>{Number(item.quantity)} {unitLabel} × Rp{Number(item.price).toLocaleString('id-ID')}</span>
+                <span style={{ fontWeight: 'bold', color: '#111' }}>Rp{Number(item.subtotal).toLocaleString('id-ID')}</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#444' }}>
-              <span>{Number(item.quantity)} {item.unit_name} × Rp{Number(item.price).toLocaleString('id-ID')}</span>
-              <span style={{ fontWeight: 'bold', color: '#111' }}>Rp{Number(item.subtotal).toLocaleString('id-ID')}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         <div className="dashed" />
 

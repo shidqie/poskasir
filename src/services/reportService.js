@@ -94,24 +94,37 @@ export const reportService = {
   async getTopProducts(limit = 10) {
     const { data, error } = await supabase
       .from('transaction_items')
-      .select('item_name, quantity, subtotal')
+      .select('item_name, variant_name, sale_unit_name, unit_name, quantity, conversion_qty, subtotal')
       .order('quantity', { ascending: false })
-      .limit(100);
+      .limit(200);
 
     if (error) throw error;
 
-    // Grouping by item_name
+    // Grouping by full name (item_name + variant_name + sale_unit_name)
     const grouped = (data || []).reduce((acc, item) => {
-      if (!acc[item.item_name]) {
-        acc[item.item_name] = { name: item.item_name, totalQty: 0, totalRevenue: 0 };
+      let displayName = item.item_name;
+      if (item.variant_name) displayName += ` - ${item.variant_name}`;
+      if (item.sale_unit_name) displayName += ` (${item.sale_unit_name})`;
+
+      if (!acc[displayName]) {
+        acc[displayName] = {
+          name: displayName,
+          totalQty: 0,
+          totalBaseQty: 0,
+          totalRevenue: 0,
+          unitName: item.sale_unit_name || item.unit_name || 'Pcs',
+        };
       }
-      acc[item.item_name].totalQty += Number(item.quantity);
-      acc[item.item_name].totalRevenue += Number(item.subtotal);
+      const qty = Number(item.quantity) || 0;
+      const conv = Number(item.conversion_qty) || 1;
+      acc[displayName].totalQty += qty;
+      acc[displayName].totalBaseQty += (qty * conv);
+      acc[displayName].totalRevenue += Number(item.subtotal || 0);
       return acc;
     }, {});
 
     return Object.values(grouped)
-      .sort((a, b) => b.totalQty - a.totalQty)
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
       .slice(0, limit);
   },
 

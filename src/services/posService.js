@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 export const posService = {
   /**
-   * Mengambil seluruh produk aktif untuk antarmuka kasir (termasuk varian)
+   * Mengambil seluruh produk aktif untuk antarmuka kasir (termasuk varian dan satuan penjualan)
    */
   async getPOSProducts({ search = '', categoryId = '' } = {}) {
     let query = supabase
@@ -94,80 +94,137 @@ export const posService = {
       }
     }
 
-    // Jika pencarian ada, cek juga apakah ada varian yang cocok
+    // Jika pencarian ada, cek juga apakah ada varian atau satuan penjualan yang cocok
     if (search && search.trim()) {
       const cleanSearch = search.trim();
       try {
+        // Cek kecocokan di varian
         const { data: matchedVariants } = await supabase
           .from('product_variants')
           .select('product_id')
           .eq('status', true)
           .or(`variant_name.ilike.%${cleanSearch}%,code.ilike.%${cleanSearch}%,barcode.ilike.%${cleanSearch}%`);
 
-        if (matchedVariants && matchedVariants.length > 0) {
-          const variantProductIds = matchedVariants.map((v) => v.product_id);
-          const missingIds = variantProductIds.filter((pid) => !results.some((r) => r.id === pid));
+        // Cek kecocokan di satuan penjualan
+        const { data: matchedSaleUnits } = await supabase
+          .from('product_sale_units')
+          .select('product_id')
+          .eq('status', true)
+          .or(`name.ilike.%${cleanSearch}%,barcode.ilike.%${cleanSearch}%`);
 
-          if (missingIds.length > 0) {
-            let extraQuery = supabase
-              .from('products')
+        const matchedIds = [
+          ...(matchedVariants || []).map((v) => v.product_id),
+          ...(matchedSaleUnits || []).map((s) => s.product_id),
+        ];
+
+        const missingIds = matchedIds.filter((pid) => !results.some((r) => r.id === pid));
+
+        if (missingIds.length > 0) {
+          let extraQuery = supabase
+            .from('products')
+            .select(`
+              id,
+              code,
+              barcode,
+              name,
+              selling_price,
+              stock,
+              minimum_stock,
+              status,
+              has_variants,
+              category:categories (id, name),
+              unit:units (id, name, symbol, allow_decimal)
+            `)
+            .in('id', missingIds)
+            .eq('status', true);
+
+          if (categoryId) {
+            extraQuery = extraQuery.eq('category_id', categoryId);
+          }
+
+          const { data: extraProducts } = await extraQuery;
+          if (extraProducts && extraProducts.length > 0) {
+            const extraProductIds = extraProducts.map((p) => p.id);
+            const { data: extraVarData } = await supabase
+              .from('product_variants')
               .select(`
                 id,
+                product_id,
+                variant_name,
                 code,
                 barcode,
-                name,
                 selling_price,
                 stock,
                 minimum_stock,
                 status,
-                has_variants,
-                category:categories (id, name),
+                unit_id,
                 unit:units (id, name, symbol, allow_decimal)
               `)
-              .in('id', missingIds)
+              .in('product_id', extraProductIds)
               .eq('status', true);
 
-            if (categoryId) {
-              extraQuery = extraQuery.eq('category_id', categoryId);
-            }
+            const extraMap = {};
+            (extraVarData || []).forEach((v) => {
+              if (!extraMap[v.product_id]) extraMap[v.product_id] = [];
+              extraMap[v.product_id].push(v);
+            });
 
-            const { data: extraProducts } = await extraQuery;
-            if (extraProducts) {
-              // Ambil varian untuk extra products
-              const { data: extraVarData } = await supabase
-                .from('product_variants')
-                .select(`
-                  id,
-                  product_id,
-                  variant_name,
-                  code,
-                  barcode,
-                  selling_price,
-                  stock,
-                  minimum_stock,
-                  status,
-                  unit_id,
-                  unit:units (id, name, symbol, allow_decimal)
-                `)
-                .in('product_id', missingIds)
-                .eq('status', true);
+            const formattedExtras = extraProducts.map((p) => ({
+              ...p,
+              product_variants: extraMap[p.id] || [],
+            }));
 
-              const extraMap = {};
-              (extraVarData || []).forEach((v) => {
-                if (!extraMap[v.product_id]) extraMap[v.product_id] = [];
-                extraMap[v.product_id].push(v);
-              });
-
-              const formattedExtras = extraProducts.map((p) => ({
-                ...p,
-                product_variants: extraMap[p.id] || [],
-              }));
-
-              results = [...results, ...formattedExtras];
-            }
+            results = [...results, ...formattedExtras];
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[posService] Search matching query error/skip:', e);
+      }
+    }
+
+    // Ambil semua Satuan Penjualan (product_sale_units) untuk seluruh produk hasil query
+    if (results.length > 0) {
+      const allProductIds = results.map((p) => p.id);
+      try {
+        const { data: saleUnitsData, error: suError } = await supabase
+          .from('product_sale_units')
+          .select('*')
+          .in('product_id', allProductIds)
+          .eq('status', true)
+          .order('sort_order', { ascending: true })
+          .order('conversion_qty', { ascending: true });
+
+        if (!suError && saleUnitsData) {
+          const productUnitMap = {};
+          const variantUnitMap = {};
+
+          saleUnitsData.forEach((su) => {
+            if (su.variant_id) {
+              if (!variantUnitMap[su.variant_id]) variantUnitMap[su.variant_id] = [];
+              variantUnitMap[su.variant_id].push(su);
+            } else {
+              if (!productUnitMap[su.product_id]) productUnitMap[su.product_id] = [];
+              productUnitMap[su.product_id].push(su);
+            }
+          });
+
+          results = results.map((p) => {
+            const pSaleUnits = productUnitMap[p.id] || [];
+            const pVariants = (p.product_variants || []).map((v) => ({
+              ...v,
+              sale_units: variantUnitMap[v.id] || [],
+            }));
+
+            return {
+              ...p,
+              sale_units: pSaleUnits,
+              product_variants: pVariants,
+            };
+          });
+        }
+      } catch (suErr) {
+        console.warn('[posService] Sale units fetch skipped:', suErr);
+      }
     }
 
     return results.map((p) => ({
@@ -177,7 +234,7 @@ export const posService = {
   },
 
   /**
-   * Pencarian terpadu produk resmi (dan varian) + harga belum terdaftar untuk POS
+   * Pencarian terpadu produk resmi (dan varian & satuan) + harga belum terdaftar untuk POS
    */
   async searchPOSUnified(term = '') {
     if (!term || !term.trim()) {
@@ -219,6 +276,7 @@ export const posService = {
       notes: u.notes,
       unit: { symbol: u.unit_name || 'Item', allow_decimal: false },
       has_variants: false,
+      sale_units: [],
     }));
 
     return [...formattedProducts, ...formattedUnreg];

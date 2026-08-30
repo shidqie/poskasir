@@ -19,6 +19,7 @@ import { CartPanel } from '@/components/pos/CartPanel';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
 import { BarcodeNotFoundModal } from '@/components/pos/BarcodeNotFoundModal';
 import { VariantSelectorModal } from '@/components/pos/VariantSelectorModal';
+import { SaleUnitSelectorModal } from '@/components/sale-units/SaleUnitSelectorModal';
 import PaymentModal from '@/components/pos/PaymentModal';
 import TransactionSuccessModal from '@/components/pos/TransactionSuccessModal';
 import { ProductSubmissionModal } from '@/components/submissions/ProductSubmissionModal';
@@ -158,44 +159,53 @@ export function POSPage() {
     [checkoutMutation]
   );
 
-  const handleNewTransaction = useCallback(() => {
-    setIsSuccessOpen(false);
-    setLastTransaction(null);
-    toggleMobileCart(false);
-  }, [toggleMobileCart]);
+  const handleOpenSaleUnits = useCallback((product, variant = null, customSaleUnits = null) => {
+    const suList = customSaleUnits || (variant ? (variant.sale_units || []) : (product.sale_units || []));
+    setSaleUnitModalState({
+      isOpen: true,
+      product,
+      variant,
+      saleUnits: suList,
+    });
+  }, []);
 
-  const handleAddToCart = (product) => {
-    const res = addItem(product);
-    if (res?.success) {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(30);
-      }
-    }
-  };
+  const handleSelectSaleUnit = useCallback(({ product, variant, saleUnit }) => {
+    const isVariant = Boolean(variant);
+    const pName = product.name;
+    const vName = isVariant ? variant.variant_name : null;
+    const suName = saleUnit ? saleUnit.name : null;
 
-  const handleOpenVariants = (product) => {
-    setVariantModalProduct(product);
-    setIsVariantModalOpen(true);
-  };
+    let displayName = pName;
+    if (vName) displayName += ` - ${vName}`;
+    if (suName) displayName += ` (${suName})`;
 
-  const handleSelectVariant = (product, variant) => {
+    const unitPrice = saleUnit ? Number(saleUnit.selling_price) : (isVariant ? Number(variant.selling_price) : Number(product.selling_price));
+    const convQty = saleUnit ? Number(saleUnit.conversion_qty) : 1;
+    const baseStock = isVariant ? Number(variant.stock) : Number(product.stock);
+    const minStock = isVariant ? Number(variant.minimum_stock) : Number(product.minimum_stock);
+    const baseCode = isVariant ? (variant.code || product.code) : product.code;
+    const baseBarcode = saleUnit?.barcode || (isVariant ? variant.barcode : product.barcode);
+    const unitObj = isVariant ? (variant.unit || product.unit) : product.unit;
+
     const res = addItem({
       sourceType: 'product',
       productId: product.id,
-      variantId: variant.id,
-      name: product.name,
-      productName: product.name,
-      variantName: variant.variant_name,
-      displayName: `${product.name} - ${variant.variant_name}`,
-      selling_price: variant.selling_price,
-      stock: variant.stock,
-      minimum_stock: variant.minimum_stock,
-      code: variant.code,
-      barcode: variant.barcode,
-      unit: variant.unit || product.unit,
-      allowDecimal: Boolean(
-        variant.unit?.allow_decimal || product.unit?.allow_decimal
-      ),
+      variantId: isVariant ? variant.id : null,
+      saleUnitId: saleUnit ? saleUnit.id : null,
+      saleUnitName: suName,
+      conversionQty: convQty,
+      name: pName,
+      productName: pName,
+      variantName: vName,
+      displayName,
+      selling_price: unitPrice,
+      price: unitPrice,
+      stock: baseStock,
+      minimum_stock: minStock,
+      code: baseCode,
+      barcode: baseBarcode,
+      unit: unitObj,
+      allowDecimal: Boolean(unitObj?.allow_decimal),
     });
 
     if (res?.success) {
@@ -204,11 +214,71 @@ export function POSPage() {
       }
       setToast({
         isOpen: true,
-        message: `${product.name} (${variant.variant_name}) dimasukkan ke keranjang.`,
+        message: `${displayName} dimasukkan ke keranjang.`,
         type: 'success',
       });
     }
-  };
+  }, [addItem]);
+
+  const handleAddToCart = useCallback((product) => {
+    const saleUnits = product.sale_units || [];
+    if (saleUnits.length > 1) {
+      handleOpenSaleUnits(product);
+    } else if (saleUnits.length === 1) {
+      handleSelectSaleUnit({ product, variant: null, saleUnit: saleUnits[0] });
+    } else {
+      const res = addItem(product);
+      if (res?.success) {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+      }
+    }
+  }, [addItem, handleOpenSaleUnits, handleSelectSaleUnit]);
+
+  const handleOpenVariants = useCallback((product) => {
+    setVariantModalProduct(product);
+    setIsVariantModalOpen(true);
+  }, []);
+
+  const handleSelectVariant = useCallback((product, variant, saleUnits = []) => {
+    const suList = saleUnits && saleUnits.length > 0 ? saleUnits : (variant.sale_units || []);
+    if (suList.length > 1) {
+      handleOpenSaleUnits(product, variant, suList);
+    } else if (suList.length === 1) {
+      handleSelectSaleUnit({ product, variant, saleUnit: suList[0] });
+    } else {
+      const res = addItem({
+        sourceType: 'product',
+        productId: product.id,
+        variantId: variant.id,
+        name: product.name,
+        productName: product.name,
+        variantName: variant.variant_name,
+        displayName: `${product.name} - ${variant.variant_name}`,
+        selling_price: variant.selling_price,
+        stock: variant.stock,
+        minimum_stock: variant.minimum_stock,
+        code: variant.code,
+        barcode: variant.barcode,
+        unit: variant.unit || product.unit,
+        allowDecimal: Boolean(
+          variant.unit?.allow_decimal || product.unit?.allow_decimal
+        ),
+      });
+
+      if (res?.success) {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+        setToast({
+          isOpen: true,
+          message: `${product.name} (${variant.variant_name}) dimasukkan ke keranjang.`,
+          type: 'success',
+        });
+      }
+    }
+  }, [addItem, handleOpenSaleUnits, handleSelectSaleUnit]);
 
   const isSessionOpen = activeSession && activeSession.status === 'open';
 
@@ -228,6 +298,9 @@ export function POSPage() {
             !result.data.variantId
           ) {
             handleOpenVariants(result.data);
+          } else if (!result.data.saleUnitId && result.data.sale_units?.length > 1) {
+            // Jika produk memiliki banyak pilihan satuan penjualan dan scan dari barcode umum produk
+            handleOpenSaleUnits(result.data);
           } else {
             const addRes = addItem(result.data, 1);
             if (addRes?.success !== false) {
@@ -250,7 +323,7 @@ export function POSPage() {
         console.error('[POSPage] Error handling barcode:', err);
       }
     },
-    [addItem]
+    [addItem, handleOpenVariants, handleOpenSaleUnits]
   );
 
   // Pasang listener global untuk hardware scanner (USB / Bluetooth / Keyboard Wedge)
@@ -375,6 +448,7 @@ export function POSPage() {
               searchTerm={searchTerm}
               onAddToCart={handleAddToCart}
               onOpenVariants={handleOpenVariants}
+              onOpenSaleUnits={handleOpenSaleUnits}
               onRetry={() => refetch()}
               onOpenUnregModal={() => handleOpenAddUnreg({ name: searchTerm })}
             />
@@ -492,6 +566,23 @@ export function POSPage() {
         }}
         product={variantModalProduct}
         onSelectVariant={handleSelectVariant}
+      />
+
+      {/* Modal Pilih Satuan Penjualan Multi-Unit */}
+      <SaleUnitSelectorModal
+        isOpen={saleUnitModalState.isOpen}
+        onClose={() =>
+          setSaleUnitModalState({
+            isOpen: false,
+            product: null,
+            variant: null,
+            saleUnits: [],
+          })
+        }
+        product={saleUnitModalState.product}
+        variant={saleUnitModalState.variant}
+        saleUnits={saleUnitModalState.saleUnits}
+        onSelectUnit={handleSelectSaleUnit}
       />
 
       {/* Modal Pembayaran Aktif */}

@@ -16,6 +16,7 @@ import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Toast } from '@/components/common/Toast';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
+import { SaleUnitTable } from '@/components/sale-units/SaleUnitTable';
 import {
   ArrowLeft,
   Save,
@@ -475,6 +476,18 @@ export function ProductFormPage() {
                 </p>
               </div>
             </div>
+
+            {/* Pilihan Satuan & Harga Penjualan (Khusus Mode Edit Produk Non-Varian) */}
+            {isEdit && id && (
+              <div className="mt-5 pt-5 border-t border-slate-200/80">
+                <SaleUnitTable
+                  productId={id}
+                  baseUnitSymbol={units.find((u) => u.id === unitId)?.symbol || 'Pcs'}
+                  basePrice={sellingPrice}
+                  productName={name}
+                />
+              </div>
+            )}
           </Card>
         ) : (
           /* Card 3: Form Varian Produk (Jika hasVariants = true) */

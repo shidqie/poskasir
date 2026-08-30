@@ -10,6 +10,7 @@ import { ToggleSwitch } from '@/components/common/ToggleSwitch';
 import { Alert } from '@/components/common/Alert';
 import { CurrencyInput } from '@/components/common/CurrencyInput';
 import { BarcodeScannerModal } from '@/components/pos/BarcodeScannerModal';
+import { SaleUnitTable } from '@/components/sale-units/SaleUnitTable';
 import { Save, Barcode, Camera, Layers } from 'lucide-react';
 
 export function EditVariantModal({
@@ -254,6 +255,19 @@ export function EditVariantModal({
               disabled={saveMutation.isPending}
             />
           </div>
+
+          {/* Pilihan Satuan & Harga Penjualan Khusus Varian */}
+          {isEdit && variant?.id && (
+            <div className="pt-3 border-t border-slate-200/80">
+              <SaleUnitTable
+                productId={variant.product_id || productId}
+                variantId={variant.id}
+                baseUnitSymbol={units.find((u) => u.id === unitId)?.symbol || variant.unit?.symbol || 'Pcs'}
+                basePrice={sellingPrice}
+                productName={variantName}
+              />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-3">

@@ -15,6 +15,9 @@ export const transactionService = {
       sourceType: item.sourceType || 'product',
       productId: item.productId || (item.sourceType === 'product' ? item.id : null),
       variantId: item.variantId || item.variant_id || null,
+      saleUnitId: item.saleUnitId || item.sale_unit_id || null,
+      saleUnitName: item.saleUnitName || item.sale_unit_name || null,
+      conversionQty: Number(item.conversionQty || item.conversion_qty || 1),
       temporaryPriceId: item.temporaryPriceId || (item.sourceType === 'temporary' ? item.id : null),
       name: item.productName || item.name,
       variantName: item.variantName || item.variant_name || null,
@@ -117,6 +120,9 @@ export const transactionService = {
           item_name,
           variant_name,
           variant_id,
+          sale_unit_id,
+          sale_unit_name,
+          conversion_qty,
           unit_name,
           price,
           quantity,
@@ -141,7 +147,9 @@ export const transactionService = {
         raw_product_name: item.item_name,
         variant_name: item.variant_name,
         unit_price: item.price,
-        unit_symbol: item.unit_name,
+        unit_symbol: item.sale_unit_name || item.unit_name,
+        sale_unit_name: item.sale_unit_name,
+        conversion_qty: item.conversion_qty,
       }));
     }
 

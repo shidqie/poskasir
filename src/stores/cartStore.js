@@ -10,8 +10,10 @@ const recalculateTotals = (items) => {
     const qty = Number(item.quantity) || 0;
     const price = Number(item.price) || 0;
     const subtotal = Math.round(qty * price * 100) / 100;
+    const conv = Number(item.conversionQty) || 1;
 
     item.subtotal = subtotal;
+    item.stockDeduction = Math.round(qty * conv * 1000) / 1000;
     totalQuantity += qty;
     totalAmount += subtotal;
   });
@@ -40,7 +42,7 @@ export const useCartStore = create(
           if (get().lastWarning === message) {
             set({ lastWarning: null });
           }
-        }, 3000);
+        }, 3500);
       },
 
       clearWarning: () => set({ lastWarning: null }),
@@ -53,41 +55,64 @@ export const useCartStore = create(
       },
 
       /**
-       * Menambahkan produk resmi (dengan/tanpa varian) atau barang belum terdaftar ke keranjang
+       * Menambahkan item ke keranjang dengan dukungan Satuan Penjualan & Konversi Stok Dasar
        */
       addItem: (itemData, initialQty = 1) => {
         const { items } = get();
         const isProduct = itemData.sourceType === 'product' || !itemData.sourceType;
         const productId = isProduct ? (itemData.productId || itemData.id) : null;
         const variantId = isProduct ? (itemData.variantId || itemData.variant_id || null) : null;
+        const saleUnitId = isProduct ? (itemData.saleUnitId || itemData.sale_unit_id || null) : null;
 
-        // Unik ID di keranjang membedakan varian
+        // Key unik di keranjang membedakan varian dan satuan penjualan yang berbeda
         const itemId = isProduct
-          ? (variantId ? `prod-${productId}-var-${variantId}` : `prod-${productId}`)
+          ? `prod-${productId}-var-${variantId || 'base'}-unit-${saleUnitId || 'base'}`
           : `temp-${itemData.id}`;
 
         const existingIndex = items.findIndex((i) => i.id === itemId);
         const qtyToAdd = Number(initialQty) || 1;
+        const conversionQty = Number(itemData.conversionQty || itemData.conversion_qty || 1);
 
         const pName = itemData.productName || itemData.name;
         const vName = itemData.variantName || itemData.variant_name || null;
-        const dName = itemData.displayName || (vName ? `${pName} - ${vName}` : pName);
+        const suName = itemData.saleUnitName || itemData.sale_unit_name || null;
+
+        let dName = itemData.displayName;
+        if (!dName) {
+          dName = pName;
+          if (vName) dName += ` - ${vName}`;
+          if (suName) dName += ` (${suName})`;
+        }
+
+        const baseStock = isProduct ? (itemData.stock !== null && itemData.stock !== undefined ? Number(itemData.stock) : null) : null;
+        const baseUnitSymbol =
+          itemData.unit?.symbol ||
+          itemData.unit?.name ||
+          itemData.unit_name ||
+          itemData.unitSymbol ||
+          'Pcs';
+
+        // Hitung total stok dasar yang sudah terpakai di keranjang untuk produk & varian ini
+        const otherCartItemsUsage = items
+          .filter((i) => i.productId === productId && i.variantId === variantId && i.id !== itemId)
+          .reduce((sum, i) => sum + (Number(i.quantity) * (Number(i.conversionQty) || 1)), 0);
 
         if (existingIndex > -1) {
-          // Barang sudah ada di keranjang, tambah quantity
+          // Item sudah ada di keranjang, tambah quantity
           const existingItem = items[existingIndex];
           const newQty = existingItem.allowDecimal
             ? Math.round((existingItem.quantity + qtyToAdd) * 1000) / 1000
             : existingItem.quantity + Math.round(qtyToAdd);
 
-          // Validasi stok untuk barang resmi / varian
-          if (isProduct && existingItem.stock !== null && newQty > existingItem.stock) {
+          const totalBaseDeduction = (newQty * conversionQty) + otherCartItemsUsage;
+
+          if (isProduct && baseStock !== null && totalBaseDeduction > baseStock) {
             get().setWarning(
-              `Stok ${existingItem.displayName || existingItem.name} tidak mencukupi. Sisa stok: ${existingItem.stock} ${existingItem.unit}`
+              `Stok ${dName} tidak mencukupi. Kebutuhan: ${totalBaseDeduction} ${baseUnitSymbol}, Sisa stok: ${baseStock} ${baseUnitSymbol}`
             );
             return {
               success: false,
-              message: `Stok tidak mencukupi. Tersedia: ${existingItem.stock}`,
+              message: `Stok tidak mencukupi. Tersedia: ${baseStock} ${baseUnitSymbol}`,
             };
           }
 
@@ -101,24 +126,25 @@ export const useCartStore = create(
           set({ ...calculated });
           return { success: true, item: updatedItems[existingIndex] };
         } else {
-          // Barang baru masuk keranjang
-          const stockVal = isProduct ? Number(itemData.stock) : null;
+          // Item baru masuk keranjang
           const allowDecimalVal = Boolean(
             itemData.unit?.allow_decimal || itemData.allowDecimal
           );
 
-          if (isProduct && stockVal !== null && stockVal <= 0) {
+          const requiredBaseStock = (qtyToAdd * conversionQty) + otherCartItemsUsage;
+
+          if (isProduct && baseStock !== null && baseStock <= 0) {
             get().setWarning(`Stok ${dName} habis.`);
             return { success: false, message: 'Stok produk/varian habis.' };
           }
 
-          if (isProduct && stockVal !== null && qtyToAdd > stockVal) {
+          if (isProduct && baseStock !== null && requiredBaseStock > baseStock) {
             get().setWarning(
-              `Stok ${dName} tidak mencukupi. Sisa stok: ${stockVal}`
+              `Stok ${dName} tidak mencukupi. Kebutuhan: ${requiredBaseStock} ${baseUnitSymbol}, Sisa stok: ${baseStock} ${baseUnitSymbol}`
             );
             return {
               success: false,
-              message: `Stok tidak mencukupi. Tersedia: ${stockVal}`,
+              message: `Stok tidak mencukupi. Tersedia: ${baseStock} ${baseUnitSymbol}`,
             };
           }
 
@@ -127,25 +153,25 @@ export const useCartStore = create(
             sourceType: isProduct ? 'product' : 'temporary',
             productId: productId,
             variantId: variantId,
+            saleUnitId: saleUnitId,
             temporaryPriceId: !isProduct ? itemData.id : null,
             name: pName,
             productName: pName,
             variantName: vName,
+            saleUnitName: suName,
             displayName: dName,
             code: itemData.code || null,
             barcode: itemData.barcode || null,
             price: Number(itemData.selling_price || itemData.price) || 0,
-            unit:
-              itemData.unit?.symbol ||
-              itemData.unit?.name ||
-              itemData.unit_name ||
-              itemData.unitSymbol ||
-              'Pcs',
+            conversionQty: conversionQty,
+            unit: suName || baseUnitSymbol,
+            baseUnitSymbol: baseUnitSymbol,
             allowDecimal: allowDecimalVal,
             quantity: allowDecimalVal
               ? Math.round(qtyToAdd * 1000) / 1000
               : Math.round(qtyToAdd),
-            stock: stockVal,
+            stock: baseStock,
+            stockDeduction: Math.round(qtyToAdd * conversionQty * 1000) / 1000,
             subtotal: 0,
           };
 
@@ -170,13 +196,20 @@ export const useCartStore = create(
           ? Math.round((item.quantity + stepVal) * 1000) / 1000
           : item.quantity + 1;
 
+        const conv = Number(item.conversionQty) || 1;
+        const otherUsage = items
+          .filter((i) => i.productId === item.productId && i.variantId === item.variantId && i.id !== id)
+          .reduce((sum, i) => sum + (Number(i.quantity) * (Number(i.conversionQty) || 1)), 0);
+
+        const totalDeduction = (newQty * conv) + otherUsage;
+
         if (
           item.sourceType === 'product' &&
           item.stock !== null &&
-          newQty > item.stock
+          totalDeduction > item.stock
         ) {
           get().setWarning(
-            `Stok ${item.displayName || item.name} maksimal ${item.stock} ${item.unit}`
+            `Stok ${item.displayName || item.name} tidak mencukupi (Tersedia: ${item.stock} ${item.baseUnitSymbol || 'Pcs'}, Butuh: ${totalDeduction})`
           );
           return;
         }
@@ -231,15 +264,23 @@ export const useCartStore = create(
           val = Math.round(val * 1000) / 1000;
         }
 
+        const conv = Number(item.conversionQty) || 1;
+        const otherUsage = items
+          .filter((i) => i.productId === item.productId && i.variantId === item.variantId && i.id !== id)
+          .reduce((sum, i) => sum + (Number(i.quantity) * (Number(i.conversionQty) || 1)), 0);
+
+        let totalDeduction = (val * conv) + otherUsage;
+
         if (
           item.sourceType === 'product' &&
           item.stock !== null &&
-          val > item.stock
+          totalDeduction > item.stock
         ) {
+          const maxAllowedQty = Math.floor((item.stock - otherUsage) / conv);
+          val = Math.max(item.allowDecimal ? 0.001 : 1, maxAllowedQty);
           get().setWarning(
-            `Stok ${item.displayName || item.name} tidak mencukupi (Tersedia: ${item.stock} ${item.unit})`
+            `Stok ${item.displayName || item.name} tidak mencukupi (Tersedia: ${item.stock} ${item.baseUnitSymbol || 'Pcs'})`
           );
-          val = item.stock;
         }
 
         const updatedItems = [...items];
