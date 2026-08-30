@@ -233,14 +233,14 @@ export function CategoryListPage() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => handleOpenEdit(cat)}
-                      className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px]"
+                      className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 border border-slate-200 font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] transition-colors cursor-pointer"
                       title="Ubah Nama"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleToggleClick(cat)}
-                      className={`p-2 rounded-xl border font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] ${
+                      className={`p-2 rounded-xl border font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] transition-colors cursor-pointer ${
                         cat.status
                           ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
                           : 'border-slate-200 text-slate-400 hover:bg-slate-100'
@@ -248,6 +248,13 @@ export function CategoryListPage() {
                       title={cat.status ? 'Nonaktifkan' : 'Aktifkan'}
                     >
                       {cat.status ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(cat)}
+                      className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 font-semibold text-xs flex items-center justify-center min-w-[36px] min-h-[36px] transition-colors cursor-pointer"
+                      title="Hapus Kategori"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -296,6 +303,13 @@ export function CategoryListPage() {
                             ) : (
                               <ToggleLeft className="w-5 h-5" />
                             )}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(cat)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Hapus Kategori"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
